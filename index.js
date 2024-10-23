@@ -15,6 +15,15 @@ const pool = new Pool({
 // Middleware to parse form data
 app.use(express.urlencoded({ extended: true }));
 
+// Redirect all HTTP traffic to HTTPS
+app.use((req, res, next) => {
+  if (req.header("x-forwarded-proto") !== "https") {
+    res.redirect(`https://${req.header("host")}${req.url}`);
+  } else {
+    next();
+  }
+});
+
 // Display "Hello World" on the home page with a link to the visitor log
 app.get("/", (req, res) => {
   res.send(`
