@@ -15,14 +15,15 @@ const pool = new Pool({
 // Middleware to parse form data
 app.use(express.urlencoded({ extended: true }));
 
-// Redirect all HTTP traffic to HTTPS
-app.use((req, res, next) => {
-  if (req.header("x-forwarded-proto") !== "https") {
-    res.redirect(`https://${req.header("host")}${req.url}`);
-  } else {
+// Redirect all HTTP traffic to HTTPS in production only
+if (isProduction) {
+  app.use((req, res, next) => {
+    if (req.header("x-forwarded-proto") !== "https") {
+      return res.redirect(`https://${req.header("host")}${req.url}`);
+    }
     next();
-  }
-});
+  });
+}
 
 // Display "Hello World" on the home page with a link to the visitor log
 app.get("/", (req, res) => {
@@ -53,6 +54,7 @@ app.get("/visitor-log", async (req, res) => {
           <head><title>Visitor Log</title></head>
           <body>
             <h1>Sign the Visitor Log</h1>
+            <p><strong>Only one person can sign the visitor log per day.</strong></p>
             <form action="/sign-log" method="POST">
               <label for="name">Your Name:</label>
               <input type="text" id="name" name="name" required />
@@ -62,6 +64,7 @@ app.get("/visitor-log", async (req, res) => {
             <h2>Visitors:</h2>
             ${generateVisitorsTable(visitors)}
   
+          <p>The visitor log is a feature designed mostly to test that the database behind this website is working.</p>            
           </body>
         </html>
       `);
@@ -106,21 +109,44 @@ function generateVisitorsTable(visitors) {
   return table;
 }
 
-// Handle form submissions and insert the visitor log entry into the database
+// Handle form submission
 app.post("/sign-log", async (req, res) => {
   const { name } = req.body;
-  const timestamp = new Date().toISOString();
+  const today = new Date().toISOString().split("T")[0]; // Get only the date part
 
   try {
     const client = await pool.connect();
-    await client.query(
-      "INSERT INTO visitor_log (name, signed_at) VALUES ($1, $2)",
-      [name, timestamp]
+
+    // Check if someone has already signed today
+    const result = await client.query(
+      `SELECT COUNT(*) FROM visitor_log WHERE signed_at::date = $1`,
+      [today]
     );
-    client.release();
-    res.send(
-      `<h1>Thanks, ${name}! You've signed the visitor log at ${timestamp}.</h1>`
-    );
+    const alreadySigned = result.rows[0].count > 0;
+
+    if (alreadySigned) {
+      // If someone has signed, show a message
+      client.release();
+      res.send(`
+        <html>
+          <head><title>Visitor Log</title></head>
+          <body>
+            <h1>Sorry, someone else has already signed the log today</h1>
+            <a href="/visitor-log">Go back to the log</a>
+          </body>
+        </html>
+      `);
+    } else {
+      // If no one has signed today, insert the new entry
+      const timestamp = new Date().toISOString();
+      await client.query(
+        "INSERT INTO visitor_log (name, signed_at) VALUES ($1, $2)",
+        [name, timestamp]
+      );
+      client.release();
+
+      res.redirect("/visitor-log");
+    }
   } catch (err) {
     console.error(err);
     res.send("Error saving your entry. Please try again.");
