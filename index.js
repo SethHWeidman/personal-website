@@ -25,6 +25,8 @@ if (isProduction) {
   });
 }
 
+app.use(express.static("public"));
+
 // Display "Hello World" on the home page with a link to the visitor log
 app.get("/", (req, res) => {
   res.send(`
@@ -32,8 +34,21 @@ app.get("/", (req, res) => {
         <head><title>Seth Weidman's Website</title></head>
         <body>
           <h1>Welcome to Seth Weidman's Website</h1>
+
+          <img src="/190236160_10165135962785277_1522623073419400315_n-2.jpg" alt="Seth Weidman" style="width:600px;height:auto;">
+
+          <br><br>
+          <a href="https://www.linkedin.com/in/sethhweidman/" target="_blank">LinkedIn</a> | 
+          <a href="https://github.com/SethHWeidman" target="_blank">GitHub</a>
+
+          Since December 2019, I've worked at <a href="https://www.sentilink.com" target="_blank">SentiLink</a>, growing from a Data Scientist and Machine Learning Engineer to a Principal Product Manager reporting to the co-founder and Head of Product, building multiple products from 0 to 1 along the way. 
+          
+          In September 2019, O'Reilly published an introductory book I wrote covering the mechanics of Deep Learning models: <a href="https://www.amazon.com/Deep-Learning-Scratch-Building-Principles/dp/1492041416" target="_blank"Deep Learning From Scratch</a>.
+
+          <br><br>
           <a href="/visitor-log">Sign the Visitor Log</a>
-        </body>
+
+          </body>
       </html>
     `);
 });
@@ -55,6 +70,7 @@ app.get("/visitor-log", async (req, res) => {
           <body>
             <h1>Sign the Visitor Log</h1>
             <p><strong>Only one person can sign the visitor log per day.</strong></p>
+
             <form action="/sign-log" method="POST">
               <label for="name">Your Name:</label>
               <input type="text" id="name" name="name" required />

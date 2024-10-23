@@ -6,3 +6,5 @@ Procfile
 *.sql
 
 *.vscode
+
+public*
