@@ -35,15 +35,17 @@ app.get("/", (req, res) => {
         <body>
           <h1>Welcome to Seth Weidman's Website</h1>
 
-          <img src="/190236160_10165135962785277_1522623073419400315_n-2.jpg" alt="Seth Weidman" style="width:600px;height:auto;">
+          <img src="https://sethhweidman-personal-website.s3.amazonaws.com/profile-picture.jpg" alt="Seth Weidman" style="width:600px;height:auto;">
 
           <br><br>
           <a href="https://www.linkedin.com/in/sethhweidman/" target="_blank">LinkedIn</a> | 
           <a href="https://github.com/SethHWeidman" target="_blank">GitHub</a>
 
+          <br><br>
           Since December 2019, I've worked at <a href="https://www.sentilink.com" target="_blank">SentiLink</a>, growing from a Data Scientist and Machine Learning Engineer to a Principal Product Manager reporting to the co-founder and Head of Product, building multiple products from 0 to 1 along the way. 
           
-          In September 2019, O'Reilly published an introductory book I wrote covering the mechanics of Deep Learning models: <a href="https://www.amazon.com/Deep-Learning-Scratch-Building-Principles/dp/1492041416" target="_blank"Deep Learning From Scratch</a>.
+          <br><br>
+          In September 2019, O'Reilly published an introductory book I wrote covering the mechanics of Deep Learning models: <a href="https://www.amazon.com/Deep-Learning-Scratch-Building-Principles/dp/1492041416" target="_blank">Deep Learning From Scratch</a>.
 
           <br><br>
           <a href="/visitor-log">Sign the Visitor Log</a>
