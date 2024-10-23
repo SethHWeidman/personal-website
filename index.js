@@ -39,7 +39,7 @@ app.get("/", (req, res) => {
 
           <br><br>
           <a href="https://www.linkedin.com/in/sethhweidman/" target="_blank">LinkedIn</a> | 
-          <a href="https://github.com/SethHWeidman" target="_blank">GitHub</a>
+          <a href="https://github.com/SethHWeidman" target="_blank">GitHub</a> (and <a href="https://github.com/SethHWeidman/personal-website/tree/master" target="_blank">code for this website</a>)
 
           <br><br>
           Since December 2019, I've worked at <a href="https://www.sentilink.com" target="_blank">SentiLink</a>, growing from a Data Scientist and Machine Learning Engineer to a Principal Product Manager reporting to the co-founder and Head of Product, building multiple products from 0 to 1 along the way. 
