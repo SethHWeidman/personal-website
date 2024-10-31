@@ -33,6 +33,7 @@ app.get("/", (req, res) => {
       <html>
         <head><title>Seth Weidman's Website</title></head>
         <link rel="stylesheet" type="text/css" href="/styles.css">        
+        <meta name="viewport" content="width=device-width, initial-scale=1">        
         <body>
           <h1>Welcome to Seth Weidman's Website</h1>
 
