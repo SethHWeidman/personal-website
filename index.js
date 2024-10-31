@@ -33,11 +33,11 @@ app.get("/", (req, res) => {
       <html>
         <head><title>Seth Weidman's Website</title></head>
         <link rel="stylesheet" type="text/css" href="/styles.css">        
-        <meta name="viewport" content="width=device-width, initial-scale=1">        
+        <meta name="viewport" content="width=device-width, initial-scale=1">
         <body>
           <h1>Welcome to Seth Weidman's Website</h1>
 
-          <img src="https://sethhweidman-personal-website.s3.amazonaws.com/profile-picture.jpg" alt="Seth Weidman" style="width:600px;height:auto;">
+          <img src="https://sethhweidman-personal-website.s3.amazonaws.com/profile-picture.jpg" alt="Seth Weidman" style="width:100%; max-width:600px;height:auto;">
 
           <br><br>
           <a href="https://www.linkedin.com/in/sethhweidman/" target="_blank">LinkedIn</a> | 
