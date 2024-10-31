@@ -32,6 +32,7 @@ app.get("/", (req, res) => {
   res.send(`
       <html>
         <head><title>Seth Weidman's Website</title></head>
+        <link rel="stylesheet" type="text/css" href="/styles.css">        
         <body>
           <h1>Welcome to Seth Weidman's Website</h1>
 
@@ -72,6 +73,7 @@ app.get("/visitor-log", async (req, res) => {
     res.send(`
         <html>
           <head><title>Visitor Log</title></head>
+          <link rel="stylesheet" type="text/css" href="/styles.css">
           <body>
             <h1>Sign the Visitor Log</h1>
             <p><strong>Only one person can sign the visitor log per day.</strong></p>
