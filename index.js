@@ -75,6 +75,7 @@ app.get("/visitor-log", async (req, res) => {
         <html>
           <head><title>Visitor Log</title></head>
           <link rel="stylesheet" type="text/css" href="/styles.css">
+          <meta name="viewport" content="width=device-width, initial-scale=1">
           <body>
             <h1>Sign the Visitor Log</h1>
             <p><strong>Only one person can sign the visitor log per day.</strong></p>
@@ -88,6 +89,10 @@ app.get("/visitor-log", async (req, res) => {
             <h2>Visitors:</h2>
             ${generateVisitorsTable(visitors)}
   
+            <br>
+
+            <button onclick="window.location.href='/'">Back</button>
+
           <p>The visitor log is a feature designed mostly to test that the database behind this website is working.</p>            
           </body>
         </html>
@@ -154,6 +159,8 @@ app.post("/sign-log", async (req, res) => {
       res.send(`
         <html>
           <head><title>Visitor Log</title></head>
+          <link rel="stylesheet" type="text/css" href="/styles.css">
+          <meta name="viewport" content="width=device-width, initial-scale=1">          
           <body>
             <h1>Sorry, someone else has already signed the log today</h1>
             <a href="/visitor-log">Go back to the log</a>
