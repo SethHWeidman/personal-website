@@ -1,0 +1,11 @@
+body {
+    font-family: Arial, sans-serif;
+}
+
+/* Responsive Design */
+@media (max-width: 600px) {
+    input[type="text"] {
+        height: 2.5em; 
+    }
+}
+
