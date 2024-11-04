@@ -27,37 +27,50 @@ if (isProduction) {
 
 app.use(express.static("public"));
 
+// Helper function to render HTML layout with reusable CSS and meta tag
+function renderHTML(title, bodyContent) {
+  return `
+    <html>
+      <head>
+        <title>${title}</title>
+        <link rel="stylesheet" type="text/css" href="/styles.css">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+      </head>
+      <body>
+        ${bodyContent}
+      </body>
+    </html>
+  `;
+}
+
 // Display "Hello World" on the home page with a link to the visitor log
 app.get("/", (req, res) => {
-  res.send(`
-      <html>
-        <head><title>Seth Weidman's Website</title></head>
-        <link rel="stylesheet" type="text/css" href="/styles.css">        
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <body>
-          <h1>Welcome to Seth Weidman's Website</h1>
+  res.send(
+    renderHTML(
+      "Seth Weidman's Website",
+      `
+      <h1>Welcome to Seth Weidman's Website</h1>
 
-          <img src="https://sethhweidman-personal-website.s3.amazonaws.com/profile-picture.jpg" alt="Seth Weidman" style="width:100%; max-width:600px;height:auto;">
+      <img src="https://sethhweidman-personal-website.s3.amazonaws.com/profile-picture.jpg" alt="Seth Weidman">
 
-          <br><br>
-          <a href="https://www.linkedin.com/in/sethhweidman/" target="_blank">LinkedIn</a> | 
-          <a href="https://github.com/SethHWeidman" target="_blank">GitHub</a> (and <a href="https://github.com/SethHWeidman/personal-website/tree/master" target="_blank">code for this website</a>)
+      <br><br>
+      <a href="https://www.linkedin.com/in/sethhweidman/" target="_blank">LinkedIn</a> | 
+      <a href="https://github.com/SethHWeidman" target="_blank">GitHub</a> (and <a href="https://github.com/SethHWeidman/personal-website/tree/master" target="_blank">code for this website</a>)
 
-          <br><br>
-          Since December 2019, I've worked at <a href="https://www.sentilink.com" target="_blank">SentiLink</a>, growing from a Data Scientist (where around half my job was machine learning engineering) to now a Principal Product Manager reporting to a co-founder and the Head of Product Maxwell Blumenfeld, building multiple products from 0 to 1 along the way. 
-          
-          <br><br>
-          In September 2019, O'Reilly published an introductory book I wrote covering the mechanics of Deep Learning models: <a href="https://www.amazon.com/Deep-Learning-Scratch-Building-Principles/dp/1492041416" target="_blank">Deep Learning From Scratch</a>.
+      <br><br>
+      Since December 2019, I've worked at <a href="https://www.sentilink.com" target="_blank">SentiLink</a>, growing from a Data Scientist (where around half my job was machine learning engineering) to now a Principal Product Manager reporting to a co-founder and the Head of Product Maxwell Blumenfeld, building multiple products from 0 to 1 along the way. 
+      
+      <br><br>
+      In September 2019, O'Reilly published an introductory book I wrote covering the mechanics of Deep Learning models: <a href="https://www.amazon.com/Deep-Learning-Scratch-Building-Principles/dp/1492041416" target="_blank">Deep Learning From Scratch</a>.
 
-          <br><br>
-          Prior to SentiLink, <a href="https://www.youtube.com/watch?v=cVecfn8f3BU" target="_blank">spoke at Data Science conferences</a> regularly. Going even further back, I graduated from the University of Chicago with a double major in Mathematics and Economics in 2012, and am originally from Pittsburgh, PA.          
+      <br><br>
+      Prior to SentiLink, <a href="https://www.youtube.com/watch?v=cVecfn8f3BU" target="_blank">spoke at Data Science conferences</a> regularly. Going even further back, I graduated from the University of Chicago with a double major in Mathematics and Economics in 2012, and am originally from Pittsburgh, PA.          
 
-          <br><br>
-          <a href="/visitor-log">Sign the Visitor Log</a>
-
-          </body>
-      </html>
-    `);
+      <br><br>
+      <a href="/visitor-log">Sign the Visitor Log</a>
+      `
+    )
+  );
 });
 
 // Fetch the visitor log and render the page
@@ -71,11 +84,10 @@ app.get("/visitor-log", async (req, res) => {
     client.release();
 
     // Render the page and pass the visitor data
-    res.send(`
-        <html>
-          <head><title>Visitor Log</title></head>
-          <link rel="stylesheet" type="text/css" href="/styles.css">
-          <meta name="viewport" content="width=device-width, initial-scale=1">
+    res.send(
+      renderHTML(
+        "Visitor Log",
+        `
           <body>
             <h1>Sign the Visitor Log</h1>
             <p><strong>Only one person can sign the visitor log per day.</strong></p>
@@ -95,8 +107,9 @@ app.get("/visitor-log", async (req, res) => {
 
           <p>The visitor log is a feature designed mostly to test that the database behind this website is working.</p>            
           </body>
-        </html>
-      `);
+        `
+      )
+    );
   } catch (err) {
     console.error(err);
     res.send("Error fetching visitor log.");
@@ -156,17 +169,15 @@ app.post("/sign-log", async (req, res) => {
     if (alreadySigned) {
       // If someone has signed, show a message
       client.release();
-      res.send(`
-        <html>
-          <head><title>Visitor Log</title></head>
-          <link rel="stylesheet" type="text/css" href="/styles.css">
-          <meta name="viewport" content="width=device-width, initial-scale=1">          
-          <body>
+      res.send(
+        renderHTML(
+          "Visitor Log",
+          `
             <h1>Sorry, someone else has already signed the log today</h1>
             <a href="/visitor-log">Go back to the log</a>
-          </body>
-        </html>
-      `);
+          `
+        )
+      );
     } else {
       // If no one has signed today, insert the new entry
       const timestamp = new Date().toISOString();

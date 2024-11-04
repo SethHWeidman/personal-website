@@ -2,6 +2,13 @@ body {
     font-family: Arial, sans-serif;
 }
 
+/* Image styling */
+img {
+    height: auto;
+    width: 100%;
+    max-width: 600px;
+}
+
 /* Responsive Design */
 @media (max-width: 600px) {
     input[type="text"] {
