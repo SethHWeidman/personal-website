@@ -49,25 +49,25 @@ app.get("/", (req, res) => {
     renderHTML(
       "Seth Weidman's Website",
       `
-      <h1>Welcome to Seth Weidman's Website</h1>
+        <h1>Welcome to Seth Weidman's Website</h1>
 
-      <img src="https://sethhweidman-personal-website.s3.amazonaws.com/profile-picture.jpg" alt="Seth Weidman">
+        <img src="https://sethhweidman-personal-website.s3.amazonaws.com/profile-picture.jpg" alt="Seth Weidman">
 
-      <br><br>
-      <a href="https://www.linkedin.com/in/sethhweidman/" target="_blank">LinkedIn</a> | 
-      <a href="https://github.com/SethHWeidman" target="_blank">GitHub</a> (and <a href="https://github.com/SethHWeidman/personal-website/tree/master" target="_blank">code for this website</a>)
+        <br><br>
+        <a href="https://www.linkedin.com/in/sethhweidman/" target="_blank">LinkedIn</a> | 
+        <a href="https://github.com/SethHWeidman" target="_blank">GitHub</a> (and <a href="https://github.com/SethHWeidman/personal-website/tree/master" target="_blank">code for this website</a>)
 
-      <br><br>
-      Since December 2019, I've worked at <a href="https://www.sentilink.com" target="_blank">SentiLink</a>, growing from a Data Scientist (where around half my job was machine learning engineering) to now a Principal Product Manager reporting to a co-founder and the Head of Product Maxwell Blumenfeld, building multiple products from 0 to 1 along the way. 
-      
-      <br><br>
-      In September 2019, O'Reilly published an introductory book I wrote covering the mechanics of Deep Learning models: <a href="https://www.amazon.com/Deep-Learning-Scratch-Building-Principles/dp/1492041416" target="_blank">Deep Learning From Scratch</a>.
+        <br><br>
+        Since December 2019, I've worked at <a href="https://www.sentilink.com" target="_blank">SentiLink</a>, growing from a Data Scientist (where around half my job was machine learning engineering) to now a Principal Product Manager reporting to a co-founder and the Head of Product Maxwell Blumenfeld, building multiple products from 0 to 1 along the way. 
+        
+        <br><br>
+        In September 2019, O'Reilly published an introductory book I wrote covering the mechanics of Deep Learning models: <a href="https://www.amazon.com/Deep-Learning-Scratch-Building-Principles/dp/1492041416" target="_blank">Deep Learning From Scratch</a>.
 
-      <br><br>
-      Prior to SentiLink, <a href="https://www.youtube.com/watch?v=cVecfn8f3BU" target="_blank">spoke at Data Science conferences</a> regularly. Going even further back, I graduated from the University of Chicago with a double major in Mathematics and Economics in 2012, and am originally from Pittsburgh, PA.          
+        <br><br>
+        Prior to SentiLink, <a href="https://www.youtube.com/watch?v=cVecfn8f3BU" target="_blank">spoke at Data Science conferences</a> regularly. Going even further back, I graduated from the University of Chicago with a double major in Mathematics and Economics in 2012, and am originally from Pittsburgh, PA.          
 
-      <br><br>
-      <a href="/visitor-log">Sign the Visitor Log</a>
+        <br><br>
+        <a href="/visitor-log">Sign the Visitor Log</a>
       `
     )
   );
@@ -88,25 +88,23 @@ app.get("/visitor-log", async (req, res) => {
       renderHTML(
         "Visitor Log",
         `
-          <body>
-            <h1>Sign the Visitor Log</h1>
-            <p><strong>Only one person can sign the visitor log per day.</strong></p>
+          <h1>Sign the Visitor Log</h1>
+          <p><strong>Only one person can sign the visitor log per day.</strong></p>
 
-            <form action="/sign-log" method="POST">
-              <label for="name">Your Name:</label>
-              <input type="text" id="name" name="name" required />
-              <button type="submit">Submit</button>
-            </form>
-  
-            <h2>Visitors:</h2>
-            ${generateVisitorsTable(visitors)}
-  
-            <br>
+          <form action="/sign-log" method="POST">
+            <label for="name">Your Name:</label>
+            <input type="text" id="name" name="name" required />
+            <button type="submit">Submit</button>
+          </form>
 
-            <button onclick="window.location.href='/'">Back</button>
+          <h2>Visitors:</h2>
+          ${generateVisitorsTable(visitors)}
+
+          <br>
+
+          <button onclick="window.location.href='/'">Back</button>
 
           <p>The visitor log is a feature designed mostly to test that the database behind this website is working.</p>            
-          </body>
         `
       )
     );
@@ -123,12 +121,12 @@ function generateVisitorsTable(visitors) {
   }
 
   let table = `
-      <table border="1" cellpadding="10">
-        <tr>
-          <th>Name</th>
-          <th>Date Signed</th>
-        </tr>
-    `;
+    <table border="1" cellpadding="10">
+      <tr>
+        <th>Name</th>
+        <th>Date Signed</th>
+      </tr>
+  `;
 
   visitors.forEach((visitor) => {
     const formattedDate = new Date(visitor.signed_at).toLocaleDateString(
@@ -140,11 +138,11 @@ function generateVisitorsTable(visitors) {
       }
     );
     table += `
-        <tr>
-          <td>${visitor.name}</td>
-          <td>${formattedDate}</td>
-        </tr>
-      `;
+      <tr>
+        <td>${visitor.name}</td>
+        <td>${formattedDate}</td>
+      </tr>
+    `;
   });
 
   table += "</table>";
