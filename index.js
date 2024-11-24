@@ -92,15 +92,13 @@ app.get("/blog/affirmations", (req, res) => {
 
         <p class="post-date">November 24, 2024</p>
 
-        <p>We spend much of our lives trying to solve specific problems: getting ahead professionally, improving one's relationships, and so on.</p>
+        <p>We spend much of our lives trying to solve problems in specific areas of our life: getting ahead professionally, improving one's relationships, and so on.</p>
 
-        <p>This is clearly important, as are the other two large buckets of time: taking care of ourselves (eating, for example) and leisure.</p>
+        <p>While clearly important, one's "fundamentals" or "character" have a huge impact on success in these domains; "character is destiny", as the saying goes. This is one of the main reasons religious practice has enduring popularity: it constitutes dedicated time to focus on character improvement.</p>
 
-        <p>But it is also important to take time to improve our character; "character is destiny", as the saying goes. This is one of the main reasons religious practice (especially protestantism) has enduring popularity: it constitutes dedicated time to focus on character improvement.</p>
+        <p>What should we study during this time? We could study to be better Christians or Jews; while fine options, organized religion has too many negative associations for many.</p>
 
-        <p>What should we study in this time? We could study to be better Christians or Jews; while fine options, organized religion has too many negative associations for many.</p>
-
-        <p>My search for a secular character improvement practice led me to a subfield of academic psychology known as "positive psychology", which studies how to help mentally healthy people live more fulfilling lives. This field has arrived at a list of 24 "character strengths", grouped into six categories. Here, I'll let ChatGPT take over and describe these:</p>
+        <p>My search for a non-religious character improvement practice led me to a subfield of academic psychology known as "positive psychology", which studies how to help mentally healthy people live more fulfilling lives (the rest of psychology deals with helping less-mentally healthy individuals regain their mental health). This field has arrived at a list of 24 "character strengths", grouped into six categories, that lead to living a fulfilling life. Here are ChatGPT's descriptions of the six categories and 24 individual strenghts:</p>
 
         <div class="character-strengths">
           <h3>Group 1: Wisdom and Knowledge</h3>
@@ -158,13 +156,7 @@ app.get("/blog/affirmations", (req, res) => {
           </ol>
         </div>
 
-        <p>The claim is that each of these is "universally recognized": taking the last two of these I've studied, Fairness and Self-Regulation, this means that someone showing exceptionally fair and equal treatment of those around him, or someone showing exceptional control over one's impulses and emotions, would have these character strengths recognized in most of the world's cultures.</p>
-
-        <h2>My practice</h2>
-
-        <p>Each day, I pick one of these mostly at random (I actually balance the strengths so that I'm equally likely to choose a strength from any of the six categories).</p>
-
-        <p>I then use LLM-based tools to generate "affirmations" related to the character strength.</p>
+        <p>The claim is that each of these is "universally recognized": taking the last two of these I've studied, Fairness and Self-Regulation, this means that someone showing exceptionally fair and equal treatment of those around him, or someone showing exceptional control over one's impulses and emotions, would be lauded for these character strengths in most of the world's cultures.</p>
 
         <h2>My practice</h2>
 
