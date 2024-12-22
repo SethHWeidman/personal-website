@@ -60,7 +60,7 @@ app.get("/", (req, res) => {
         <h2>Blog Posts</h2>
         <ul>
           <li><a href="/blog/affirmations">Character Strengths Affirmations Practice</a></li>
-          <li><a href="/blog/o1-tools">34 - OpenAI (or a more descriptive link)</a></li>
+          <li><a href="/blog/o1-tools">O1 Pro - An Initial Assessment</a></li>
         </ul>
 
         <h2>Bio</h2>
@@ -195,7 +195,7 @@ app.get("/blog/o1-tools", (req, res) => {
     renderHTML(
       "O1 Pro - An Initial Assessment",
       `
-        <h1>My take on O1 Pro</h1>
+        <h1>O1 Pro - An Initial Assessment</h1>
         <p class="post-date">December 22, 2024</p>
 
         <p><strong>TL;DR</strong>: these tools will not replace software engineers. There may even be an adjustment period where these tools make individuals less productive. But over the long term, those who learn to use these tools will be much more productive than those who don’t. Note that I say both “learn to use”, because it will take time to learn to use them well, and “tools”, because there are multiple of them. In fact, my personal next step is to experiment with using O1-mini, O1, and O1 Pro to see which tasks mini (which is much faster, usually “thinking” for only a couple seconds) tackles just as well as O1 Pro (which typically thinks for at least a minute).</p>
