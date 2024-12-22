@@ -60,6 +60,7 @@ app.get("/", (req, res) => {
         <h2>Blog Posts</h2>
         <ul>
           <li><a href="/blog/affirmations">Character Strengths Affirmations Practice</a></li>
+          <li><a href="/blog/o1-tools">34 - OpenAI (or a more descriptive link)</a></li>
         </ul>
 
         <h2>Bio</h2>
@@ -181,6 +182,59 @@ app.get("/blog/affirmations", (req, res) => {
         <p>This practice has made me reflect deeply and holistically on what it means to be a good person and consistently pushes me to be better.</p>
 
         <p>If you're interested in participating in this practice, I'm happy to send you affirmations on a daily basis. I would like to grow an online community of individuals who participate; when a few of you join (as of this writing it's just me) I will create a Discord for us to keep in touch. I look forward to this practice enriching other people's lives as it has enriched my own.</p>
+
+        <br>
+        <button onclick="window.location.href='/'">Back to Home</button>
+      `
+    )
+  );
+});
+
+app.get("/blog/o1-tools", (req, res) => {
+  res.send(
+    renderHTML(
+      "O1 Pro - An Initial Assessment",
+      `
+        <h1>My take on O1 Pro</h1>
+        <p class="post-date">December 22, 2024</p>
+
+        <p><strong>TL;DR</strong>: these tools will not replace software engineers. There may even be an adjustment period where these tools make individuals less productive. But over the long term, those who learn to use these tools will be much more productive than those who don’t. Note that I say both “learn to use”, because it will take time to learn to use them well, and “tools”, because there are multiple of them. In fact, my personal next step is to experiment with using O1-mini, O1, and O1 Pro to see which tasks mini (which is much faster, usually “thinking” for only a couple seconds) tackles just as well as O1 Pro (which typically thinks for at least a minute).</p>
+
+        <p>I spent hours today trying to get O1 Pro to do something that should have taken a leading LLM tool half an hour at most. I wanted it to create a simple app illustrating the functionality of the OpenAI API, calling the API from a Python backend using the Flask framework and streaming the response to a React frontend. I decided to be prescriptive with these technologies since I’m familiar with them (especially Flask) (interestingly, it initially selected FastAPI for the frontend).</p>
+
+        <p>Getting the basic thing working was as easy as you’d expect; the issue came when trying to get the React app to properly render the markdown returned from the API response. This stumped O1 Pro for a shockingly long time; it repeatedly kept rendering the markdown incorrectly, commonly displaying the markdown with absurdly large font (see screenshot - and please don’t judge my choice of test prompt).</p>
+
+        <img 
+          src="https://sethhweidman-personal-website.s3.amazonaws.com/absurd_font_chatgpt_app.jpg"
+          alt="Screenshot of absurd font issue"
+          width="600"
+        >
+
+        <p>Eventually, even after yelling at O1 Pro in all caps and telling it it was a terrible front end developer (which didn’t help), I had to prompt it to add print statements to its own code so I could help it figure out what was going on! It’s still striking to me that it didn’t figure out how to do this on its own. After looking at the logs on both the Python side and the React side, I discovered that new line characters <code>\\n</code> weren’t being parsed correctly by <a href="https://github.com/SethHWeidman/streaming-openai-react-demo/blob/master/frontend/src/App.js#L33-L36" target="_blank" rel="noopener noreferrer">these lines</a>in the code.</p>
+
+        <p>This was leading to scenarios where, instead of the app rendering markdown like:
+
+          <pre><code>
+            # Heading text
+
+            Start of paragraph
+          </code></pre>
+
+        it was rendering text like:
+
+          <pre><code>
+            # Heading textStart of paragraph
+          </code></pre>
+
+        which is why the font size issues I was seeing were occurring.</p>
+
+        <p>After I helped O1 Pro discover this, it came up with the solution of wrapping the output of the Flask backend in a JSON blob and having the React front end unpack the JSON; this preserved the newline characters.</p>
+
+        <p>This is a solution you would expect a junior dev to come up with, and you would expect an intermediate-level dev to both identify the problem and come up with the solution.</p>
+
+        <h2>Conclusion</h2>
+
+        <p>While O1 Pro is certainly overhyped - it will not "replace" even intermediate-level software developers. That said, I can't wait to evolve my own workflow alongside the many versions of O1 that now exist and see how other technical folks do the same!</p> 
 
         <br>
         <button onclick="window.location.href='/'">Back to Home</button>
