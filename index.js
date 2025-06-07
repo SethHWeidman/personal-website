@@ -210,7 +210,7 @@ app.get("/blog/o1-tools", (req, res) => {
           width="600"
         >
 
-        <p>Eventually, even after yelling at O1 Pro in all caps and telling it it was a terrible front end developer (which didn’t help), I had to prompt it to add print statements to its own code so I could help it figure out what was going on (it’s striking to me that it didn’t figure out to start doing this on its own). After looking at the logs on both the Python side and the React side, I discovered that new line characters <code>\\n</code> weren’t being parsed correctly by <a href="https://github.com/SethHWeidman/streaming-openai-react-demo/blob/master/frontend/src/App.js#L33-L36" target="_blank" rel="noopener noreferrer">these lines</a>in the code.</p>
+        <p>Eventually, even after yelling at O1 Pro in all caps and telling it it was a terrible front end developer (which didn’t help), I had to prompt it to add print statements to its own code so I could help it figure out what was going on (it’s striking to me that it didn’t figure out to start doing this on its own). After looking at the logs on both the Python side and the React side, I discovered that new line characters <code>\\n</code> weren’t being parsed correctly by <a href="https://github.com/SethHWeidman/streaming-openai-react-demo/blob/master/frontend/src/App.js#L33-L36" target="_blank" rel="noopener noreferrer">these lines</a> in the code.</p>
 
         <p>This was leading to scenarios where, instead of the app rendering markdown like:
 
@@ -283,6 +283,13 @@ app.get("/visitor-log", async (req, res) => {
     res.send("Error fetching visitor log.");
   }
 });
+
+app.get("/odsc_east_2025_grpo_llama/experiment_results.csv", (_, res) =>
+  res.redirect(
+    302,
+    "https://data-science-talks.s3.us-east-1.amazonaws.com/output/experiment_results_2.csv"
+  )
+);
 
 // Function to generate the HTML table for visitors
 function generateVisitorsTable(visitors) {
