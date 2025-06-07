@@ -63,6 +63,18 @@ app.get("/", (req, res) => {
           <li><a href="/blog/o1-tools">O1 Pro - An Initial Assessment</a></li>
         </ul>
 
+        <h2>Recent Talks</h2>
+        <ul>
+          <li>
+            <a href="/odsc_east_2025_grpo_llama">
+              Basic Theory and Practice of Fine-Tuning 
+        LLMs with PPO and GRPO
+            </a>
+            (May 2025)
+          </li>
+        </ul>
+
+
         <h2>Bio</h2>
         <p>
           Since December 2019, I've worked at <a href="https://www.sentilink.com" target="_blank">SentiLink</a>, growing from a Data Scientist (where around half my job was machine learning engineering) to now a Principal Product Manager reporting to a co-founder and the Head of Product Maxwell Blumenfeld, building multiple products from 0 to 1 along the way.
@@ -282,6 +294,48 @@ app.get("/visitor-log", async (req, res) => {
     console.error(err);
     res.send("Error fetching visitor log.");
   }
+});
+
+app.get("/odsc_east_2025_grpo_llama", (req, res) => {
+  res.send(
+    renderHTML(
+      "",
+      `
+        <h1>Fine-tuning Llama, using GRPO and LoRa, on a single A100.</h1>
+
+        <p>
+          At ODSC East in May 2025 in Boston, I walked through an end-to-end example of
+          fine-tuning Meta's Llama 3.1 Instruct 8.1B parameter model, (released in July 
+          2024), to do better at reasoning through the math word problems in the GSM8K 
+          dataset (released by OpenAI in October 2021).
+        </p>
+
+        <p>
+          • The notebooks containing all the code are here: 
+          <a href="https://github.com/SethHWeidman/odsc_east_2025_grpo_llama"
+             target="_blank" rel="noopener noreferrer">
+             GitHub repo link
+          </a>
+        </p>
+
+        <p>
+          • An CSV containing the experiment results (see the GitHub repo for a detailed 
+          description) can be found here: 
+          <a href="/odsc_east_2025_grpo_llama/experiment_results.csv">
+            download link
+          </a>
+        </p>
+
+        <p>The official title of the talk was "Basic Theory and Practice of Fine-Tuning 
+        LLMs with PPO and GRPO" - it also included a deck where I walked through the PPO 
+        and GRPO algorithms at a more conceptual level. Email me and I'll send you the 
+        slides!</p>
+
+        <br>
+        <button onclick="window.location.href='/'">Back to Home</button>
+      `
+    )
+  );
 });
 
 app.get("/odsc_east_2025_grpo_llama/experiment_results.csv", (_, res) =>
