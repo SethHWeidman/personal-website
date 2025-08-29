@@ -1,8 +1,50 @@
 const express = require("express");
 const { Pool } = require("pg");
+const {
+  createProxyMiddleware,
+  fixRequestBody,
+} = require("http-proxy-middleware");
 const app = express();
+app.set("trust proxy", 1); // Heroku router / secure cookies
+
 const PORT = process.env.PORT || 3000;
 require("dotenv").config(); // for testing only
+
+const GPTREE_TARGET = process.env.GPTREE_URL; // e.g. 'https://gptree-app-a54ef3c1e1a2.herokuapp.com'
+if (!GPTREE_TARGET) {
+  throw new Error("Missing env var GPTREE_URL");
+}
+
+const gptreeProxy = createProxyMiddleware({
+  target: GPTREE_TARGET,
+  changeOrigin: true, // present as sethweidman.com to upstream
+  ws: true, // allow WebSocket upgrades
+  xfwd: true, // X-Forwarded-* headers
+  logLevel: process.env.NODE_ENV === "production" ? "warn" : "debug",
+  pathRewrite: { "^/gptree": "" }, // strip prefix so GPTree sees '/'
+  // Make cookies work on your main domain and scoped under /gptree
+  cookieDomainRewrite: { "*": "" }, // strip Domain=... if upstream sets it
+  cookiePathRewrite: "/gptree",
+  onProxyReq: fixRequestBody, // if bodyParser ran earlier
+  // Keep users under /gptree when upstream redirects
+  onProxyRes: (proxyRes) => {
+    const loc = proxyRes.headers["location"];
+    if (!loc) return;
+    try {
+      const t = new URL(GPTREE_TARGET);
+      if (loc.startsWith(t.origin)) {
+        proxyRes.headers["location"] =
+          "/gptree" + loc.substring(t.origin.length);
+      } else if (loc.startsWith("/")) {
+        proxyRes.headers["location"] = "/gptree" + loc;
+      }
+    } catch {
+      /* noop */
+    }
+  },
+});
+
+app.use("/gptree", gptreeProxy);
 
 const isProduction = process.env.NODE_ENV === "production";
 
