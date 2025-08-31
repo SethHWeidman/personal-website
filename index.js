@@ -44,6 +44,10 @@ const gptreeProxy = createProxyMiddleware({
   },
 });
 
+// redirect /gptree (no slash) -> /gptree/ (with slash)
+app.get("/gptree", (req, res) => res.redirect(301, "/gptree/"));
+
+// then the proxy
 app.use("/gptree", gptreeProxy);
 
 const isProduction = process.env.NODE_ENV === "production";
