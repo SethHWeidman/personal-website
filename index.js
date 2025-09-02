@@ -15,26 +15,37 @@ if (!GPTREE_TARGET) {
   throw new Error("Missing env var GPTREE_URL");
 }
 
+// Normalize /gptree (no slash) -> /gptree/ (with slash), preserve query
+app.use((req, res, next) => {
+  if (req.path === "/gptree") {
+    const qIndex = req.originalUrl.indexOf("?");
+    const qs = qIndex !== -1 ? req.originalUrl.slice(qIndex) : "";
+    return res.redirect(308, "/gptree/" + qs); // 308 keeps method/body
+  }
+  next();
+});
+
 const gptreeProxy = createProxyMiddleware({
   target: GPTREE_TARGET,
-  changeOrigin: true, // present as sethweidman.com to upstream
-  ws: true, // allow WebSocket upgrades
-  xfwd: true, // X-Forwarded-* headers
+  changeOrigin: true,
+  ws: true,
+  xfwd: true,
   logLevel: process.env.NODE_ENV === "production" ? "warn" : "debug",
-  pathRewrite: { "^/gptree": "" }, // strip prefix so GPTree sees '/'
-  // Make cookies work on your main domain and scoped under /gptree
-  cookieDomainRewrite: { "*": "" }, // strip Domain=... if upstream sets it
+  pathRewrite: { "^/gptree": "" },
+  cookieDomainRewrite: { "*": "" },
   cookiePathRewrite: "/gptree",
-  onProxyReq: fixRequestBody, // if bodyParser ran earlier
-  // Keep users under /gptree when upstream redirects
+  onProxyReq: fixRequestBody,
   onProxyRes: (proxyRes) => {
     const loc = proxyRes.headers["location"];
     if (!loc) return;
+
+    // Don't double-prefix if already under /gptree
+    if (/^\/gptree(\/|$)/.test(loc)) return;
+
     try {
       const t = new URL(GPTREE_TARGET);
       if (loc.startsWith(t.origin)) {
-        proxyRes.headers["location"] =
-          "/gptree" + loc.substring(t.origin.length);
+        proxyRes.headers["location"] = "/gptree" + loc.slice(t.origin.length);
       } else if (loc.startsWith("/")) {
         proxyRes.headers["location"] = "/gptree" + loc;
       }
@@ -44,10 +55,7 @@ const gptreeProxy = createProxyMiddleware({
   },
 });
 
-// redirect /gptree (no slash) -> /gptree/ (with slash)
-app.get("/gptree", (req, res) => res.redirect(301, "/gptree/"));
-
-// then the proxy
+// 2) proxy
 app.use("/gptree", gptreeProxy);
 
 const isProduction = process.env.NODE_ENV === "production";
