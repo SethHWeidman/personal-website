@@ -108,8 +108,8 @@ app.get("/", (req, res) => {
     renderHTML(
       "Seth Weidman's Website",
       `
-        ${loadView("home.html")}
-        `
+      ${loadView("home.html")}
+      `
     )
   );
 });
@@ -120,8 +120,8 @@ app.get("/blog/affirmations", (req, res) => {
     renderHTML(
       "Character Strengths Affirmations Practice",
       `
-        ${loadView("blog/affirmations.html")}
-        `
+      ${loadView("blog/affirmations.html")}
+      `
     )
   );
 });
@@ -131,8 +131,8 @@ app.get("/blog/o1-tools", (req, res) => {
     renderHTML(
       "O1 Pro - An Initial Assessment",
       `
-        ${loadView("blog/o1-tools.html")}
-        `
+      ${loadView("blog/o1-tools.html")}
+      `
     )
   );
 });
@@ -168,8 +168,8 @@ app.get("/visitor-log", async (req, res) => {
 
           <button onclick="window.location.href='/'">Back</button>
 
-          <p>The visitor log is a feature designed mostly to test that the database behind this website is working.</p>            
-        `
+          <p>The visitor log is a feature designed mostly to test that the database behind this website is working.</p>
+  `
       )
     );
   } catch (err) {
@@ -183,8 +183,8 @@ app.get("/odsc_east_2025_grpo_llama", (req, res) => {
     renderHTML(
       "",
       `
-        ${loadView("odsc_east_2025_grpo_llama.html")}
-        `
+      ${loadView("odsc_east_2025_grpo_llama.html")}
+      `
     )
   );
 });
@@ -255,7 +255,7 @@ app.post("/sign-log", async (req, res) => {
           `
             <h1>Sorry, someone else has already signed the log today</h1>
             <a href="/visitor-log">Go back to the log</a>
-          `
+  `
         )
       );
     } else {
