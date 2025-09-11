@@ -1,23 +1,64 @@
 <h1>O1 Pro - An Initial Assessment</h1>
 <p class="post-date">December 22, 2024</p>
 
-<p><strong>TL;DR</strong>: these tools will not replace software engineers. There may even be an adjustment period where these tools make those who use them <i>less</i> productive. Over the long term, I agree that those who learn to use these tools will be much more productive than those who don’t, but I'd qualify say both “learn to use”, because it will take time to learn to use them well, and “tools”, because there are multiple of them. In fact, my personal next step is to experiment with using O1-mini, O1, and O1 Pro to see which tasks mini (which is much faster, usually “thinking” for only a couple seconds) tackles just as well as O1 Pro (which typically thinks for at least a minute). Picking "the right tool for the job" will be increasingly important for software engineers.</p>
+<p>
+  <strong>TL;DR</strong>: these tools will not replace software engineers. There may even
+  be an adjustment period where these tools make those who use them
+  <i>less</i> productive. Over the long term, I agree that those who learn to use these
+  tools will be much more productive than those who don’t, but I'd qualify say both
+  “learn to use”, because it will take time to learn to use them well, and “tools”,
+  because there are multiple of them. In fact, my personal next step is to experiment
+  with using O1-mini, O1, and O1 Pro to see which tasks mini (which is much faster,
+  usually “thinking” for only a couple seconds) tackles just as well as O1 Pro (which
+  typically thinks for at least a minute). Picking "the right tool for the job" will be
+  increasingly important for software engineers.
+</p>
 
-<p>I spent hours over the weekend trying to get O1 Pro to do something that should have taken a leading LLM tool half an hour at most. I wanted it to create a simple app illustrating the functionality of the OpenAI API, calling the API from a Python backend using the Flask framework and streaming the response to a React frontend. I decided to make it use these technologies since I’m familiar with them (especially Flask) (interestingly, it initially selected FastAPI for the frontend), and it made the task more realistic to what a developer might need to do in the real world: accomplish some task within the language and other frameworks that the rest of their team currently uses.</p>
+<p>
+  I spent hours over the weekend trying to get O1 Pro to do something that should have
+  taken a leading LLM tool half an hour at most. I wanted it to create a simple app
+  illustrating the functionality of the OpenAI API, calling the API from a Python backend
+  using the Flask framework and streaming the response to a React frontend. I decided to
+  make it use these technologies since I’m familiar with them (especially Flask)
+  (interestingly, it initially selected FastAPI for the frontend), and it made the task
+  more realistic to what a developer might need to do in the real world: accomplish some
+  task within the language and other frameworks that the rest of their team currently
+  uses.
+</p>
 
-<p>Getting the basic thing working was as easy as you’d expect; the issue came when trying to get the React app to properly render the markdown returned from the API response. This stumped O1 Pro for a shockingly long time; it repeatedly kept rendering the markdown incorrectly, commonly displaying the markdown with absurdly large font (see screenshot - and please don’t judge my choice of test prompt).</p>
+<p>
+  Getting the basic thing working was as easy as you’d expect; the issue came when trying
+  to get the React app to properly render the markdown returned from the API response.
+  This stumped O1 Pro for a shockingly long time; it repeatedly kept rendering the
+  markdown incorrectly, commonly displaying the markdown with absurdly large font (see
+  screenshot - and please don’t judge my choice of test prompt).
+</p>
 
 <img
   src="https://sethhweidman-personal-website.s3.amazonaws.com/absurd_font_chatgpt_app.jpg"
   alt="Screenshot of absurd font issue"
   width="600"
->
+/>
 
-<p>Eventually, even after yelling at O1 Pro in all caps and telling it it was a terrible front end developer (which didn’t help), I had to prompt it to add print statements to its own code so I could help it figure out what was going on (it’s striking to me that it didn’t figure out to start doing this on its own). After looking at the logs on both the Python side and the React side, I discovered that new line characters <code>\\n</code> weren’t being parsed correctly by <a href="https://github.com/SethHWeidman/streaming-openai-react-demo/blob/master/frontend/src/App.js#L33-L36" target="_blank" rel="noopener noreferrer">these lines</a> in the code.</p>
+<p>
+  Eventually, even after yelling at O1 Pro in all caps and telling it it was a terrible
+  front end developer (which didn’t help), I had to prompt it to add print statements to
+  its own code so I could help it figure out what was going on (it’s striking to me that
+  it didn’t figure out to start doing this on its own). After looking at the logs on both
+  the Python side and the React side, I discovered that new line characters
+  <code>\\n</code> weren’t being parsed correctly by
+  <a
+    href="https://github.com/SethHWeidman/streaming-openai-react-demo/blob/master/frontend/src/App.js#L33-L36"
+    target="_blank"
+    rel="noopener noreferrer"
+    >these lines</a
+  >
+  in the code.
+</p>
 
-<p>This was leading to scenarios where, instead of the app rendering markdown like:
+<p>This was leading to scenarios where, instead of the app rendering markdown like:</p>
 
-  <pre><code>
+<pre><code>
     # Heading text
 
     Start of paragraph
@@ -25,19 +66,36 @@
 
 it was rendering text like:
 
-  <pre><code>
+<pre><code>
     # Heading textStart of paragraph
   </code></pre>
 
-which is why the font size issues I was seeing were occurring.</p>
+which is why the font size issues I was seeing were occurring.
 
-<p>After I helped O1 Pro discover this, it came up with the solution of wrapping the output of the Flask backend in a JSON blob and having the React front end unpack the JSON; this preserved the newline characters.</p>
+<p>
+  After I helped O1 Pro discover this, it came up with the solution of wrapping the
+  output of the Flask backend in a JSON blob and having the React front end unpack the
+  JSON; this preserved the newline characters.
+</p>
 
-<p>Overall: despite O1 Pro currently being the leading LLM tool on the market, this is a solution you would expect a junior dev to come up with, and you would expect an intermediate-level dev to both identify the problem and come up with the solution. By the way, when I briefly tried to have Claude solve the same problem, it couldn't do so either.</p>
+<p>
+  Overall: despite O1 Pro currently being the leading LLM tool on the market, this is a
+  solution you would expect a junior dev to come up with, and you would expect an
+  intermediate-level dev to both identify the problem and come up with the solution. By
+  the way, when I briefly tried to have Claude solve the same problem, it couldn't do so
+  either.
+</p>
 
 <h2>Conclusion</h2>
 
-<p>While I'm sure O1 Pro is now the leading tool for software developers, it is certainly overhyped - I predict that it will not "replace" even beginner-level devs, and it will only enhance the workflows of devs who are already intermediate or above. That said, I can't wait to evolve my own workflow alongside the many versions of O1 that now exist and see how other technical folks do the same - it truly is a brave new world we are entering!</p>
+<p>
+  While I'm sure O1 Pro is now the leading tool for software developers, it is certainly
+  overhyped - I predict that it will not "replace" even beginner-level devs, and it will
+  only enhance the workflows of devs who are already intermediate or above. That said, I
+  can't wait to evolve my own workflow alongside the many versions of O1 that now exist
+  and see how other technical folks do the same - it truly is a brave new world we are
+  entering!
+</p>
 
-<br>
+<br />
 <button onclick="window.location.href='/'">Back to Home</button>
