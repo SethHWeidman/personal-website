@@ -1,0 +1,43 @@
+/* fraud-tables.css */
+
+.fraud-table-container {
+  margin: 1.5rem 0;
+}
+
+.fraud-table-container h3 {
+  margin-bottom: 0.5rem;
+}
+
+.fraud-table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.fraud-table {
+  border-collapse: collapse;
+  min-width: 900px; /* forces horizontal scroll on narrow screens */
+  font-size: 0.9rem;
+}
+
+.fraud-table th,
+.fraud-table td {
+  border: 1px solid #ddd;
+  padding: 4px 8px;
+  white-space: nowrap;
+  text-align: right;
+}
+
+.fraud-table th:first-child,
+.fraud-table td:first-child {
+  text-align: left;
+}
+
+.fraud-table thead th {
+  background-color: #f8f9fa;
+  font-weight: 600;
+}
+
+/* "Green" highlighted cells (strong signals) */
+.fraud-table td.highlight {
+  background-color: #c6efce; /* Excel-style light green */
+}

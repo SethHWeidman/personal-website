@@ -137,6 +137,17 @@ app.get("/blog/o1-tools", (req, res) => {
   );
 });
 
+app.get("/blog/heterogeneous.html", (req, res) => {
+  res.send(
+    renderHTML(
+      "Evaluating Heterogeneous Fraud Models",
+      `
+      ${loadView("blog/heterogeneous.html")}
+      `
+    )
+  );
+});
+
 // Fetch the visitor log and render the page
 app.get("/visitor-log", async (req, res) => {
   try {
