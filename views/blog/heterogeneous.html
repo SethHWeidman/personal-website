@@ -1,8 +1,263 @@
 <link rel="stylesheet" href="/fraud-tables.css" />
 
-<h1>Successfully building fraud models with heterogeneous labels of varying quality</h1>
+<h1>Successfully building fraud models with heterogeneous labels of unknown quality</h1>
 
-<p>Text to be filled in</p>
+<p>
+  At SentiLink, some of the most challenging work we did, from both a data science and
+  fraud perspective, was developing models that targeted heterogeneous sets of fraud
+  behavior. This was especially true for first party fraud, a broad category that covers
+  a variety of behaviors and is much less well understood than synthetic fraud and
+  identity theft. This essay explains why first party fraud was so challenging, and how
+  we ultimately built production models from noisy, heterogeneous labels.
+</p>
+
+<h2>Background: why we developed first party fraud scores</h2>
+
+<p>
+  SentiLink developed models that financial institutions used as part of their fraud
+  decisioning. Our two flagship models, synthetic fraud and identity theft, returned
+  scores when someone applied for a credit card or loan that indicated the likelihood
+  that the application was:
+</p>
+
+<ul>
+  <li><strong>Synthetic fraud</strong> – a made up name–DOB–SSN combination.</li>
+  <li>
+    <strong>Identity theft</strong> – a real name–DOB–SSN combination, but submitted by
+    someone other than the true person.
+  </li>
+</ul>
+
+<p>At a high level, our API took in:</p>
+
+<ul>
+  <li>Name</li>
+  <li>Date of birth</li>
+  <li>SSN</li>
+  <li>Address</li>
+  <li>Phone</li>
+  <li>Email</li>
+  <li>IP address</li>
+</ul>
+
+<p>and returned scores that partners could use in their decisioning flows.</p>
+
+<p>
+  The main reason financial institutions will pay for these scores is that synthetic
+  identities and identity theft applications often present as low-risk from a traditional
+  credit perspective while actually being high-risk:
+</p>
+
+<ul>
+  <li>Synthetic identities may have high credit scores.</li>
+  <li>
+    Identity theft victims disproportionately have higher credit scores, making stolen
+    applications look safe even though there is no intent to pay.
+  </li>
+</ul>
+
+<p>
+  Over time, our partner financial institutions began asking about another category of
+  fraud that was much less well understood: <strong>first party fraud</strong>, a
+  catch-all term for a variety of fraud M.O.s that, like synthetic fraud and identity
+  theft, lead to losses on applications that otherwise appear non-risky.
+</p>
+
+<h2>The scaffolding we had for synthetic fraud and identity theft</h2>
+
+<p>
+  Synthetic fraud and identity theft were well understood by the firm’s founders and many
+  early employees based on their experiences at Affirm. This large set of “earned
+  secrets” drove SentiLink from its founding through our Series B fundraise and guided
+  how we built our internal data infrastructure. In particular, we built:
+</p>
+
+<ul>
+  <li>
+    <strong>An identity database.</strong> We merged data from a variety of licensed
+    third-party sources into “identities” designed to make it easy to detect synthetic
+    fraud, especially first party synthetic fraud. For example, this database would
+    effectively “natively” display if one person had used multiple SSNs. It also enabled
+    strong features for third party synthetic fraud and identity theft.
+  </li>
+  <li>
+    <strong>A graph of API activity.</strong> Each application sent to us was written to
+    an attributes table and an edges table, where two attributes were connected by an
+    edge if they were identical (e.g., same phone number, same device, same address).
+    This graph made it easy to build strong, link-based features for identity theft and
+    other fraud behaviors.
+  </li>
+</ul>
+
+<p>
+  We also licensed several other data sources that gave us insight into phone and email
+  activity. In short, we built internal scaffolding and data structures explicitly
+  designed to make it easier to identify synthetic fraud and identity theft and to
+  develop model features that would stop them.
+</p>
+
+<h2>Why first party fraud was challenging</h2>
+
+<p>
+  First party fraud is fundamentally different from synthetic fraud and identity theft in
+  one crucial respect: it is difficult to observe directly.
+</p>
+
+<ul>
+  <li>
+    <strong>On lending portfolios</strong>, first party fraud often looks like credit
+    score manipulation, bust-out behavior, or other subtle patterns leading up to
+    charge-off.
+  </li>
+  <li>
+    <strong>On DDA (checking) portfolios</strong>, it may show up as check fraud, ACH
+    fraud, or other account abuse behaviors.
+  </li>
+</ul>
+
+<p>
+  Even lenders themselves struggle to observe these behaviors directly, so they use a
+  variety of behavioral cues and internal policies to tag first party fraud. As a result:
+</p>
+
+<ul>
+  <li>Manual review is often <strong>inconclusive</strong>.</li>
+  <li>
+    Labels for first party fraud are <strong>inconsistent</strong> both within and across
+    financial institutions.
+  </li>
+</ul>
+
+<p>
+  Some partners tagged first party fraud after manual review of individual applications.
+  Others used behavioral signals:
+</p>
+
+<ul>
+  <li>On DDAs: passing bad checks, consumer-initiated ACH returns, or similar.</li>
+  <li>
+    On lending: first payment defaults (FPDs) or early payment defaults (EPDs) on
+    accounts that didn’t initially appear risky from a credit perspective.
+  </li>
+</ul>
+
+<p>
+  Even within a single FI, first party fraud labels could be based on a mix of policies,
+  behaviors, and manual reviewer judgment. Across FIs, definitions diverged even further.
+  This gave us a heterogeneous set of labels of varying reliability and made it ambiguous
+  whether to build:
+</p>
+
+<ul>
+  <li>
+    a <strong>single first party fraud score</strong> that would be simpler to explain;
+    or
+  </li>
+  <li>
+    <strong>multiple scores</strong> targeting what we believed were distinct fraud
+    M.O.s, all under the “first party fraud” umbrella.
+  </li>
+</ul>
+
+<h2>Where first party fraud fits relative to other fraud types</h2>
+
+<p>
+  One useful way to think about the problem is to place different fraud types along a
+  spectrum from “deterministically observable” to “probabilistically inferred.” Synthetic
+  fraud and many cases of identity theft are often deterministically detectable and can
+  be confirmed conclusively via manual review, at least with the tooling we had built.
+  First party fraud, by contrast, is typically only visible through noisy behavioral
+  signals and is much harder to prove case-by-case.
+</p>
+
+<img
+  src="https://sethhweidman-personal-website.s3.amazonaws.com/first_party_fraud_spectrum.png"
+  alt="Spectrum from deterministic synthetic and identity fraud to probabilistic first party fraud"
+  width="1000"
+/>
+
+<p>
+  On the left side of this spectrum, fraud can often be detected deterministically and
+  manual investigation can be conclusive. On the right side, fraud can only be detected
+  probabilistically and manual investigation is frequently inconclusive. First party
+  fraud lies at this probabilistic end of the spectrum.
+</p>
+
+<h2>Developing first party fraud signals</h2>
+
+<p>
+  Our solution started with the scaffolding we had already built for synthetic fraud and
+  identity theft. Through deep review of partner labels and primary research into fraud
+  M.O.s, we developed eight signals indicating that someone had an elevated likelihood of
+  subsequently committing first party fraud on an application.
+</p>
+
+<p>For example:</p>
+
+<ul>
+  <li>
+    In the identity database, we measured whether someone had likely committed synthetic
+    fraud in the past. This suggested a propensity to present one’s credit history
+    inaccurately, which we believed would correlate with first party fraud.
+  </li>
+  <li>
+    In the application graph, we measured velocity-based behaviors such as elevated DDA
+    application velocity. Many first party fraud M.O.s require multiple checking
+    accounts, so rapid application patterns made sense as a strong signal a priori.
+  </li>
+</ul>
+
+<p>
+  Each of these eight signals was a Boolean true/false flag, often accompanied by numeric
+  “sub-signals” (e.g., the number of prior synthetic attempts or the number of DDAs
+  applied for in different time windows).
+</p>
+
+<p>
+  Crucially, none of these signals conclusively proved that a given application was or
+  would become first party fraud, in the way that some of our synthetic fraud and
+  identity theft signals could. Instead, they contributed to an overall
+  <strong>probabilistic assessment</strong> of first party fraud risk.
+</p>
+
+<h2>Evaluating signals on heterogeneous labels</h2>
+
+<p>
+  The hardest part was assessing whether each signal was “good” at detecting different
+  kinds of first party fraud. For synthetic fraud and, to a slightly lesser extent,
+  identity theft, manual review could provide ground truth. For first party fraud, this
+  was not the case.
+</p>
+
+<p>
+  Our solution was to develop the practice of evaluating each new signal on each set of
+  partner labels we received. We built small code helpers and a culture of evaluating
+  individual signals against individual datasets, rather than jumping directly to
+  end-to-end models.
+</p>
+
+<p>Suppose we start with three sets of potential first party fraud labels:</p>
+
+<ul>
+  <li>
+    One from a credit union, with 4,000 overall “first party fraud” labels divided into
+    three subcategories.
+  </li>
+  <li>
+    One from a large bank, consisting of a single lump of 2,000 first party fraud labels.
+  </li>
+  <li>
+    One from another large bank, with 18,000 first party fraud labels divided into two
+    subcategories.
+  </li>
+</ul>
+
+<p>
+  For each dataset, we would produce a table showing how each signal behaved on both the
+  fraud labels and the broader portfolio.
+</p>
+
+<p><em>We would produce tables like the following:</em></p>
 
 <!-- Credit Union 1 table -->
 <div class="fraud-table-container">
@@ -267,4 +522,147 @@
   </div>
 </div>
 
-<p>Text to be filled in</p>
+<h2>What these tables tell us</h2>
+
+<p>
+  These tables show, for each dataset, both the percentage of fraud labels captured by
+  each signal and the percentage of the overall portfolio that each signal fires on. In
+  other words, they show the recalls of each signal on each label set and the
+  corresponding portfolio coverage.
+</p>
+
+<p>Looking just at these three tables, several things jump out:</p>
+
+<ul>
+  <li>
+    Signals 1 and 2 tend to “pop” on subcategories 1 and 3 from the credit union, and on
+    subcategory 2 from Large Bank 2. These signals typically fire together on distinct
+    subsets of applications.
+  </li>
+  <li>
+    Signal 1 does not fire meaningfully on one of the large-bank datasets, whereas
+    Signals 3 and 4 do, suggesting a different underlying fraud M.O.
+  </li>
+  <li>
+    Subcategory 1 of Large Bank 2’s labels has a high rate of identity theft (measured by
+    the percentage of these applications that score highly on our identity theft score),
+    indicating a different problem than “pure” first party fraud.
+  </li>
+  <li>
+    Subcategory 2 from the credit union barely fires on any of our first party fraud
+    signals, suggesting that either the labels are noisy or they reflect a behavior
+    outside the scope of our signals.
+  </li>
+</ul>
+
+<p>
+  Creating these tables did not depend on intensive back-and-forth with our partners; we
+  could generate them independently and then use them to drive much more focused
+  conversations about what each label set actually represented. In many cases, partners
+  confirmed that our inferences about their fraud categories were correct.
+</p>
+
+<h2>Beyond recall: relative likelihood</h2>
+
+<p>
+  Recall alone is not enough. We also cared about how much more likely an application was
+  to be labeled as first party fraud when a signal fired, compared with when it did not.
+  For each signal and dataset, we therefore computed a
+  <strong>relative likelihood</strong>:
+</p>
+
+<pre><code>relative_likelihood = P(label = fraud | signal = 1) / P(label = fraud | signal = 0)</code></pre>
+
+<p>
+  This gave us a precision-like view of each signal’s value. A signal with modest recall
+  but very high relative likelihood might still be extremely useful in a scorecard; a
+  signal with high recall but low relative likelihood might be better suited as a
+  supporting feature.
+</p>
+
+<h2>From signals to scores</h2>
+
+<p>Our overall product development philosophy was to triangulate:</p>
+
+<ul>
+  <li>Primary research into the underlying fraud M.O.s.</li>
+  <li>The recalls and relative likelihoods of individual signals.</li>
+  <li>
+    Conversations with partners, informed by the kinds of tables shown above, to refine
+    and interpret their labels.
+  </li>
+</ul>
+
+<p>
+  This process led us to launch with two distinct first party fraud scores, each
+  targeting a different M.O. Rather than relying on clustering or other black-box
+  techniques, we had on the order of 10–20 datasets and eight signals and were able to
+  simply review the patterns by hand.
+</p>
+
+<p>
+  In each case, we ended up training our initial scores on one customer’s data: customers
+  with whom we could engage deeply to refine subcategories of labels, ultimately yielding
+  concentrated sets of 1,000–2,000 very high-quality labels per model.
+</p>
+
+<h2>Impact and lessons</h2>
+
+<p>
+  The scores did well. Launched in early 2024, by the time I left SentiLink in late 2025:
+</p>
+
+<ul>
+  <li>Many top U.S. financial institutions were using them in production.</li>
+  <li>Four of the top fifteen banks were live.</li>
+  <li>Two of the top ten credit card issuers were live.</li>
+  <li>A top-five credit union was live.</li>
+  <li>
+    Nearly all of SentiLink’s largest partners were engaged in retro studies with these
+    scores.
+  </li>
+</ul>
+
+<p>
+  We later created a combined score via a simple linear transformation of the two first
+  party fraud scores and explored training a broader score across multiple datasets. Even
+  so, the initial, relatively simple scores—grounded in deeply understood signals and
+  careful evaluation on heterogeneous labels—were enough to become SentiLink’s largest
+  and fastest-growing product launched in my last two years at the company.
+</p>
+
+<p>
+  The broader lesson is that great products in financial services are built from simple,
+  well-understood empirical facts. Starting from the recalls and relative likelihoods of
+  a handful of interpretable signals, and being very selective about labels, we were able
+  to build powerful models despite noisy and heterogeneous supervision.
+</p>
+
+<h2>Next steps and broader impact</h2>
+
+<p>
+  These first party fraud scores opened the door to deeper collaborations with major U.S.
+  financial institutions around first party fraud. SentiLink has since used these
+  relationships to explore more determinative solutions for first party fraud and to port
+  the same evaluation practices to other products, such as identity theft.
+</p>
+
+<p>
+  Most importantly, this work established a set of practices at SentiLink for evaluating
+  fraud signals on external datasets in a systematic way. As I was leaving, the company
+  had launched an initiative to evaluate our identity theft score and its key underlying
+  signals on external datasets using the same playbook. Helping SentiLink use customer
+  data more thoughtfully and systematically, and paving the way to tackle problems
+  outside our original core, is what I’m proudest of.
+</p>
+
+<h2>About the author</h2>
+
+<p>
+  Seth Weidman worked at SentiLink for about six years, from when the company was about
+  two-and-a-half years old (December 2019) to when it was eight-and-a-half years old
+  (November 2025).
+</p>
+
+<br />
+<button onclick="window.location.href='/'">Back to Home</button>
