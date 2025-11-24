@@ -2,33 +2,28 @@
 
 <h1>Successfully building fraud models with heterogeneous labels of unknown quality</h1>
 
+<p>Intro</p>
+
 <p>
-  At SentiLink, some of the most challenging work we did, from both a data science and
-  fraud perspective, was developing models that targeted heterogeneous sets of fraud
-  behavior. This was especially true for first party fraud, a broad category that covers
-  a variety of behaviors and is much less well understood than synthetic fraud and
-  identity theft. This essay explains why first party fraud was so challenging, and how
-  we ultimately built production models from noisy, heterogeneous labels.
+  At SentiLink, we developed scores for the purpose of helping FIs stop "first party
+  fraud". FPF was a new product space for us; entering it was an attempt to expand our
+  TAM beyond our two initial products: scores that helped FIs stop synthetic fraud and
+  identity theft, respectively. Building our first set of products in the first party
+  fraud space required a different approach than the one we took to develop these two
+  initial products; specifically, we had to train models on heterogeneous sets of
+  "labels" (applications that various of our partner FIs had tagged as fraud) that had
+  inconsistent definitions and reliability. This essay will describe this approach; as
+  necessary background, we'll describe the state of SentiLink's product suite at the time
+  we began to build these FPF scores.
 </p>
 
 <h2>Background: why we developed first party fraud scores</h2>
 
 <p>
-  SentiLink developed models that financial institutions used as part of their fraud
-  decisioning. Our two flagship models, synthetic fraud and identity theft, returned
-  scores when someone applied for a credit card or loan that indicated the likelihood
-  that the application was:
+  At the time we decided to develop first party fraud scores, we had two flagship
+  products: a synthetic fraud score and an identity theft score. These score were REST
+  APIs which took in as input:
 </p>
-
-<ul>
-  <li><strong>Synthetic fraud</strong> – a made up name–DOB–SSN combination.</li>
-  <li>
-    <strong>Identity theft</strong> – a real name–DOB–SSN combination, but submitted by
-    someone other than the true person.
-  </li>
-</ul>
-
-<p>At a high level, our API took in:</p>
 
 <ul>
   <li>Name</li>
@@ -40,60 +35,75 @@
   <li>IP address</li>
 </ul>
 
-<p>and returned scores that partners could use in their decisioning flows.</p>
-
 <p>
-  The main reason financial institutions will pay for these scores is that synthetic
-  identities and identity theft applications often present as low-risk from a traditional
-  credit perspective while actually being high-risk:
+  and returned scores that partners could "use in their application decisioning flows":
+  concretely, this meant FIs would typically call our APIs when a prospective customer
+  applied for a credit card, loan, or DDA, and, if our synthetic fraud or identity theft
+  scores were high, apply an additional high-friction step that would be difficult, if
+  not impossible, to pass if the application were actually an instance of synthetic fraud
+  or identity theft.
 </p>
 
-<ul>
-  <li>Synthetic identities may have high credit scores.</li>
-  <li>
-    Identity theft victims disproportionately have higher credit scores, making stolen
-    applications look safe even though there is no intent to pay.
-  </li>
-</ul>
+<p>
+  The value proposition of these scores was that, due to the structure of other credit
+  and fraud decisioning systems, synthetic fraud and identity theft applications would
+  often present as low-to-medium risk, while actually being extremely high risk.
+</p>
 
 <p>
-  Over time, our partner financial institutions began asking about another category of
-  fraud that was much less well understood: <strong>first party fraud</strong>, a
-  catch-all term for a variety of fraud M.O.s that, like synthetic fraud and identity
-  theft, lead to losses on applications that otherwise appear non-risky.
+  There was another kind of fraud we kept hearing about that has this same property:
+  <strong>first party fraud</strong>. We understood this much less well than synthetic
+  fraud or ID theft; our founders had direct experience dealing with the former two
+  problems at Affirm, but didn't have the same experience with FPF. To understand how we
+  got started with FPF, it is important to understand the methodology and internal
+  scaffolding we had built to solve synthetic fraud and ID theft.
 </p>
 
 <h2>The scaffolding we had for synthetic fraud and identity theft</h2>
 
 <p>
-  Synthetic fraud and identity theft were well understood by the firm’s founders and many
-  early employees based on their experiences at Affirm. This large set of “earned
-  secrets” drove SentiLink from its founding through our Series B fundraise and guided
-  how we built our internal data infrastructure. In particular, we built:
+  There were two key pieces of scaffolding that backed our synthetic fraud and identity
+  theft solutions:
 </p>
 
 <ul>
   <li>
-    <strong>An identity database.</strong> We merged data from a variety of licensed
+    <strong>Identity database.</strong> We merged data from a variety of licensed
     third-party sources into “identities” designed to make it easy to detect synthetic
-    fraud, especially first party synthetic fraud. For example, this database would
-    effectively “natively” display if one person had used multiple SSNs. It also enabled
-    strong features for third party synthetic fraud and identity theft.
+    fraud. For example, this database would easily allow one to see if one person had
+    used multiple SSNs (this is the single most common variant of synthetic fraud), as
+    well as a variety of other features, especially those relevant for synthetic fraud.
   </li>
   <li>
-    <strong>A graph of API activity.</strong> Each application sent to us was written to
-    an attributes table and an edges table, where two attributes were connected by an
-    edge if they were identical (e.g., same phone number, same device, same address).
-    This graph made it easy to build strong, link-based features for identity theft and
-    other fraud behaviors.
+    <strong>Graph of API activity.</strong> Each application sent to us was written to an
+    attributes table and an edges table, where two attributes were connected by an edge
+    if they were identical (e.g., same phone number, same SSN, same address). This graph
+    made it easy to build strong, link-based features for identity theft in particular:
+    for example, a common identity theft M.O. was a fraudster applying with many a single
+    phone number with multiple strangers' information, which this graph would let one
+    see.
   </li>
 </ul>
 
 <p>
-  We also licensed several other data sources that gave us insight into phone and email
-  activity. In short, we built internal scaffolding and data structures explicitly
-  designed to make it easier to identify synthetic fraud and identity theft and to
-  develop model features that would stop them.
+  These two pieces of scaffolding were "earned secrets" derived from the deep
+  understanding the founders and other early employees' had gained of these fraud
+  problems at Affirm. On top of these core data structures, we also had a robust,
+  internal full stack web application which visualized the "identity database" and
+  "graph" payloads associated with an application. We had other data sources on-prem that
+  both helped with detection of these two types of fraud and also were visualized in this
+  internal application. This tooling drove SentiLink from its founding through our
+  <a href="https://medium.com/craft-ventures/why-we-invested-in-sentilink-a8ef2cddb58f"
+    >Series B fundraise</a
+  >
+</p>
+
+<p>
+  Having these data sources which provided insight into two key types of fraud set us up
+  for success on FPF in many ways. Still, as we began to work on FPF, we found that it
+  was fundamentally different from these initial two types of fraud in one important way,
+  a way that ended up necessitating a different modeling approach than we took with the
+  models that underlied our synthetic fraud and identity theft scores.
 </p>
 
 <h2>Why first party fraud was challenging</h2>
