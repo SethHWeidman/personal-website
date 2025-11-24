@@ -4,6 +4,7 @@ body {
   margin: 0 auto;
   padding: 35px 20px 60px 20px; /* Increased bottom padding */
   line-height: 1.3;
+  background-color: #f5f2ed;
 }
 
 /* Heading spacing */
@@ -17,6 +18,17 @@ img {
   height: auto;
   width: 100%;
   max-width: 600px;
+}
+
+.hero-caption {
+  color: #555;
+  font-size: 0.9em;
+  font-style: italic;
+  margin-top: 0.25rem;
+}
+
+.code-inline {
+  font-family: "Courier New";
 }
 
 /* Full-width images (e.g., fraud spectrum) */
