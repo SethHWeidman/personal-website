@@ -106,94 +106,77 @@
   models that underlied our synthetic fraud and identity theft scores.
 </p>
 
-<h2>Why first party fraud was challenging</h2>
+<h2>What made first party fraud different</h2>
 
 <p>
-  First party fraud is fundamentally different from synthetic fraud and identity theft in
-  one crucial respect: it is difficult to observe directly.
+  First party fraud had properties that necessitated us taking a different approach to
+  developing our initial score than we did for our synthetic fraud and identity theft
+  models. Synthetic fraud and identity theft are defined mostly by relationships between
+  the PII elements received on an application being directly contradictory or
+  inconsistent with other data sources (such as our "identity database" or our "graph");
+  first party fraud is a function of how these relationships signal that the applicant
+  being dishonest about their future intent. First party fraud is often detected
+  retroactively by observing some post-application behavior that strongly suggested the
+  applicant was concealing some aspect of their identity when they applied; *[See, for
+  example, this white paper from Experian that defines first party fraud as being 90+
+  days delinquent ]
+</p>
+
+<p>
+  Fraud experts reading this know that the distinction between synthetic fraud and
+  identity theft on the one hand and first party fraud on the other hand is not binary
+  along these dimensions
+</p>
+
+<p>
+  As a result, we could not conclusively determine whether first party fraud was
+  happening, using manual review, as we could for synthetic fraud or identity theft.
+</p>
+
+<p>
+  In the vast majority of applications, we could get to a conclusive answer on whether an
+  individual application was an instance of synthetic fraud or identity theft using:
 </p>
 
 <ul>
   <li>
-    <strong>On lending portfolios</strong>, first party fraud often looks like credit
-    score manipulation, bust-out behavior, or other subtle patterns leading up to
-    charge-off.
+    the major pieces of scaffolding we had built for synthetic fraud and identity theft -
+    the identity database, the graph, and the internal application we'd built to
+    visualize these
   </li>
+  <li>Other similar fraud investigation tools we subscribed to</li>
   <li>
-    <strong>On DDA (checking) portfolios</strong>, it may show up as check fraud, ACH
-    fraud, or other account abuse behaviors.
+    Googling individuals and searching their often-publicly available social media
+    profiles
   </li>
 </ul>
 
 <p>
-  Even lenders themselves struggle to observe these behaviors directly, so they use a
-  variety of behavioral cues and internal policies to tag first party fraud. As a result:
+  Because of this, we actually generated our own labels for our synthetic fraud and
+  identity theft models! Over the course of SentiLink's history, we'd labeled hundreds of
+  thousands of applications as synthetic fraud or identity theft. The data science team,
+  building upon the data structures repeatedly described here, built pipelines that
+  extracted features for new applications that came in and fed those features into models
+  that had been trained on these internally-generated labels.
 </p>
-
-<ul>
-  <li>Manual review is often <strong>inconclusive</strong>.</li>
-  <li>
-    Labels for first party fraud are <strong>inconsistent</strong> both within and across
-    financial institutions.
-  </li>
-</ul>
 
 <p>
-  Some partners tagged first party fraud after manual review of individual applications.
-  Others used behavioral signals:
+  What all this led up to is that, to get started with a first party fraud score, we
+  *had* to rely on labels from customers. Moreover, these labels themselves were often
+  simply heterogeneous sets of observed FPF-adjacent behaviors signals: a group of
+  individuals who had passed suspiciously large checks that bounced, another group of
+  applications that had resulted in high counts, a set of applications with high credit
+  scores that nevertheless didn't pay back their loans, all from a certain geography, and
+  so on. The "adjacent" part is important here: some of these behaviors can simply occur
+  due to identity theft or synthetic fraud!
 </p>
-
-<ul>
-  <li>On DDAs: passing bad checks, consumer-initiated ACH returns, or similar.</li>
-  <li>
-    On lending: first payment defaults (FPDs) or early payment defaults (EPDs) on
-    accounts that didn’t initially appear risky from a credit perspective.
-  </li>
-</ul>
 
 <p>
-  Even within a single FI, first party fraud labels could be based on a mix of policies,
-  behaviors, and manual reviewer judgment. Across FIs, definitions diverged even further.
-  This gave us a heterogeneous set of labels of varying reliability and made it ambiguous
-  whether to build:
+  Given that we had a heterogenous set of labels, some of which may not even be of the
+  fraud that we were trying to target: how could we develop an FPF score - or scores?
 </p>
 
-<ul>
-  <li>
-    a <strong>single first party fraud score</strong> that would be simpler to explain;
-    or
-  </li>
-  <li>
-    <strong>multiple scores</strong> targeting what we believed were distinct fraud
-    M.O.s, all under the “first party fraud” umbrella.
-  </li>
-</ul>
-
-<h2>Where first party fraud fits relative to other fraud types</h2>
-
-<p>
-  One useful way to think about the problem is to place different fraud types along a
-  spectrum from “deterministically observable” to “probabilistically inferred.” Synthetic
-  fraud and many cases of identity theft are often deterministically detectable and can
-  be confirmed conclusively via manual review, at least with the tooling we had built.
-  First party fraud, by contrast, is typically only visible through noisy behavioral
-  signals and is much harder to prove case-by-case.
-</p>
-
-<img
-  src="https://sethhweidman-personal-website.s3.amazonaws.com/fraud_spectrum.png"
-  alt="Spectrum from deterministic synthetic and identity fraud to probabilistic first party fraud"
-  class="wide-image"
-/>
-
-<p>
-  On the left side of this spectrum, fraud can often be detected deterministically and
-  manual investigation can be conclusive. On the right side, fraud can only be detected
-  probabilistically and manual investigation is frequently inconclusive. First party
-  fraud lies at this probabilistic end of the spectrum.
-</p>
-
-<h2>Developing first party fraud signals</h2>
+<h2>Developing first party fraud scores</h2>
 
 <p>
   Our solution started with the scaffolding we had already built for synthetic fraud and
@@ -581,7 +564,8 @@
   <strong>relative likelihood</strong>:
 </p>
 
-<pre><code>relative_likelihood = P(label = fraud | signal = 1) / P(label = fraud | signal = 0)</code></pre>
+<pre><code>relative_likelihood = P(label = fraud | signal = 1) / P(label = fraud | signal
+= 0)</code></pre>
 
 <p>
   This gave us a precision-like view of each signal’s value. A signal with modest recall
