@@ -179,13 +179,12 @@
 <h2>Developing first party fraud scores</h2>
 
 <p>
-  Our solution started with the scaffolding we had already built for synthetic fraud and
-  identity theft. Through deep review of partner labels and primary research into fraud
-  M.O.s, we developed eight signals indicating that someone had an elevated likelihood of
-  subsequently committing first party fraud on an application.
+  We first reviewed applications from these heterogeneous datasets, where our customers
+  told us they'd seen FPF-adjacent behavior, using our internal tool that displayed the
+  "identity database" and the "graph" we used to investigate synthetic fraud and identity
+  theft cases, to hypotheize types of features that might be predictive of FPF. A couple
+  examples:
 </p>
-
-<p>For example:</p>
 
 <ul>
   <li>
@@ -201,32 +200,22 @@
 </ul>
 
 <p>
-  Each of these eight signals was a Boolean true/false flag, often accompanied by numeric
-  “sub-signals” (e.g., the number of prior synthetic attempts or the number of DDAs
-  applied for in different time windows).
+  We ended up finding eight of these signals that were predictive (see below for how we
+  validated this). Each of these eight signals was a boolean true/false flag, accompanied
+  by numeric “sub-signals” (e.g., the number of prior synthetic attempts or the number of
+  DDAs applied for in different time windows). While each of these signals had a
+  reasonable "story" for why it <em>ought</em> to correlate with first party fraud, we
+  had to validate this quantitatively. The next section covers how we did this.
 </p>
 
-<p>
-  Crucially, none of these signals conclusively proved that a given application was or
-  would become first party fraud, in the way that some of our synthetic fraud and
-  identity theft signals could. Instead, they contributed to an overall
-  <strong>probabilistic assessment</strong> of first party fraud risk.
-</p>
-
-<h2>Evaluating signals on heterogeneous labels</h2>
+<h2>Evaluating hypothesized signals on heterogeneous, unreliable labels</h2>
 
 <p>
-  The hardest part was assessing whether each signal was “good” at detecting different
-  kinds of first party fraud. For synthetic fraud and, to a slightly lesser extent,
-  identity theft, manual review could provide ground truth. For first party fraud, this
-  was not the case.
-</p>
-
-<p>
-  Our solution was to develop the practice of evaluating each new signal on each set of
-  partner labels we received. We built small code helpers and a culture of evaluating
-  individual signals against individual datasets, rather than jumping directly to
-  end-to-end models.
+  SentiLink had historically validated its models on a homogeneous set of
+  internally-generated labels. Due to the heterogeneity and potential varying quality of
+  customer labels, we built a culture of quantitatively evaluating each potential signal
+  on each individual set of partner labels, and creating "tables" that display the
+  performance of each signal on each label. We illustrate below how we did this:
 </p>
 
 <p>Suppose we start with three sets of potential first party fraud labels:</p>
