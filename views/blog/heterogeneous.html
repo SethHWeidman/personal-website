@@ -176,14 +176,37 @@
   fraud that we were trying to target: how could we develop an FPF score - or scores?
 </p>
 
+<h2>An analogy</h2>
+
+<p>
+  To give an analogy from a more commonly-seen machine learning setting: imagine your job
+  is to train a classifier to detect whether a car is in an image. You have several sets
+  of images available to you: 1,000 images in a chunk, 2,000 images in another chunk,
+  etc. However, *looking at the images wouldn't actually confirm whether there was a car
+  in the image*; while most chunks presumably are actually of cars, some may be images of
+  motorcycles, some of trucks, and some chunks may not even be images of cars at all!
+</p>
+<p>
+  You can, however, define certain "patterns of material", and check whether those
+  patterns are present in each image: you can detect whether there is a sheet of metal
+  (which could be part of a door), whether there is a pane of glass (which would be a
+  window or a windshield), whether there is a metal circle inside a rubber circle (which
+  could indicate a wheel), and so on. By checking the prevalence of these patterns among
+  the images, and comparing this prevalence to the prevalence among a random set of
+  images pulled from the internet, we can suss out which of the original chunks of images
+  are actually of cars, and thus are suitable for inclusion as "targets" in the "car"
+  model.
+</p>
+
 <h2>Developing first party fraud scores</h2>
 
 <p>
   We first reviewed applications from these heterogeneous datasets, where our customers
-  told us they'd seen FPF-adjacent behavior, using our internal tool that displayed the
-  "identity database" and the "graph" we used to investigate synthetic fraud and identity
-  theft cases, to hypotheize types of features that might be predictive of FPF. A couple
-  examples:
+  told us they'd seen FPF-adjacent behavior - analogous to the "car images" described
+  above - using our internal tool that displayed the "identity database" and the "graph"
+  we used to investigate synthetic fraud and identity theft cases, and hypotheized
+  "patterns" that might be predictive of FPF - analogous to the "patterns of material"
+  described above. A couple example patterns:
 </p>
 
 <ul>
@@ -200,25 +223,17 @@
 </ul>
 
 <p>
-  We ended up finding eight of these signals that were predictive (see below for how we
-  validated this). Each of these eight signals was a boolean true/false flag, accompanied
-  by numeric “sub-signals” (e.g., the number of prior synthetic attempts or the number of
-  DDAs applied for in different time windows). While each of these signals had a
-  reasonable "story" for why it <em>ought</em> to correlate with first party fraud, we
-  had to validate this quantitatively. The next section covers how we did this.
+  We ended up finding eight of these signals that were predictive: prevalent among many
+  of the FPF label datasets we'd received, and not so prevalent overall. Each of these
+  eight signals was a boolean true/false flag, accompanied by numeric “sub-signals”
+  (e.g., the number of distinct SSNs someone had committed synthetic fraud with or the
+  number of DDAs applied for in different time windows). The next section covers
+  specifically how we validated that these signals were actually strong quantitatively.
 </p>
 
 <h2>Evaluating hypothesized signals on heterogeneous, unreliable labels</h2>
 
-<p>
-  SentiLink had historically validated its models on a homogeneous set of
-  internally-generated labels. Due to the heterogeneity and potential varying quality of
-  customer labels, we built a culture of quantitatively evaluating each potential signal
-  on each individual set of partner labels, and creating "tables" that display the
-  performance of each signal on each label. We illustrate below how we did this:
-</p>
-
-<p>Suppose we start with three sets of potential first party fraud labels:</p>
+<p>Suppose we started with three sets of potential first party fraud labels:</p>
 
 <ul>
   <li>
@@ -236,10 +251,9 @@
 
 <p>
   For each dataset, we would produce a table showing how each signal behaved on both the
-  fraud labels and the broader portfolio.
+  fraud labels and the population (or "portfolio" to use the industry jargon) from which
+  those applications came:
 </p>
-
-<p><em>We would produce tables like the following:</em></p>
 
 <!-- Credit Union 1 table -->
 <div class="fraud-table-container">
@@ -507,13 +521,12 @@
 <h2>What these tables tell us</h2>
 
 <p>
-  These tables show, for each dataset, both the percentage of fraud labels captured by
-  each signal and the percentage of the overall portfolio that each signal fires on. In
-  other words, they show the recalls of each signal on each label set and the
-  corresponding portfolio coverage.
+  These tables show, for each "dataset" (as we referred to each chunk of labels), both
+  the percentage of that dataset captured by each signal and the percentage of the
+  overall portfolio that each signal fired on.
 </p>
 
-<p>Looking just at these three tables, several things jump out:</p>
+<p>Looking just at these three tables, several things jump out: REWORK ALL OF THIS!</p>
 
 <ul>
   <li>
@@ -540,11 +553,14 @@
 <p>
   Creating these tables did not depend on intensive back-and-forth with our partners; we
   could generate them independently and then use them to drive much more focused
-  conversations about what each label set actually represented. In many cases, partners
+  conversations about what each label set actually represented. In many cases, customers
   confirmed that our inferences about their fraud categories were correct.
 </p>
 
-<h2>Beyond recall: relative likelihood</h2>
+<p>
+  Add a paragraph: we could go back to customers and tell them: hey we think these are
+  cars, we think these aren't, etc.
+</p>
 
 <p>
   Recall alone is not enough. We also cared about how much more likely an application was
