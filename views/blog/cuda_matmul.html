@@ -1,0 +1,354 @@
+<h1>CUDA Matrix Multiplication with Shared Memory</h1>
+<p class="post-date">November 2025</p>
+
+<p>
+  CUDA is an important part of the AI stack. It is the software toolkit that allows
+  running fast computations on NVIDIA GPUs. This essay will cover some basic facts about
+  CUDA, explain how CUDA programs are often structured, focusing on one very common
+  pattern in particular, and show a beautiful algorithm to speed up matrix multiplication
+  with CUDA using this pattern.
+</p>
+
+<h2>Background</h2>
+
+<p>
+  Writing programs in a “GPU-aware” way is different than other programming paradigms,
+  such as writing a Python script designed to run on a single core: you must be aware
+  that by default, your program will run on a CPU, referred to as a host, whereas you can
+  write special functions and explicitly launch those functions on a GPU, referred to as
+  a device.
+</p>
+
+<p>
+  You can think of your CPU has having just a few processors / cores, each of which is
+  complex and powerful but not as optimized for “running many simple computations in
+  parallel”, whereas the GPU has many processors / cores, each of which is optimized for
+  “running many simple computations in parallel”. NVIDIA calls these GPU processors
+  Streaming Multiprocessors (SMs), each of which can perform many simple computations at
+  once.
+</p>
+
+<p>
+  As a consequence of all this, there are three levels of memory one can keep in mind
+  when programming on a machine that has a GPU:
+</p>
+
+<ol>
+  <li>“Host memory”: the memory of the CPU</li>
+  <li>“Global memory”: the memory “globally” on the GPU</li>
+  <li>
+    “Shared memory”: memory that has been loaded onto an individual SM - you’ll see
+    shortly why it is called “shared”
+  </li>
+</ol>
+
+<p>
+  Unsurprisingly, given that the computations will actually take place on the individual
+  SMs, writing programs that require either:
+</p>
+
+<ul>
+  <li>Fewer reads from host memory to global memory</li>
+  <li>Fewer reads from global memory to shared memory</li>
+</ul>
+
+<p>
+  can result in significant speedups, even given the same number of underlying
+  computations being done. What we’ll ultimately show in this essay is a well-known
+  algorithm for doing matrix multiplication while reducing the number of reads from
+  global memory to shared memory by an order of magnitude.
+</p>
+
+<p>That’s all hardware; now let’s introduce some fundamental software ideas:</p>
+
+<p>
+  CUDA - technically CUDA is “CUDA C++”, an extension of C++ that has additional keywords
+  like <code>__global__</code> and <code>__shared__</code> - programs run via CUDA
+  kernels: these are special C++ functions designed to run on GPUs. Here’s where it gets
+  tricky: the actual “atomic units” that “do work” within SMs are threads. To “launch a
+  CUDA kernel”, we launch it with a “set of blocks of threads” known as a grid. Two
+  special keywords are passed into the kernel before the regular function arguments are
+  passed in: the number of thread blocks to launch, and the number of threads per block.
+  See an example of this here:
+  <a
+    href="https://github.com/SethHWeidman/intro_to_cuda/blob/main/demo3_matmul/matmul.cu#L159"
+    target="_blank"
+    rel="noopener noreferrer"
+    >https://github.com/SethHWeidman/intro_to_cuda/blob/main/demo3_matmul/matmul.cu#L159</a
+  >. It is up to the programmer, if operating on a matrix of size <var>A</var>, and
+  wanting to use <var>N</var> threads per block, to compute the number of blocks of
+  threads correctly as roughly “ceiling(<var>A</var> / <var>N</var>)”.
+</p>
+
+<p>
+  So there are three “levels” of computation happening on the GPU, each of which the
+  programmer must be aware of:
+</p>
+
+<ul>
+  <li>Individual threads are doing computations</li>
+  <li>These threads are grouped into thread blocks</li>
+  <li>These blocks are grouped into a grid</li>
+</ul>
+
+<p>The CUDA kernel itself operates both at a thread level and at a block level.</p>
+
+<ul>
+  <li>The kernel itself is replicated across and runs in each thread.</li>
+  <li>
+    Special variables are accessible indicating:
+    <ul>
+      <li>The thread’s block’s position within the grid of blocks</li>
+      <li>The thread’s position within its block</li>
+    </ul>
+  </li>
+  <li>Kernels define what each thread should do</li>
+  <li>
+    Kernels can also define and access objects that are accessible by each thread within
+    a block of threads. Going back to the three layers of memory above, such objects live
+    in “shared” memory, on the SM. We now know why this is called “shared memory”; the
+    memory is shared by a block of threads.
+  </li>
+</ul>
+
+<p>This leads to a common pattern seen in GPU programming:</p>
+
+<ol>
+  <li>Define objects that will be in shared memory within a block of threads</li>
+  <li>Have each thread fill some subset of those shared objects</li>
+  <li>Sync threads</li>
+  <li>Have each thread do some operation on the shared objects.</li>
+</ol>
+
+<p>
+  In some algorithms, this pattern can allow for an order of magnitude fewer reads from
+  “global memory” (on the GPU) which are relatively slow compared to reading from “shared
+  memory” (on the CPU). In the rest of this essay, we’ll cover such an algorithm: matrix
+  multiplication!
+</p>
+
+<h2>Matrix multiplication</h2>
+
+<p>We’ll proceed assuming you understand the algorithm for matrix multiplication.</p>
+
+<p>
+  Let’s assume we can read all of the two matrices we want to multiply into memory on a
+  single GPU - recall that this means the matrix is in “global memory” on the GPU. For
+  simplicity, let’s assume both matrices are <var>N</var> &times; <var>N</var>. Just to have some
+  concrete numbers, suppose our matrix is 32 &times; 32, for
+  1,024 total elements.
+</p>
+
+<p>
+  Suppose we want to compute “<var>B</var> &times; <var>B</var> block” of elements, where
+  <var>B</var> is an integer divisible by <var>N</var>; for example, suppose
+  <var>B</var> is 8, so that we’re talking about an
+  8 &times; 8 block of the matrix. How many reads from global memory, into shared
+  memory, would we have to make?
+</p>
+
+<figure>
+  <img
+    src="/images/cuda-matmul-fig1.png"
+    alt="Diagram for the B x B block and the corresponding row and column slices."
+  />
+</figure>
+
+<p>
+  Well, to compute an individual element, you’d need to read in
+  2 * <var>N</var> elements, and take the dot product of their vectors. You’d need to
+  do this <var>B</var> &times; <var>B</var> times, once for each of the <var>B</var><sup>2</sup> elements in the
+  <var>B</var> &times; <var>B</var> block.
+</p>
+
+<p>
+  For our concrete example, to compute an 8 &times; 8 block of
+  64 elements, we’d read in 2 * 32 elements
+  64 times, for a total of 64 * 64 = 4,096 reads.
+</p>
+
+<p>
+  Now, we’ll walk through a way of using shared memory to do the same matrix
+  multiplication with 8x fewer reads from global memory into shared memory!
+  At the end, we’ll show concretely that this does in fact make the multiplication run
+  faster:
+</p>
+
+<h3>Step 1:</h3>
+
+<p>
+  Consider the <var>B</var> &times; <var>B</var> block at the top left of the matrix - call it “A”.
+  Divide the “<var>B</var> &times; <var>N</var>” row containing A into <var>K</var> blocks (by
+  construction, <var>K</var> must be <var>N</var> / <var>B</var>). In our concrete example, we’d
+  be dividing the first “8 row by 32 column” slice of the matrix into four
+  blocks.
+</p>
+
+<p>
+  Divide the column containing A, <var>N</var> rows by <var>B</var> columns (32 rows by
+  8 columns), into four chunks similarly.
+</p>
+
+<figure>
+  <img
+    src="/images/cuda-matmul-fig2.png"
+    alt="Diagram for Step 1 showing the B x N row slice and N x B column slice divided into K blocks."
+  />
+</figure>
+
+<h3>Step 2:</h3>
+
+<p>
+  Load the first “tile” - “tile” is the technical name for these “chunks” - of each of
+  the “row slice” and “column slice” into shared memory.
+</p>
+
+<figure>
+  <img
+    src="/images/cuda-matmul-fig3.png"
+    alt="Diagram for Step 2 showing the first tiles loaded into shared memory."
+  />
+</figure>
+
+<h3>Step 3:</h3>
+
+<p>
+  Here’s the fun and slightly tricky part: use these tiles to increment, though not fully
+  compute, each of the <var>B</var> &times; <var>B</var> sums in A.
+</p>
+
+<figure>
+  <img
+    src="/images/cuda-matmul-fig4.png"
+    alt="Diagram for Step 3 showing partial sums within the B x B block."
+  />
+</figure>
+
+<p>
+  For example, to increment the element in the second row, first column of A, we would
+  perform the dot product of the second row of the “row tile” with the first column of
+  the “column tile”, and add it to the ongoing sum of the elements.
+</p>
+
+<h3>Step 4, and beyond</h3>
+
+<p>
+  We would move on to the next “row tile” in the row containing A and the next “column
+  tile” in the column containing A (if we were incrementing a tile counter
+  <var>k</var> started at 1, we’d be incrementing it to 2).
+  We’d then perform the same operations as in step 3, incrementing each of the
+  <var>B</var> * <var>B</var> elements of A.
+</p>
+
+<figure>
+  <img
+    src="/images/cuda-matmul-fig5.png"
+    alt="Diagram for Step 4 showing moving to the next pair of tiles."
+  />
+</figure>
+
+<h3>Step 5</h3>
+
+<p>
+  Repeat this process for <var>k</var> = 3, 4,…, all the way up to <var>K</var>! By
+  the time we’ve iterated through all <var>K</var> tiles, we’ve computed the full value
+  of all the elements of A.
+</p>
+
+<h2>Analysis</h2>
+
+<p>
+  We read in a total of 2 * <var>B</var> * <var>B</var> elements on each of
+  <var>K</var> = <var>N</var> / <var>B</var> iterations, for a total “global -&gt; shared memory cost” of
+  2 * <var>B</var> * <var>B</var> * <var>N</var> / <var>B</var> = 2 * <var>B</var> * <var>N</var> - <var>B</var> times less than doing the
+  reads naively!
+</p>
+
+<h2>Implementation and Benchmarking</h2>
+
+<p>
+  I have an implementation here:
+  <a
+    href="https://github.com/SethHWeidman/intro_to_cuda/blob/main/demo3_matmul/matmul_kernels.cuh#L27"
+    target="_blank"
+    rel="noopener noreferrer"
+    >https://github.com/SethHWeidman/intro_to_cuda/blob/main/demo3_matmul/matmul_kernels.cuh#L27</a
+  >. I would not have been able to write it without referencing:
+</p>
+
+<ul>
+  <li>
+    This implementation from the GitHub page of Stanford’s CS149 (Parallel Computing)
+    course:
+    <a
+      href="https://github.com/stanford-cs149/intro_to_cuda/blob/main/demo3_matmul/matmul.cu"
+      target="_blank"
+      rel="noopener noreferrer"
+      >https://github.com/stanford-cs149/intro_to_cuda/blob/main/demo3_matmul/matmul.cu</a
+    >
+    my implementation is in my fork of this repo.
+  </li>
+  <li>
+    This blog post from Lei Mao (now an engineer at Meta; he was at NVIDIA when he wrote
+    this):
+    <a
+      href="https://leimao.github.io/blog/CUDA-Matrix-Multiplication/"
+      target="_blank"
+      rel="noopener noreferrer"
+      >https://leimao.github.io/blog/CUDA-Matrix-Multiplication/</a
+    >
+  </li>
+</ul>
+
+<p>
+  There’s a lot going on in the implementation, but notice that these lines
+  <a
+    href="https://github.com/SethHWeidman/intro_to_cuda/blob/main/demo3_matmul/matmul_kernels.cuh#L29-L30"
+    target="_blank"
+    rel="noopener noreferrer"
+    >https://github.com/SethHWeidman/intro_to_cuda/blob/main/demo3_matmul/matmul_kernels.cuh#L29-L30</a
+  >
+  are the ones where two “tiles”, each 2D arrays of size
+  <code>BLOCK_DIM</code> &times; <code>BLOCK_DIM</code> are initialized, using the
+  <code>__shared__</code> CUDA C++ keyword. The use of <code>threadIdx</code> and
+  <code>syncthreads</code> to aid with the computation could be worth another blog post!
+</p>
+
+<h2>Benchmarking</h2>
+
+<p>
+  The README
+  <a
+    href="https://github.com/SethHWeidman/intro_to_cuda/blob/main/demo3_matmul/README.md"
+    target="_blank"
+    rel="noopener noreferrer"
+    >https://github.com/SethHWeidman/intro_to_cuda/blob/main/demo3_matmul/README.md</a
+  >
+  shows about a 60% speedup in using the shared memory approach vs. the naive approach
+  (even if the naive approach still uses parallelism) - 553 ms vs.
+  900 ms!
+</p>
+
+<h2>Benchmarking</h2>
+
+<p>
+  Lest you be impressed: this comparison shows separately that
+  <a
+    href="https://github.com/SethHWeidman/ai_computing/tree/master/02_cuda_vs_pytorch_matmul"
+    target="_blank"
+    rel="noopener noreferrer"
+    >https://github.com/SethHWeidman/ai_computing/tree/master/02_cuda_vs_pytorch_matmul</a
+  >
+  the kernel using shared memory is about 8x slower than just calling
+  “<code>torch.mm</code>”!
+</p>
+
+<h2>Conclusion</h2>
+
+<p>
+  Hopefully you enjoyed this deep dive into how a canonical CUDA feature, shared memory,
+  can be used to speed up a canonical algorithm, matrix multiplication!
+</p>
+
+<br />
+<button onclick="window.location.href='/'">Back to Home</button>
