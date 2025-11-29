@@ -148,6 +148,17 @@ app.get("/blog/heterogeneous.html", (req, res) => {
   );
 });
 
+app.get("/blog/cuda_matmul.html", (req, res) => {
+  res.send(
+    renderHTML(
+      "CUDA Matrix Multiplication with Shared Memory",
+      `
+      ${loadView("blog/cuda_matmul.html")}
+      `
+    )
+  );
+});
+
 // Fetch the visitor log and render the page
 app.get("/visitor-log", async (req, res) => {
   try {

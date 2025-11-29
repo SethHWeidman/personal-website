@@ -1,5 +1,16 @@
 <h1>CUDA Matrix Multiplication with Shared Memory</h1>
 <p class="post-date">November 2025</p>
+<script>
+  window.MathJax = {
+    tex: { inlineMath: [["\\(", "\\)"], ["$", "$"]] },
+    svg: { fontCache: "global" },
+  };
+</script>
+<script
+  id="MathJax-script"
+  async
+  src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"
+></script>
 
 <p>
   CUDA is an important part of the AI stack. It is the software toolkit that allows
@@ -75,9 +86,8 @@
     target="_blank"
     rel="noopener noreferrer"
     >https://github.com/SethHWeidman/intro_to_cuda/blob/main/demo3_matmul/matmul.cu#L159</a
-  >. It is up to the programmer, if operating on a matrix of size <var>A</var>, and
-  wanting to use <var>N</var> threads per block, to compute the number of blocks of
-  threads correctly as roughly “ceiling(<var>A</var> / <var>N</var>)”.
+  >. It is up to the programmer, if operating on a matrix of size \(A\), and wanting to use \(N\) threads per block, to compute the number of blocks of
+  threads correctly as roughly \(\lceil A / N \rceil\).
 </p>
 
 <p>
@@ -134,16 +144,15 @@
 <p>
   Let’s assume we can read all of the two matrices we want to multiply into memory on a
   single GPU - recall that this means the matrix is in “global memory” on the GPU. For
-  simplicity, let’s assume both matrices are <var>N</var> &times; <var>N</var>. Just to have some
-  concrete numbers, suppose our matrix is 32 &times; 32, for
-  1,024 total elements.
+  simplicity, let’s assume both matrices are \(N \times N\). Just to have some
+  concrete numbers, suppose our matrix is \(32 \times 32 = 1,024\) total elements.
 </p>
 
 <p>
-  Suppose we want to compute “<var>B</var> &times; <var>B</var> block” of elements, where
-  <var>B</var> is an integer divisible by <var>N</var>; for example, suppose
-  <var>B</var> is 8, so that we’re talking about an
-  8 &times; 8 block of the matrix. How many reads from global memory, into shared
+  Suppose we want to compute “\(B \times B\) block” of elements, where
+  \(B\) is an integer divisible by \(N\); for example, suppose
+  \(B = 8\), so that we’re talking about an
+  \(8 \times 8\) block of the matrix. How many reads from global memory, into shared
   memory, would we have to make?
 </p>
 
@@ -156,20 +165,20 @@
 
 <p>
   Well, to compute an individual element, you’d need to read in
-  2 * <var>N</var> elements, and take the dot product of their vectors. You’d need to
-  do this <var>B</var> &times; <var>B</var> times, once for each of the <var>B</var><sup>2</sup> elements in the
-  <var>B</var> &times; <var>B</var> block.
+  \(2N\) elements, and take the dot product of their vectors. You’d need to
+  do this \(B \times B\) times, once for each of the \(B^2\) elements in the
+  \(B \times B\) block.
 </p>
 
 <p>
-  For our concrete example, to compute an 8 &times; 8 block of
-  64 elements, we’d read in 2 * 32 elements
-  64 times, for a total of 64 * 64 = 4,096 reads.
+  For our concrete example, to compute an \(8 \times 8\) block of
+  64 elements, we’d read in \(2 \times 32\) elements
+  64 times, for a total of \(64 \times 64 = 4{,}096\) reads.
 </p>
 
 <p>
   Now, we’ll walk through a way of using shared memory to do the same matrix
-  multiplication with 8x fewer reads from global memory into shared memory!
+  multiplication with \(8 \times\) fewer reads from global memory into shared memory!
   At the end, we’ll show concretely that this does in fact make the multiplication run
   faster:
 </p>
@@ -177,15 +186,15 @@
 <h3>Step 1:</h3>
 
 <p>
-  Consider the <var>B</var> &times; <var>B</var> block at the top left of the matrix - call it “A”.
-  Divide the “<var>B</var> &times; <var>N</var>” row containing A into <var>K</var> blocks (by
-  construction, <var>K</var> must be <var>N</var> / <var>B</var>). In our concrete example, we’d
+  Consider the \(B \times B\) block at the top left of the matrix - call it “A”.
+  Divide the “\(B \times N\)” row containing A into \(K\) blocks (by
+  construction, \(K = \frac{N}{B}\)). In our concrete example, we’d
   be dividing the first “8 row by 32 column” slice of the matrix into four
   blocks.
 </p>
 
 <p>
-  Divide the column containing A, <var>N</var> rows by <var>B</var> columns (32 rows by
+  Divide the column containing A, \(N\) rows by \(B\) columns (32 rows by
   8 columns), into four chunks similarly.
 </p>
 
@@ -214,7 +223,7 @@
 
 <p>
   Here’s the fun and slightly tricky part: use these tiles to increment, though not fully
-  compute, each of the <var>B</var> &times; <var>B</var> sums in A.
+  compute, each of the \(B \times B\) sums in A.
 </p>
 
 <figure>
@@ -235,9 +244,9 @@
 <p>
   We would move on to the next “row tile” in the row containing A and the next “column
   tile” in the column containing A (if we were incrementing a tile counter
-  <var>k</var> started at 1, we’d be incrementing it to 2).
+  \(k\) started at 1, we’d be incrementing it to 2).
   We’d then perform the same operations as in step 3, incrementing each of the
-  <var>B</var> * <var>B</var> elements of A.
+  \(B^2\) elements of A.
 </p>
 
 <figure>
@@ -250,17 +259,17 @@
 <h3>Step 5</h3>
 
 <p>
-  Repeat this process for <var>k</var> = 3, 4,…, all the way up to <var>K</var>! By
-  the time we’ve iterated through all <var>K</var> tiles, we’ve computed the full value
+  Repeat this process for \(k = 3, 4,\ldots,K\)! By
+  the time we’ve iterated through all \(K\) tiles, we’ve computed the full value
   of all the elements of A.
 </p>
 
 <h2>Analysis</h2>
 
 <p>
-  We read in a total of 2 * <var>B</var> * <var>B</var> elements on each of
-  <var>K</var> = <var>N</var> / <var>B</var> iterations, for a total “global -&gt; shared memory cost” of
-  2 * <var>B</var> * <var>B</var> * <var>N</var> / <var>B</var> = 2 * <var>B</var> * <var>N</var> - <var>B</var> times less than doing the
+  We read in a total of \(2B^2\) elements on each of
+  \(K = \frac{N}{B}\) iterations, for a total “global -&gt; shared memory cost” of
+  \(\frac{2B^2N}{B} = 2BN\) - \(B\) times less than doing the
   reads naively!
 </p>
 
@@ -339,7 +348,7 @@
     rel="noopener noreferrer"
     >https://github.com/SethHWeidman/ai_computing/tree/master/02_cuda_vs_pytorch_matmul</a
   >
-  the kernel using shared memory is about 8x slower than just calling
+  the kernel using shared memory is about \(8 \times\) slower than just calling
   “<code>torch.mm</code>”!
 </p>
 
