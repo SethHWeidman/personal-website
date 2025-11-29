@@ -85,15 +85,17 @@ if (isProduction) {
 }
 
 app.use(express.static("public"));
+app.use("/images", express.static(path.join(__dirname, "images")));
 
-// Helper function to render HTML layout with reusable CSS and meta tag
-function renderHTML(title, bodyContent) {
+// Helper function to render HTML layout with reusable CSS and optional meta tags
+function renderHTML(title, bodyContent, extraHead = "") {
   return `
     <html>
       <head>
         <title>${title}</title>
         <link rel="stylesheet" type="text/css" href="/styles.css">
         <meta name="viewport" content="width=device-width, initial-scale=1">
+        ${extraHead}
       </head>
       <body>
         ${bodyContent}
@@ -149,12 +151,30 @@ app.get("/blog/heterogeneous.html", (req, res) => {
 });
 
 app.get("/blog/cuda_matmul.html", (req, res) => {
+  const cudaOgMeta = `
+        <meta property="og:type" content="article">
+        <meta property="og:title" content="Tiling Matrix Multiplication on the GPU">
+        <meta
+          property="og:description"
+          content="An illustrated walkthrough of how CUDA shared-memory tiling speeds up matrix multiplication on NVIDIA GPUs."
+        >
+        <meta property="og:url" content="https://sethweidman.com/blog/cuda_matmul.html">
+        <meta property="og:image" content="https://sethweidman.com/images/banner_image.png">
+        <meta name="twitter:card" content="summary_large_image">
+        <meta name="twitter:title" content="Tiling Matrix Multiplication on the GPU">
+        <meta
+          name="twitter:description"
+          content="An illustrated walkthrough of how CUDA shared-memory tiling speeds up matrix multiplication on NVIDIA GPUs."
+        >
+        <meta name="twitter:image" content="https://sethweidman.com/images/banner_image.png">
+      `;
   res.send(
     renderHTML(
-      "CUDA Matrix Multiplication with Shared Memory",
+      "Tiling Matrix Multiplication on the GPU",
       `
       ${loadView("blog/cuda_matmul.html")}
-      `
+      `,
+      cudaOgMeta
     )
   );
 });
