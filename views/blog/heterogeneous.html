@@ -1,8 +1,6 @@
 <link rel="stylesheet" href="/fraud-tables.css" />
 
-<h1>Successfully building fraud models with heterogeneous labels of unknown quality</h1>
-
-<p>Intro</p>
+<h1>Building fraud models with heterogeneous labels of unknown quality</h1>
 
 <p>
   At SentiLink, we developed scores for the purpose of helping FIs stop "first party
@@ -251,8 +249,7 @@
 
 <p>
   For each dataset, we would produce a table showing how each signal behaved on both the
-  fraud labels and the population (or "portfolio" to use the industry jargon) from which
-  those applications came:
+  fraud labels and the relevant population of which the applications were a subset:
 </p>
 
 <!-- Credit Union 1 table -->
@@ -264,10 +261,10 @@
         <tr>
           <th>label category</th>
           <th>n_total</th>
-          <th>fpf_signal_1_recall</th>
-          <th>fpf_signal_2_recall</th>
-          <th>fpf_signal_3_recall</th>
-          <th>fpf_signal_4_recall</th>
+          <th>fpf_signal_1<br />recall</th>
+          <th>fpf_signal_2<br />recall</th>
+          <th>fpf_signal_3<br />recall</th>
+          <th>fpf_signal_4<br />recall</th>
           <th>high_synthetic_score_recall</th>
           <th>high_id_theft_score_recall</th>
           <th>n_pos_fpf_signal_1</th>
@@ -373,10 +370,10 @@
         <tr>
           <th>label category</th>
           <th>n_total</th>
-          <th>fpf_signal_1_recall</th>
-          <th>fpf_signal_2_recall</th>
-          <th>fpf_signal_3_recall</th>
-          <th>fpf_signal_4_recall</th>
+          <th>fpf_signal_1<br />recall</th>
+          <th>fpf_signal_2<br />recall</th>
+          <th>fpf_signal_3<br />recall</th>
+          <th>fpf_signal_4<br />recall</th>
           <th>high_synthetic_score_recall</th>
           <th>high_id_theft_score_recall</th>
           <th>n_pos_fpf_signal_1</th>
@@ -434,10 +431,10 @@
         <tr>
           <th>label category</th>
           <th>n_total</th>
-          <th>fpf_signal_1_recall</th>
-          <th>fpf_signal_2_recall</th>
-          <th>fpf_signal_3_recall</th>
-          <th>fpf_signal_4_recall</th>
+          <th>fpf_signal_1<br />recall</th>
+          <th>fpf_signal_2<br />recall</th>
+          <th>fpf_signal_3<br />recall</th>
+          <th>fpf_signal_4<br />recall</th>
           <th>high_synthetic_score_recall</th>
           <th>high_id_theft_score_recall</th>
           <th>n_pos_fpf_signal_1</th>
@@ -521,33 +518,232 @@
 <h2>What these tables tell us</h2>
 
 <p>
-  These tables show, for each "dataset" (as we referred to each chunk of labels), both
-  the percentage of that dataset captured by each signal and the percentage of the
-  overall portfolio that each signal fired on.
+  These tables show, for each individual "chunk" of fraud labels, the percent of those
+  labels flagged by each individual signal. For comparison, we also show in the bottom
+  row of each table the percent of the overall dataset that was flagged by the signal.
 </p>
 
-<p>Looking just at these three tables, several things jump out: REWORK ALL OF THIS!</p>
+<p>
+  The ratio of these numbers was an important quantity for us: we called it "relative
+  likelihood":
+</p>
+
+<pre><code>relative_likelihood = P(label = fraud | signal = 1) / P(label = fraud | signal
+= 0)</code></pre>
+
+<p>
+  This is a proxy for precision that we would both look at internally and present along
+  with recall; we found that it was easier for potential customers to translate: "This
+  feature flags 30% of your fraud while flagging 2% of your approved applications, a 15x
+  ratio" into business value than "This feature has a 30% recall (flagging 30% of your
+  fraud) and a 15% precision."<sup id="fnref1"><a href="#fn1">1</a></sup>
+</p>
+
+<!-- Credit Union 1 relative likelihood table -->
+<div class="fraud-table-container">
+  <h3>Credit Union 1 (relative likelihood)</h3>
+  <div class="fraud-table-scroll">
+    <table id="credit-union-1-relative-table" class="fraud-table">
+      <thead>
+        <tr>
+          <th>label category</th>
+          <th>n_total</th>
+          <th>fpf_signal_1<br />relative likelihood</th>
+          <th>fpf_signal_2<br />relative likelihood</th>
+          <th>fpf_signal_3<br />relative likelihood</th>
+          <th>fpf_signal_4<br />relative likelihood</th>
+          <th>high_synthetic_score<br />relative likelihood</th>
+          <th>high_id_theft_score<br />relative likelihood</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>bad_labels_overall</td>
+          <td>4,000</td>
+          <td>7.83</td>
+          <td>13.93</td>
+          <td>0.65</td>
+          <td>0.79</td>
+          <td>2.93</td>
+          <td>0.76</td>
+        </tr>
+        <tr>
+          <td>bad_label_sub_category_1</td>
+          <td>2,500</td>
+          <td>9.02</td>
+          <td>10.71</td>
+          <td>0.82</td>
+          <td>0.37</td>
+          <td>0.87</td>
+          <td>0.71</td>
+        </tr>
+        <tr>
+          <td>bad_label_sub_category_2</td>
+          <td>1,000</td>
+          <td>0.90</td>
+          <td>1.36</td>
+          <td>0.70</td>
+          <td>0.45</td>
+          <td>1.80</td>
+          <td>1.65</td>
+        </tr>
+        <tr>
+          <td>bad_label_sub_category_3</td>
+          <td>500</td>
+          <td>7.81</td>
+          <td>8.14</td>
+          <td>0.80</td>
+          <td>1.05</td>
+          <td>1.60</td>
+          <td>1.53</td>
+        </tr>
+        <tr>
+          <td>overall_approvals</td>
+          <td>200,000</td>
+          <td>1.00</td>
+          <td>1.00</td>
+          <td>1.00</td>
+          <td>1.00</td>
+          <td>1.00</td>
+          <td>1.00</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Large Bank 1 relative likelihood table -->
+<div class="fraud-table-container">
+  <h3>Large Bank 1 (relative likelihood)</h3>
+  <div class="fraud-table-scroll">
+    <table id="large-bank-1-relative-table" class="fraud-table">
+      <thead>
+        <tr>
+          <th>label category</th>
+          <th>n_total</th>
+          <th>fpf_signal_1<br />relative likelihood</th>
+          <th>fpf_signal_2<br />relative likelihood</th>
+          <th>fpf_signal_3<br />relative likelihood</th>
+          <th>fpf_signal_4<br />relative likelihood</th>
+          <th>high_synthetic_score<br />relative likelihood</th>
+          <th>high_id_theft_score<br />relative likelihood</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>bad_labels_overall</td>
+          <td>2,000</td>
+          <td>0.98</td>
+          <td>7.19</td>
+          <td>8.48</td>
+          <td>7.61</td>
+          <td>0.28</td>
+          <td>0.94</td>
+        </tr>
+        <tr>
+          <td>overall_approvals</td>
+          <td>165,000</td>
+          <td>1.00</td>
+          <td>1.00</td>
+          <td>1.00</td>
+          <td>1.00</td>
+          <td>1.00</td>
+          <td>1.00</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Large Bank 2 relative likelihood table -->
+<div class="fraud-table-container">
+  <h3>Large Bank 2 (relative likelihood)</h3>
+  <div class="fraud-table-scroll">
+    <table id="large-bank-2-relative-table" class="fraud-table">
+      <thead>
+        <tr>
+          <th>label category</th>
+          <th>n_total</th>
+          <th>fpf_signal_1<br />relative likelihood</th>
+          <th>fpf_signal_2<br />relative likelihood</th>
+          <th>fpf_signal_3<br />relative likelihood</th>
+          <th>fpf_signal_4<br />relative likelihood</th>
+          <th>high_synthetic_score<br />relative likelihood</th>
+          <th>high_id_theft_score<br />relative likelihood</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>bad_labels_overall</td>
+          <td>18,000</td>
+          <td>1.35</td>
+          <td>0.41</td>
+          <td>0.39</td>
+          <td>0.13</td>
+          <td>0.73</td>
+          <td>0.66</td>
+        </tr>
+        <tr>
+          <td>bad_label_sub_category_1</td>
+          <td>12,500</td>
+          <td>1.58</td>
+          <td>0.41</td>
+          <td>0.25</td>
+          <td>0.38</td>
+          <td>1.50</td>
+          <td>3.07</td>
+        </tr>
+        <tr>
+          <td>bad_label_sub_category_2</td>
+          <td>5,500</td>
+          <td>10.62</td>
+          <td>3.70</td>
+          <td>0.51</td>
+          <td>0.24</td>
+          <td>1.12</td>
+          <td>0.69</td>
+        </tr>
+        <tr>
+          <td>overall_apps</td>
+          <td>240,000</td>
+          <td>1.00</td>
+          <td>1.00</td>
+          <td>1.00</td>
+          <td>1.00</td>
+          <td>1.00</td>
+          <td>1.00</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<p>
+  You'll note that we also included in these tables the recalls and relative likelihoods
+  that scored high on our synthetic fraud and identity theft models. Extending the cars,
+  trucks, and bicycles analogy above: in addition to telling you whether there were
+  certain metal patterns present, imagine you had models that you knew were 80%-90%
+  accurate at telling you whether the image contained a truck or a bicycle.
+</p>
+
+<p>Looking just at these six tables, several things jump out</p>
 
 <ul>
   <li>
-    Signals 1 and 2 tend to “pop” on subcategories 1 and 3 from the credit union, and on
-    subcategory 2 from Large Bank 2. These signals typically fire together on distinct
-    subsets of applications.
+    Signals 1 and 2 tend to “pop” on sub-categories 1 and 3 from the credit union, and
+    sub-category 2 from the second large bank. These signals typically “fire together”,
+    firing on distinct sets of fraud label datasets.
   </li>
   <li>
-    Signal 1 does not fire meaningfully on one of the large-bank datasets, whereas
-    Signals 3 and 4 do, suggesting a different underlying fraud M.O.
+    Signal 1 did not fire on the dataset of large bank 2 and 3, whereas Signals 3 and 4
+    did.
   </li>
   <li>
-    Subcategory 1 of Large Bank 2’s labels has a high rate of identity theft (measured by
-    the percentage of these applications that score highly on our identity theft score),
-    indicating a different problem than “pure” first party fraud.
+    Sub-category 1 of fraud for the second large bank has a high rate of ID theft
+    (measured by the percentage of these applications that score highly on our ID theft
+    score); this indicated to us
   </li>
-  <li>
-    Subcategory 2 from the credit union barely fires on any of our first party fraud
-    signals, suggesting that either the labels are noisy or they reflect a behavior
-    outside the scope of our signals.
-  </li>
+  <li>Sub-category 2 from the credit union did not fire on any of our FPF signals</li>
 </ul>
 
 <p>
@@ -557,102 +753,96 @@
   confirmed that our inferences about their fraud categories were correct.
 </p>
 
-<p>
-  Add a paragraph: we could go back to customers and tell them: hey we think these are
-  cars, we think these aren't, etc.
-</p>
-
-<p>
-  Recall alone is not enough. We also cared about how much more likely an application was
-  to be labeled as first party fraud when a signal fired, compared with when it did not.
-  For each signal and dataset, we therefore computed a
-  <strong>relative likelihood</strong>:
-</p>
-
-<pre><code>relative_likelihood = P(label = fraud | signal = 1) / P(label = fraud | signal
-= 0)</code></pre>
-
-<p>
-  This gave us a precision-like view of each signal’s value. A signal with modest recall
-  but very high relative likelihood might still be extremely useful in a scorecard; a
-  signal with high recall but low relative likelihood might be better suited as a
-  supporting feature.
+<p id="fn1" class="footnote">
+  <sup>
+    <a href="#fnref1">1</a>
+  </sup>
+  Assuming the overall fraud rate is 1%, flagging 30% of all fraud while flagging 2% of
+  approvals implies roughly 15% precision—the precision value referenced in the main
+  text.
+  <a href="#fnref1" class="footnote-backref">↩</a>
 </p>
 
 <h2>From signals to scores</h2>
 
-<p>Our overall product development philosophy was to triangulate:</p>
+<h2>Overall product development philosophy</h2>
+
+<p>Triangulating:</p>
 
 <ul>
-  <li>Primary research into the underlying fraud M.O.s.</li>
-  <li>The recalls and relative likelihoods of individual signals.</li>
+  <li>Our primary research into the fraud M.O.s</li>
+  <li>The recalls and relative likelihoods of the individual fraud signals</li>
   <li>
-    Conversations with partners, informed by the kinds of tables shown above, to refine
-    and interpret their labels.
+    Using this analysis to engage partners in conversations about their fraud labels
+    refine our labels
   </li>
 </ul>
 
 <p>
-  This process led us to launch with two distinct first party fraud scores, each
-  targeting a different M.O. Rather than relying on clustering or other black-box
-  techniques, we had on the order of 10–20 datasets and eight signals and were able to
-  simply review the patterns by hand.
+  Led us to launch with two FPF scores that targeted two distinct M.O.s: in each case we
+  saw several sets of signals that consistently predicted We did not use statistical
+  techniques such as clustering to inform our assessment that we ought to launch two
+  scores; we had on the order of 10-20 datasets, and eight signals, so we simply manually
+  reviewed
 </p>
 
 <p>
-  In each case, we ended up training our initial scores on one customer’s data: customers
-  with whom we could engage deeply to refine subcategories of labels, ultimately yielding
-  concentrated sets of 1,000–2,000 very high-quality labels per model.
+  We ended up training our initial scores on one customer’s information each; these were
+  customers where we were able to deeply engage with them about the sub-categories of
+  labels they had sent, and thus end up with a concentrated set of 1,000-2,000 very high
+  quality labels for each model.
 </p>
 
-<h2>Impact and lessons</h2>
+<h2>The scores did well</h2>
 
-<p>
-  The scores did well. Launched in early 2024, by the time I left SentiLink in late 2025:
-</p>
+<p>Launched in early 2024, by the time I left SentiLink in late 2025,</p>
 
 <ul>
-  <li>Many top U.S. financial institutions were using them in production.</li>
-  <li>Four of the top fifteen banks were live.</li>
-  <li>Two of the top ten credit card issuers were live.</li>
-  <li>A top-five credit union was live.</li>
+  <li>Many top FIs were using them as part of their fraud decisioning, including</li>
+  <li>Four top fifteen banks</li>
+  <li>Two top ten credit card issuers</li>
+  <li>A top five credit union</li>
+  <li>One more had signed to use them but had not yet integrated them</li>
   <li>
-    Nearly all of SentiLink’s largest partners were engaged in retro studies with these
-    scores.
+    Nearly all the top FIs SentiLink works with were engaged in the retrostudy process
+    with these scores
   </li>
 </ul>
 
 <p>
-  We later created a combined score via a simple linear transformation of the two first
-  party fraud scores and explored training a broader score across multiple datasets. Even
-  so, the initial, relatively simple scores—grounded in deeply understood signals and
-  careful evaluation on heterogeneous labels—were enough to become SentiLink’s largest
-  and fastest-growing product launched in my last two years at the company.
+  We eventually created a score that combined these two scores via a simple linear
+  transformation. And as I was in the process of transitioning out, they were exploring
+  the creation of a score trained across Nevertheless, these simple scores, informed by
+  our deep understanding of the underlying signals’ performance and, generalize well
+  enough to constitute SentiLink’s largest and fastest-growing product launched during
+  the last two years I was at the company; the last quarter at the company four of the
+  top FIs mentioned above went live via API.
+</p>
+
+<h2>Lessons</h2>
+
+<p>
+  Great products in financial services are built up from simple-to-understand facts.
+  Starting with the empirical facts of the recalls and relative likelihoods of several
+</p>
+
+<h2>Next steps</h2>
+
+<p>
+  These scores allowed us to initiate collaborations with the major U.S. FIs around first
+  party fraud that continue to this day. SentiLink has used these relationships to
+  explore more “determinative” solutions for first party fraud Moreover, A couple of the
+  eight signals we developed for first party fraud detection
 </p>
 
 <p>
-  The broader lesson is that great products in financial services are built from simple,
-  well-understood empirical facts. Starting from the recalls and relative likelihoods of
-  a handful of interpretable signals, and being very selective about labels, we were able
-  to build powerful models despite noisy and heterogeneous supervision.
-</p>
-
-<h2>Next steps and broader impact</h2>
-
-<p>
-  These first party fraud scores opened the door to deeper collaborations with major U.S.
-  financial institutions around first party fraud. SentiLink has since used these
-  relationships to explore more determinative solutions for first party fraud and to port
-  the same evaluation practices to other products, such as identity theft.
-</p>
-
-<p>
-  Most importantly, this work established a set of practices at SentiLink for evaluating
-  fraud signals on external datasets in a systematic way. As I was leaving, the company
-  had launched an initiative to evaluate our identity theft score and its key underlying
-  signals on external datasets using the same playbook. Helping SentiLink use customer
-  data more thoughtfully and systematically, and paving the way to tackle problems
-  outside our original core, is what I’m proudest of.
+  Most importantly, however, this work established at SentiLink a set of practices for
+  evaluating fraud signals on external datasets in a systematic way. As I was departing,
+  the business had launched an initiative to evaluate our identity theft score and some
+  of the key underlying signals on a set of external datasets, in the same way we
+  evaluated our FPF signals. Paving the way for SentiLink to use customer data in a more
+  thoughtful and systematic way, that enabled us to begin tackling problems outside of
+  our core business, is what I’m proudest of.
 </p>
 
 <h2>About the author</h2>
