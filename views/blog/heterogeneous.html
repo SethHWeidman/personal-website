@@ -3,6 +3,31 @@
 <h1>Building fraud models with heterogeneous labels of unknown quality</h1>
 
 <p>
+  Data scientists solving problems at companies rely on several things to be true in
+  order to solve problems using machine learning. One is that the all labels you have
+  been given are actually relevant to the problem you are trying to solve. Data
+  scientists may do "QA" to determine if the labels they've been given are "correct"; but
+  "incorrectness" is merely one reason why a given set of labels may be irrelevant to the
+  problem at hand. Nevertheless, ensuring correctness of labels is clearly important, but
+  doing so runs into another assumption: that if you choose to do so, you review an
+  individual record and "reveal" whether the label is correct. If these assumptions are
+  met, solving problems is often straightforward: machine learning models can be tuned,
+  labels can indeed be QAed for correctness (using procedures such as looking at records
+  close to the decision boundary). We faced just such a situation where these assumptions
+  failed when trying to get from zero to one with our models to detect first party fraud.
+</p>
+
+<p>
+  In this essay, we'll cover why the initial FPF scores we developed had these
+  properties, how this made them different from our "core scores" that made up the
+  majority of our revenue, and how we were able to overcome these differences to develop
+  scores that our customers bought and that opened the door for us to pursue more
+  opportunities in first party fraud.
+</p>
+
+<h2>Background</h2>
+
+<p>
   At SentiLink, we developed scores for the purpose of helping FIs stop "first party
   fraud". FPF was a new product space for us; entering it was an attempt to expand our
   TAM beyond our two initial products: scores that helped FIs stop synthetic fraud and
@@ -14,8 +39,6 @@
   necessary background, we'll describe the state of SentiLink's product suite at the time
   we began to build these FPF scores.
 </p>
-
-<h2>Background: why we developed first party fraud scores</h2>
 
 <p>
   At the time we decided to develop first party fraud scores, we had two flagship
