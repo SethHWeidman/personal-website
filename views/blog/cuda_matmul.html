@@ -177,7 +177,7 @@
   </li>
   <li>Kernels primarily define what each thread should do</li>
   <li>
-    <strong>Critical point:</strong>Kernels can also define and access objects that are
+    <strong>Critical point:</strong> kernels can also define and access objects that are
     accessible by <em>all threads within a block of threads</em>. Going back to the three
     layers of memory above, such objects live in <strong>“shared” memory</strong>, on the
     SM. We now know why this is called “shared memory”; the memory is shared by a block
@@ -204,7 +204,8 @@
   </li>
   <li>
     Sync the threads - wait until each thread has finished filling its component of the
-    shared objects. CUDA C++ has a special `__syncthreads()` function for this.
+    shared objects. CUDA C++ has a special <code>__syncthreads()</code> function for
+    this.
   </li>
   <li>Have each thread do some operation involving the now-filled shared objects.</li>
 </ol>
