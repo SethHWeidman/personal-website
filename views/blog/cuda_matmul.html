@@ -466,11 +466,11 @@
   Astute readers will ask:
   <em>why not load the entire matrices you're trying to multiply into shared memory</em>?
   The answer is that there usually simply isn't enough space. Each of the 58 SMs on an L4
-  GPU supports up to 100 KB of shared memory (<a
+  GPU (<a
     href="https://docs.nvidia.com/cuda/archive/12.3.1/ada-tuning-guide/index.html#occupancy"
     target="_blank"
     rel="noopener noreferrer"
-    >NVIDIA Ada GPU Architecture Tuning Guide</a
+    >supports up to 100 KB of shared memory</a
   >). This means they could fit two 64 x 64 matrices (4 bytes * 64 * 64 * 2 is about 32
   KB), but even two 128 x 128 matrices (about 128 KB) would be too large. As the footnote
   above mentions, quantization changes this.
