@@ -49,8 +49,8 @@
   and will go into "the first couple layers" of CUDA, explaining what it is and how it
   allows programmers to write programs that play nicely with the hardware on NVIDIA GPUs.
   In particular, we'll illustrate one very common pattern for structuring CUDA programs,
-  and how this structure can be used in a beautiful way to speed up matrix
-  multiplication.
+  why this structure aligns with the hardware available on NVIDIA GPUs, and how this
+  structure can be used in a beautiful way to speed up matrix multiplication.
 </p>
 
 <h2>Background</h2>
@@ -58,29 +58,34 @@
 <p>
   Writing programs in a “GPU-aware” way - that is, aware that you have a specialized
   processor called a GPU at your disposal - is different than other programming
-  paradigms, such as writing a Python script designed to run on a single core: you must
-  be aware that by default, your program will run on a CPU, referred to as a
+  paradigms, such as writing a Python script designed to run on a single core. At the
+  highest level, you must be aware that by default, your program will run on a CPU,
+  referred to as a
   <em>host</em>, whereas you can write special functions called <em>kernels</em> and
-  explicitly launch those functions on a GPU, referred to as a <em>device</em>.
+  explicitly launch those functions on a GPU, referred to as a <em>device</em>. What are
+  the key pieces of the mental model you should have for what your "GPU" is, what it can
+  do, and how it is different than your CPU?
 </p>
 
-<h3>Hardware Background</h3>
+<h3>Hardware Background: GPUs</h3>
 
 <p>
-  You can think of your CPU has having just a few processors / cores, each of which is
+  You can think of your CPU as having just a few processors / cores, each of which is
   complex and powerful but not as optimized for “running many simple computations in
   parallel”, whereas the GPU has many processors, each of which is optimized for “running
   many simple computations in parallel”. For example, the M4 chip on the MacBook Pro I'm
-  using to write this essay has 10 cores, the L4 GPU I used to run the experiments for
-  this blog post has about 7,000 cores. These 7,000 cores come from 58 distinct hardware
-  chips NVIDIA calls "Streaming Multiprocessors (SMs)" all of which are present on a
-  single GPU, each of which has 128 cores each of which can perform simple computations
-  quickly.
+  using to write this essay has 10 cores, whereas the L4 GPU I used to run the
+  experiments for this blog post has about 7,000 cores. These 7,000 cores come from 58
+  distinct hardware chips NVIDIA calls "Streaming Multiprocessors (SMs)" all of which are
+  present on a single GPU, each of which has 128 cores that are designed to perform
+  simple computations quickly (so to be exact, the GPU has \(58 \times 128 = 7,424\
+  cores)).
 </p>
 
 <p>
-  As a consequence of all this, there are three levels of memory one should keep in mind
-  when programming in a GPU-aware way:
+  Thus, one should keep in mind when writing GPU-aware programs that any object can be
+  stored and read from one of three<sup id="fnref1"><a href="#fn1">1</a></sup> types of
+  memory
 </p>
 
 <ol>
@@ -136,7 +141,7 @@
     target="_blank"
     rel="noopener noreferrer"
     >here</a
-  >: what we are saying there is.<sup id="fnref1"><a href="#fn1">1</a></sup>
+  >: what we are saying there is.<sup id="fnref2"><a href="#fn2">2</a></sup>
 </p>
 
 <blockquote>
@@ -181,7 +186,7 @@
     accessible by <em>all threads within a block of threads</em>. Going back to the three
     layers of memory above, such objects live in <strong>“shared” memory</strong>, on the
     SM. We now know why this is called “shared memory”; the memory is shared by a block
-    of threads.<sup id="fnref2"><a href="#fn2">2</a></sup>
+    of threads.<sup id="fnref3"><a href="#fn3">3</a></sup>
   </li>
 </ul>
 
@@ -225,8 +230,8 @@
   Let’s assume we can read all of the two matrices we want to multiply into memory on a
   single GPU; recall that this means the matrix is in “global memory” on the GPU; given
   that entire small language models (single digit billions of parameters) are read into
-  single GPUs, this isn't such a crazy assumption.<sup id="fnref3"
-    ><a href="#fn3">3</a></sup
+  single GPUs, this isn't such a crazy assumption.<sup id="fnref4"
+    ><a href="#fn4">4</a></sup
   >
   For simplicity, let’s assume both matrices are \(N \times N\).
 </p>
@@ -343,8 +348,8 @@
 
 <p>
   Repeat this process for \(k = 3, 4,\ldots,K\)! By the time we’ve iterated through all
-  \(K\) tiles, we’ve computed the full value of all the elements of A!<sup id="fnref4"
-    ><a href="#fn4">4</a></sup
+  \(K\) tiles, we’ve computed the full value of all the elements of A!<sup id="fnref5"
+    ><a href="#fn5">5</a></sup
   >
 </p>
 
@@ -456,9 +461,9 @@
   <sup>
     <a href="#fnref1">1</a>
   </sup>
-  Interestingly, CUDA leaves it up to the programmer, if operating on a matrix of total
-  size \(X\), and wanting to use \(N\) threads per block, to compute the number of blocks
-  of threads correctly as roughly \(\lceil X / N \rceil\).
+  There are lower levels of memory beyond the three listed here, but for the purposes of
+  this essay we focus on these, especially the distinction between global and shared
+  memory.
   <a href="#fnref1" class="footnote-backref">↩</a>
 </p>
 
@@ -466,15 +471,25 @@
   <sup>
     <a href="#fnref2">2</a>
   </sup>
-  To the best of my knowledge, it’s a coincidence that “shared memory” and “Streaming
-  Multiprocessor” both have the initials “SM”. In CUDA-land, “SM” <em>always</em> refers
-  to a “Streaming Multiprocessor”.
+  Interestingly, CUDA leaves it up to the programmer, if operating on a matrix of total
+  size \(X\), and wanting to use \(N\) threads per block, to compute the number of blocks
+  of threads correctly as roughly \(\lceil X / N \rceil\).
   <a href="#fnref2" class="footnote-backref">↩</a>
 </p>
 
 <p id="fn3" class="footnote">
   <sup>
     <a href="#fnref3">3</a>
+  </sup>
+  To the best of my knowledge, it’s a coincidence that “shared memory” and “Streaming
+  Multiprocessor” both have the initials “SM”. In CUDA-land, “SM” <em>always</em> refers
+  to a “Streaming Multiprocessor”.
+  <a href="#fnref3" class="footnote-backref">↩</a>
+</p>
+
+<p id="fn4" class="footnote">
+  <sup>
+    <a href="#fnref4">4</a>
   </sup>
   Roughly: a single float32 = 4 bytes. Thus, an 8B parameter model is 32 GB. The L4 GPU I
   used for these experiments has 24 GB of memory. Quantizing the float32 to float16 cuts
@@ -483,12 +498,12 @@
   quantization. For fine-tuning, some extra memory would be needed; and for a full
   training run, 2–4× the memory of this 16 GB would be needed (2x for the gradients
   alone).
-  <a href="#fnref3" class="footnote-backref">↩</a>
+  <a href="#fnref4" class="footnote-backref">↩</a>
 </p>
 
-<p id="fn4" class="footnote">
+<p id="fn5" class="footnote">
   <sup>
-    <a href="#fnref4">4</a>
+    <a href="#fnref5">5</a>
   </sup>
   Astute readers will ask:
   <em>why not load the entire matrices you're trying to multiply into shared memory</em>?
@@ -501,7 +516,7 @@
   >). This means they could fit two 64 x 64 matrices (4 bytes * 64 * 64 * 2 is about 32
   KB), but even two 128 x 128 matrices (about 128 KB) would be too large. As the footnote
   above mentions, quantization changes this.
-  <a href="#fnref4" class="footnote-backref">↩</a>
+  <a href="#fnref5" class="footnote-backref">↩</a>
 </p>
 <br />
 <button onclick="window.location.href='/'">Back to Home</button>
