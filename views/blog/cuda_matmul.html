@@ -18,20 +18,24 @@
 </figure>
 
 <p>
-  CUDA is an important part of the AI stack: it allows programmers to use NVIDIA GPUs to
-  their full capacity. This essay will explain what CUDA is, how CUDA programs are often
-  structured, and illustrate how this structure can be used in a very beautiful way to
-  speed up matrix multiplication with CUDA using this pattern.
+  CUDA is an important part of the AI stack, allowing programmers to use NVIDIA GPUs to
+  their full capacity. This essay will assume you're mostly a Python / PyTorch developer
+  and will go into "the first couple layers" of CUDA, explaining what it is and how it
+  allows programmers to write programs that play nicely with the hardware on NVIDIA GPUs.
+  In particular, we'll illustrate one very common pattern for structuring CUDA programs,
+  and how this structure can be used in a beautiful way to speed up matrix
+  multiplication.
 </p>
 
 <h2>Background</h2>
 
 <p>
-  Writing programs in a “GPU-aware” way is different than other programming paradigms,
-  such as writing a Python script designed to run on a single core: you must be aware
-  that by default, your program will run on a CPU, referred to as a "host", whereas you
-  can write special functions called "kernels" and explicitly launch those functions on a
-  GPU, referred to as a device.
+  Writing programs in a “GPU-aware” way - that is, aware that you have a specialized
+  processor called a GPU at your disposal - is different than other programming
+  paradigms, such as writing a Python script designed to run on a single core: you must
+  be aware that by default, your program will run on a CPU, referred to as a
+  <em>host</em>, whereas you can write special functions called <em>kernels</em> and
+  explicitly launch those functions on a GPU, referred to as a <em>device</em>.
 </p>
 
 <h3>Hardware Background</h3>
@@ -39,35 +43,33 @@
 <p>
   You can think of your CPU has having just a few processors / cores, each of which is
   complex and powerful but not as optimized for “running many simple computations in
-  parallel”, whereas the GPU has many processors / cores, each of which is optimized for
-  “running many simple computations in parallel”. NVIDIA groups these cores into
-  "Streaming Multiprocessors (SMs)" at the hardware level; each SM has many cores, each
-  of which can perform simple computations quickly.
+  parallel”, whereas the GPU has many processors, each of which is optimized for “running
+  many simple computations in parallel”. For example, the M4 chip on the MacBook Pro I'm
+  using to write this essay has 10 cores, the L4 GPU I used to run the experiments for
+  this blog post has about 7,000 cores. These 7,000 cores come from 58 distinct hardware
+  chips NVIDIA calls "Streaming Multiprocessors (SMs)" all of which are present on a
+  single GPU, each of which has 128 cores each of which can perform simple computations
+  quickly.
 </p>
 
 <p>
-  Concretely, the M4 chip on the MacBook Pro I'm using to write this essay has 10 cores;
-  the L4 GPU I used to run the experiments for this blog post had 58 <em>SMs</em>, each
-  of which had 128 cores, for a total of about 7,000 cores.
-</p>
-
-<p>
-  As a consequence of all this, there are three levels of memory one can keep in mind
-  when programming on a machine that has a GPU:
+  As a consequence of all this, there are three levels of memory one should keep in mind
+  when programming in a GPU-aware way:
 </p>
 
 <ol>
   <li>“Host memory”: the memory of the CPU</li>
   <li>“Global memory”: the memory “globally” on the GPU</li>
   <li>
-    “Shared memory”: memory that has been loaded onto an individual SM - you’ll see
-    shortly why it is called “shared”
+    “Shared memory”: memory that has been loaded onto an individual SM - you’ll
+    understand shortly why it is called “shared”
   </li>
 </ol>
 
 <p>
-  Unsurprisingly, given that the computations will actually take place on the individual
-  SMs, writing programs that require either:
+  Given that the computations will actually take place on the individual SMs, writing
+  programs that require the same amount of <em>computation</em> in a way that they
+  require either:
 </p>
 
 <ul>
@@ -77,9 +79,11 @@
 
 <p>
   can result in significant speedups, even given the same number of underlying
-  computations. What we’ll shortly show is a well-known algorithm for doing matrix
-  multiplication while reducing the number of reads from <em>global memory</em> to
-  <em>shared memory</em> by an order of magnitude.
+  computations. What we show below is a well-known algorithm for doing
+  <a href="#matrix-multiplication">matrix multiplication</a>
+  while reducing the number of reads from <em>global memory</em> to
+  <em>shared memory</em>
+  by an order of magnitude.
 </p>
 
 <p>
@@ -92,53 +96,70 @@
 <p>
   CUDA - technically CUDA is “CUDA C++”, an extension of C++ that has additional keywords
   like <code>__global__</code> and <code>__shared__</code> - programs run via CUDA
-  kernels: these are special C++ functions designed to run on GPUs. Here’s where it gets
-  tricky: the actual “atomic units” that “do work” within SMs, at a software level, are
-  <em>threads</em>. To “launch a CUDA kernel”, we launch it with a "group of blocks of
-  threads” known as a grid. Two special keywords are passed into the kernel before the
-  regular function arguments are passed in: the number of blocks of threads to launch,
-  and the number of threads within each block. See an example of this
+  kernels: these are special C++ functions designed to run on GPUs. Understanding the
+  level at which these CUDA kernels actually run can be subtle: the actual “atomic units”
+  that do work within SMs, at a software level, are <em>threads</em>. To “launch a CUDA
+  kernel”, we don't merely say "do this work within each thread" (we could do this, but
+  we would lose out on a lot of the power of these kernels); instead, we launch it with a
+  "group of blocks of threads” known as a <em>grid</em>. To make this happen, we pass in
+  two special keywords into the kernel before we pass in the the regular function
+  arguments: the number of blocks of threads to launch, and the number of threads within
+  each block. See an example of this
   <a
     href="https://github.com/SethHWeidman/intro_to_cuda/blob/main/demo3_matmul/matmul.cu#L159"
     target="_blank"
     rel="noopener noreferrer"
     >here</a
-  >. It is up to the programmer, if operating on a matrix with \(X\), and wanting to use
-  \(N\) threads per block, to compute the number of blocks of threads correctly as
-  roughly \(\lceil X / N \rceil\).
+  >: what we are saying there is.<sup id="fnref1"><a href="#fn1">1</a></sup>
 </p>
 
+<blockquote>
+  <p>
+    "launch a function that will run on the SMs on a GPU, in a grid of
+    <code>blocks_per_grid</code> blocks, with <code>threads_per_block</code> threads per
+    block, and arguments <code>d_A</code>, <code>d_B</code>, etc."
+  </p>
+</blockquote>
+
 <p>
-  So there are three “levels” of computation happening on the GPU, each of which the
-  programmer must be aware of:
+  The consequence of all this is that there are three “levels” of computation happening
+  on the GPU, each of which the programmer must be aware of:
 </p>
 
 <ul>
   <li>Individual threads are doing computations</li>
-  <li>These threads are grouped into thread blocks</li>
-  <li>These thread blocks are grouped into a grid</li>
+  <li>These threads are grouped into "blocks of threads"</li>
+  <li>These "blocks of threads" are grouped into a grid</li>
 </ul>
 
-<p>The CUDA kernel itself operates "both at a thread level and at a block level".</p>
+<p>
+  How do <em>kernels</em> fit into this? The CUDA kernel actually operates across all
+  three of these levels:
+</p>
 
 <ul>
   <li>The kernel itself is replicated across and runs in each thread.</li>
   <li>
     Special variables are accessible indicating:
     <ul>
-      <li>The total number of blocks</li>
-      <li>The thread's block’s position within the grid of blocks</li>
-      <li>The thread’s position within its block</li>
+      <li>The total number of blocks: <code>blockDim</code></li>
+      <li>
+        The thread's block’s position within the grid of blocks: <code>blockIdx</code>
+      </li>
+      <li>The thread’s position within its block: <code>threadIdx</code></li>
     </ul>
   </li>
-  <li>Kernels define what each thread should do</li>
+  <li>Kernels primarily define what each thread should do</li>
   <li>
-    Kernels can <em>also</em> define and access objects that are accessible by each
-    thread within a block of threads. Going back to the three layers of memory above,
-    such objects live in “shared” memory, on the SM. We now know why this is called
-    “shared memory”; the memory is shared by a block of threads.
+    <strong>Critical point:</strong>Kernels can also define and access objects that are
+    accessible by <em>all threads within a block of threads</em>. Going back to the three
+    layers of memory above, such objects live in <strong>“shared” memory</strong>, on the
+    SM. We now know why this is called “shared memory”; the memory is shared by a block
+    of threads.<sup id="fnref2"><a href="#fn2">2</a></sup>
   </li>
 </ul>
+
+<h3>The Common Pattern</h3>
 
 <p>
   This leads to a common pattern seen in GPU programming: instead of repeatedly loading
@@ -157,7 +178,7 @@
   </li>
   <li>
     Sync the threads - wait until each thread has finished filling its component of the
-    shared objects
+    shared objects. CUDA C++ has a special `__syncthreads()` function for this.
   </li>
   <li>Have each thread do some operation involving the now-filled shared objects.</li>
 </ol>
@@ -165,11 +186,11 @@
 <p>
   This pattern can allow for an order of magnitude fewer reads from “global memory” (on
   the GPU) which are relatively slow compared to reading from “shared memory” (on the
-  CPU). In the rest of this essay, we’ll cover how this pattern can be applied to matrix
+  SM). In the rest of this essay, we’ll cover how this pattern can be applied to matrix
   multiplication!
 </p>
 
-<h2>Matrix multiplication</h2>
+<h2 id="matrix-multiplication">Matrix multiplication</h2>
 
 <p>We’ll proceed assuming you understand the algorithm for matrix multiplication.</p>
 
@@ -177,15 +198,15 @@
   Let’s assume we can read all of the two matrices we want to multiply into memory on a
   single GPU; recall that this means the matrix is in “global memory” on the GPU; given
   that entire small language models (single digit billions of parameters) are read into
-  single GPUs, this isn't such a crazy assumption.<sup id="fnref1"
-    ><a href="#fn1">1</a></sup
+  single GPUs, this isn't such a crazy assumption.<sup id="fnref3"
+    ><a href="#fn3">3</a></sup
   >
   For simplicity, let’s assume both matrices are \(N \times N\).
 </p>
 
 <p>
   Suppose we want to compute “\(B \times B\) block” of elements, where \(B\) is an
-  integer divisible by \(N\). How many reads from global memory, into shared memory,
+  integer that divides \(N\). How many reads from global memory, into shared memory,
   would we have to make to do this naively?
 </p>
 
@@ -197,10 +218,11 @@
 </figure>
 
 <p>
-  Well, to compute an individual element, you’d need to read in \(2N\) elements, and take
-  the dot product of their vectors. You’d need to do this \(B \times B\) times, once for
-  each of the \(B^2\) elements in the \(B \times B\) block. So there are a total of
-  \(2NB^2\) reads from global memory into shared memory.
+  The answer is straightforward: to compute an individual element, you’d need to read in
+  \(2N\) elements, and take the dot product of their vectors. You’d need to do this \(B
+  \times B\) times, once for each of the \(B^2\) elements in the \(B \times B\) block. So
+  there are a total of <strong>\(2NB^2\)</strong> reads from global memory into shared
+  memory.
 </p>
 
 <p>
@@ -226,7 +248,8 @@
 <figure>
   <img
     src="https://sethhweidman-personal-website.s3.us-east-1.amazonaws.com/2025-11-29_cuda-matmul/02-row-col-tiling.png"
-    alt="Diagram for Step 1 showing the B x N row slice and N x B column slice divided into K blocks."
+    alt="Diagram for Step 1 showing the B x N row slice and N x B column slice divided into
+  K blocks."
   />
 </figure>
 
@@ -237,7 +260,8 @@
   technical name for these “chunks” - of each of the “row slice” and “column slice” into
   shared memory. Do this in parallel using all the threads; when finished, we will have a
   \(B \times B\) "row tile" and a \(B \times B\) "column tile" loaded into
-  <em>shared</em> memory.
+  <em>shared</em> memory. Finally, "sync threads", ensuring that the entire "row tile"
+  and "column tile" are loaded into shared memory before proceeding.
 </p>
 
 <figure>
@@ -250,7 +274,7 @@
 <h3>Step 3:</h3>
 
 <p>
-  Here’s the fun and slightly tricky part: use these two tiles to increment, though not
+  Here’s the clever and beautiful part: use these two tiles to increment, though not
   fully compute, each of the \(B \times B\) sums in A.
 </p>
 
@@ -265,6 +289,11 @@
   For example, to increment the element in the second row, first column of A, we perform
   the dot product of the second row of the “row tile” with the first column of the
   “column tile”, and add it to the ongoing sum of that element.
+</p>
+
+<p>
+  After this step, "sync threads" a second time, ensuring that all partial sums have been
+  incremented.
 </p>
 
 <h3>Step 4, and beyond</h3>
@@ -287,8 +316,8 @@
 
 <p>
   Repeat this process for \(k = 3, 4,\ldots,K\)! By the time we’ve iterated through all
-  \(K\) tiles, we’ve computed the full value of all the elements of A!<sup id="fnref2"
-    ><a href="#fn2">2</a></sup
+  \(K\) tiles, we’ve computed the full value of all the elements of A!<sup id="fnref4"
+    ><a href="#fn4">4</a></sup
   >
 </p>
 
@@ -344,10 +373,11 @@
   >
   are the ones where two “tiles”, each 2D arrays of size
   <code>BLOCK_DIM</code> &times; <code>BLOCK_DIM</code> are initialized, using the
-  <code>__shared__</code> CUDA C++ keyword. The use of <code>threadIdx</code> (you'll
-  note that <code>threadIdx.x</code> and <code>threadIdx.y</code>, which admittedly I
-  have not explained here, are used) and <code>syncthreads</code> to aid with the
-  computation could be worth another blog post!
+  <code>__shared__</code> CUDA C++ keyword. In addition, in line with the explanation
+  above, you'll see two uses of <code>__syncthreads()</code>. Other elements of the
+  implementation, such as the use of <code>threadIdx.x</code> and
+  <code>threadIdx.y</code> to make the implementation more elegant, could be worth
+  another blog post!
 </p>
 
 <h2>Benchmarking</h2>
@@ -360,7 +390,7 @@
     rel="noopener noreferrer"
     >README</a
   >
-  shows about a 60% speedup in using the shared memory approach vs. the naive approach
+  shows about a 40% speedup in using the shared memory approach vs. the naive approach
   (even if the naive approach still uses parallelism) - 553 ms vs. 900 ms!
 </p>
 
@@ -374,26 +404,34 @@
     rel="noopener noreferrer"
     >this comparison</a
   >
-  shows separately that the kernel using shared memory is about \(8 \times\) slower than
+  shows separately that the custom kernel shown here is about \(8 \times\) slower than
   just calling “<code>torch.mm</code>”!
 </p>
 
 <h2>Conclusion</h2>
 
 <p>
-  Hopefully you enjoyed this deep dive into how a canonical CUDA feature, shared memory,
-  can be used to speed up a canonical algorithm, matrix multiplication!
+  This blog post covered some basics about CUDA programming, how those basics lead to a
+  common pattern for writing "GPU-aware" code, and how that pattern can be used to speed
+  up matrix multiplication. This pattern is very prevalent throughout AI coding; the
+  widely-used
+  <a
+    href="https://github.com/Dao-AILab/flash-attention"
+    target="_blank"
+    rel="noopener noreferrer"
+    >Flash Attention</a
+  >
+  technique uses a similar pattern to speed up the attention computation. Look for a
+  deeper dive on Flash Attention in a future blog post!
 </p>
 
 <p id="fn1" class="footnote">
   <sup>
     <a href="#fnref1">1</a>
   </sup>
-  Roughly: a single float32 = 4 bytes. Thus, an 8B parameter model is 32 GB. The L4 GPU I
-  used for these experiments has 24 GB of memory. Quantizing the float32 to float16 cuts
-  the 32 GB down to 16 GB. For inference, this 16 GB would be all that is needed. For
-  fine-tuning, some extra memory would be needed; and for a full training run, 2–4× the
-  memory of this 16 GB would be needed (2x for the gradients alone).
+  Interestingly, CUDA leaves it up to the programmer, if operating on a matrix of total
+  size \(X\), and wanting to use \(N\) threads per block, to compute the number of blocks
+  of threads correctly as roughly \(\lceil X / N \rceil\).
   <a href="#fnref1" class="footnote-backref">↩</a>
 </p>
 
@@ -401,14 +439,42 @@
   <sup>
     <a href="#fnref2">2</a>
   </sup>
-  Astute readers will ask:
-  <em>why not load the entire matrices you're trying to multiply into shared memory</em>?
-  The answer is that there usually simply isn't enough space. The 58 SMs on an L4 GPU
-  have 100 KB of memory each. This means they could fit two 64 x 64 matrices (4 bytes *
-  64 * 64 * 2 is about 32 KB), but even two 128 x 128 matrices (about 128 KB) would be
-  too large.
+  To the best of my knowledge, it’s a coincidence that “shared memory” and “Streaming
+  Multiprocessor” both have the initials “SM”. In CUDA-land, “SM” <em>always</em> refers
+  to a “Streaming Multiprocessor”.
   <a href="#fnref2" class="footnote-backref">↩</a>
 </p>
 
+<p id="fn3" class="footnote">
+  <sup>
+    <a href="#fnref3">3</a>
+  </sup>
+  Roughly: a single float32 = 4 bytes. Thus, an 8B parameter model is 32 GB. The L4 GPU I
+  used for these experiments has 24 GB of memory. Quantizing the float32 to float16 cuts
+  the 32 GB down to 16 GB. For inference, this 16 GB would be all that is needed, meaning
+  we <em>could</em> run inference with a 16 GB model on a single L4 GPU with
+  quantization. For fine-tuning, some extra memory would be needed; and for a full
+  training run, 2–4× the memory of this 16 GB would be needed (2x for the gradients
+  alone).
+  <a href="#fnref3" class="footnote-backref">↩</a>
+</p>
+
+<p id="fn4" class="footnote">
+  <sup>
+    <a href="#fnref4">4</a>
+  </sup>
+  Astute readers will ask:
+  <em>why not load the entire matrices you're trying to multiply into shared memory</em>?
+  The answer is that there usually simply isn't enough space. Each of the 58 SMs on an L4
+  GPU supports up to 100 KB of shared memory (<a
+    href="https://docs.nvidia.com/cuda/archive/12.3.1/ada-tuning-guide/index.html#occupancy"
+    target="_blank"
+    rel="noopener noreferrer"
+    >NVIDIA Ada GPU Architecture Tuning Guide</a
+  >). This means they could fit two 64 x 64 matrices (4 bytes * 64 * 64 * 2 is about 32
+  KB), but even two 128 x 128 matrices (about 128 KB) would be too large. As the footnote
+  above mentions, quantization changes this.
+  <a href="#fnref4" class="footnote-backref">↩</a>
+</p>
 <br />
 <button onclick="window.location.href='/'">Back to Home</button>
