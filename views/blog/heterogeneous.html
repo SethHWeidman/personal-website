@@ -3,26 +3,27 @@
 <h1>Building fraud models with heterogeneous labels of unknown quality</h1>
 
 <p>
-  Data scientists solving problems at companies rely on several things to be true in
-  order to solve problems using machine learning. One is that the all labels you have
-  been given are actually relevant to the problem you are trying to solve. Data
-  scientists may do "QA" to determine if the labels they've been given are "correct"; but
-  "incorrectness" is merely one reason why a given set of labels may be irrelevant to the
-  problem at hand. Nevertheless, ensuring correctness of labels is clearly important, but
-  doing so runs into another assumption: that if you choose to do so, you review an
-  individual record and "reveal" whether the label is correct. If these assumptions are
-  met, solving problems is often straightforward: machine learning models can be tuned,
-  labels can indeed be QAed for correctness (using procedures such as looking at records
-  close to the decision boundary). We faced just such a situation where these assumptions
-  failed when trying to get from zero to one with our models to detect first party fraud.
+  There is a well-known set of techniques data scientists can use to solve business
+  problems by applying a statistical model such as logistic regression or random forests
+  to structured, tabular data, where target labels may be unreliable. Train-test splits
+  can be generated, hyperparameters can be tuned, and various techniques can be used to
+  QA labels for correctness, such as manually reviewing extreme false positives or false
+  negatives to find mislabeled records. Such patterns are widely applied throughout
+  financial services. However, their application relies on a couple keys things to be
+  true. One is that the labels are actually relevant to the business problem; in other
+  words, that building a model that targets those labels does in fact lead to a model
+  that predicts the kind of risks or outcomes you want. The second relates mostly to
+  label QA, but also touch: that if you choose to do so, you review an individual record
+  and "reveal" whether its label is correct. If both of these assumpions.
 </p>
 
 <p>
-  In this essay, we'll cover why the initial FPF scores we developed had these
-  properties, how this made them different from our "core scores" that made up the
-  majority of our revenue, and how we were able to overcome these differences to develop
-  scores that our customers bought and that opened the door for us to pursue more
-  opportunities in first party fraud.
+  For the two core machine-learning powered scores we built at SentiLink, these
+  assumptions were true; when we decided to try to move outside of these and build a new
+  set of scores to address a less-well-understood kind of fraud, first party fraud,
+  neither of these assumptions held. This essay covers how we built a set of scores to
+  stop this new fraud variant despite having only a heterogeneous set of often-unreliable
+  labels.
 </p>
 
 <h2>Background</h2>
