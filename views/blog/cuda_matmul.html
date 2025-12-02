@@ -45,12 +45,13 @@
 
 <p>
   CUDA is an important part of the AI stack, allowing programmers to use NVIDIA GPUs to
-  their full capacity. This essay will assume you're mostly a Python / PyTorch developer
-  and will go into "the first couple layers" of CUDA, explaining what it is and how it
-  allows programmers to write programs that play nicely with the hardware on NVIDIA GPUs.
-  In particular, we'll illustrate one very common pattern for structuring CUDA programs,
-  why this structure aligns with the hardware available on NVIDIA GPUs, and how this
-  structure can be used in a beautiful way to speed up matrix multiplication.
+  their full capacity. This essay, targeted at developers who mostly code at the Python /
+  PyTorch level, will go into "the first couple layers" of CUDA, explaining what it is
+  and how it allows programmers to write programs that take advantage of the unique
+  properties of NVIDIA GPUs. In particular, we'll illustrate one very common pattern for
+  structuring CUDA programs, why this structure aligns with NVIDIA GPUs' hardware, and
+  how this program structure can be used in a beautiful way to speed up matrix
+  multiplication.
 </p>
 
 <h2>Background</h2>
@@ -59,33 +60,34 @@
   Writing programs in a “GPU-aware” way - that is, aware that you have a specialized
   processor called a GPU at your disposal - is different than other programming
   paradigms, such as writing a Python script designed to run on a single core. At the
-  highest level, you must be aware that by default, your program will run on a CPU,
-  referred to as a
-  <em>host</em>, whereas you can write special functions called <em>kernels</em> and
-  explicitly launch those functions on a GPU, referred to as a <em>device</em>. What are
-  the key pieces of the mental model you should have for what your "GPU" is, what it can
-  do, and how it is different than your CPU?
+  highest level, you must be aware that by default, your program will run on a CPU (
+  referred to in CUDA-land as the
+  <em>host</em>), whereas you can write special functions called <em>kernels</em> and
+  explicitly launch those functions on a GPU (referred to in CUDA-land as a
+  <em>device</em>). Before diving into the code, we'll cover the key pieces of the mental
+  model you should have for what your "GPU" is, what it can do, and how it is different
+  than your CPU.
 </p>
 
 <h3>Hardware Background: GPUs</h3>
 
 <p>
-  You can think of your CPU as having just a few processors / cores, each of which is
-  complex and powerful but not as optimized for “running many simple computations in
-  parallel”, whereas the GPU has many processors, each of which is optimized for “running
-  many simple computations in parallel”. For example, the M4 chip on the MacBook Pro I'm
-  using to write this essay has 10 cores, whereas the L4 GPU I used to run the
-  experiments for this blog post has about 7,000 cores. These 7,000 cores come from 58
-  distinct hardware chips NVIDIA calls "Streaming Multiprocessors (SMs)" all of which are
-  present on a single GPU, each of which has 128 cores that are designed to perform
-  simple computations quickly (so to be exact, the GPU has \(58 \times 128 = 7,424\
-  cores)).
+  You can think of the GPU as having many processors, orders of magnitude more in
+  quantity than what your CPU has, each of which is optimized for “running many simple
+  computations in parallel”. By contrast, your CPU has fewer processors / cores, each of
+  which has more functionality and overall power but simply isn't as optimized for
+  parallelism as a GPU. For example, the M4 chip on the MacBook Pro with which I'm
+  writing this essay has 10 cores, whereas the L4 GPU I used to run the experiments
+  described below has about 7,000 cores. These 7,000 cores come from 58 distinct hardware
+  chips NVIDIA calls "Streaming Multiprocessors (SMs)" all of which are present on a
+  single GPU; each SM has 128 cores that are designed to perform simple computations
+  quickly (so to be exact, the L4 GPU has \(58 \times 128 = 7,424\ cores)).
 </p>
 
 <p>
   Thus, one should keep in mind when writing GPU-aware programs that any object can be
   stored and read from one of three<sup id="fnref1"><a href="#fn1">1</a></sup> types of
-  memory
+  memory:
 </p>
 
 <ol>
@@ -109,33 +111,32 @@
 </ul>
 
 <p>
-  can result in significant speedups, even given the same number of underlying
-  computations. What we show below is a well-known algorithm for doing
+  can result in significant speedups. The "meat" of this blog post is a well-known
+  algorithm for doing
   <a href="#matrix-multiplication">matrix multiplication</a>
   while reducing the number of reads from <em>global memory</em> to
   <em>shared memory</em>
-  by an order of magnitude.
-</p>
-
-<p>
-  These are the hardware concepts one must keep in mind when writing GPU-aware code; now
-  let’s introduce some fundamental software ideas:
+  by an order of magnitude over the naive approach. But before we get there, we have to
+  cover some fundamentals about GPU software.
 </p>
 
 <h3>Software Background</h3>
 
 <p>
-  CUDA - technically CUDA is “CUDA C++”, an extension of C++ that has additional keywords
-  like <code>__global__</code> and <code>__shared__</code> - programs run via CUDA
-  kernels: these are special C++ functions designed to run on GPUs. Understanding the
-  level at which these CUDA kernels actually run can be subtle: the actual “atomic units”
-  that do work within SMs, at a software level, are <em>threads</em>. To “launch a CUDA
-  kernel”, we don't merely say "do this work within each thread" (we could do this, but
-  we would lose out on a lot of the power of these kernels); instead, we launch it with a
-  "group of blocks of threads” known as a <em>grid</em>. To make this happen, we pass in
-  two special keywords into the kernel before we pass in the the regular function
-  arguments: the number of blocks of threads to launch, and the number of threads within
-  each block. See an example of this
+  CUDA - technically what we'll describe here is “CUDA C++”, an extension of C++ that has
+  additional keywords like <code>__global__</code> and <code>__shared__</code> - programs
+  run via "CUDA kernels": these are special C++ functions designed to run on GPUs.
+  Understanding the level at which these CUDA kernels actually run is complicated; they
+  actually operate at multiple levels.
+</p>
+<p>
+  The actual “atomic units” that do work within SMs, at a software level, are
+  <em>threads</em>. To “launch a CUDA kernel”, we don't merely say "do this work within
+  each thread" (we could do this, but we would lose out on a lot of the power of these
+  kernels); instead, we launch it with a <em>group of blocks of threads</em> known as a
+  <em>grid</em>. To make this happen, we pass in two special keywords into the kernel
+  before we pass in the the regular function arguments: the number of blocks of threads
+  to launch, and the number of threads within each block. See an example of this
   <a
     href="https://github.com/SethHWeidman/intro_to_cuda/blob/main/demo3_matmul/matmul.cu#L159"
     target="_blank"
@@ -154,7 +155,7 @@
 
 <p>
   The consequence of all this is that there are three “levels” of computation happening
-  on the GPU, each of which the programmer must be aware of:
+  on the GPU, each of which the programmer must keep in mind:
 </p>
 
 <ul>
@@ -171,7 +172,7 @@
 <ul>
   <li>The kernel itself is replicated across and runs in each thread.</li>
   <li>
-    Special variables are accessible indicating:
+    Special variables are accessible inside the kernel indicating:
     <ul>
       <li>The total number of blocks: <code>blockDim</code></li>
       <li>
@@ -180,13 +181,15 @@
       <li>The thread’s position within its block: <code>threadIdx</code></li>
     </ul>
   </li>
-  <li>Kernels primarily define what each thread should do</li>
+  <li>Kernels define what each thread should do.</li>
   <li>
-    <strong>Critical point:</strong> kernels can also define and access objects that are
-    accessible by <em>all threads within a block of threads</em>. Going back to the three
-    layers of memory above, such objects live in <strong>“shared” memory</strong>, on the
-    SM. We now know why this is called “shared memory”; the memory is shared by a block
-    of threads.<sup id="fnref3"><a href="#fn3">3</a></sup>
+    <strong>Critical point:</strong> kernels can <em>also</em> define and access objects
+    that are accessible by <em>all threads within a block of threads</em>. Going back to
+    the three layers of memory above, such objects live in
+    <strong>“shared” memory</strong>, on the SM. We now know why this is called “shared
+    memory”; the memory is shared by a block of threads.<sup id="fnref3"
+      ><a href="#fn3">3</a></sup
+    >
   </li>
 </ul>
 
@@ -200,8 +203,8 @@
 
 <ol>
   <li>
-    First load an entire chunk of data into shared memory within a block of threads that
-    is accessible within a block of threads.
+    First load an entire chunk of data into shared memory that is then accessible within
+    a block of threads.
   </li>
   <li>
     Have each thread fill some component of those shared objects; threads do this work in
