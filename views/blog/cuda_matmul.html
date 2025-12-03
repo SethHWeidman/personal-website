@@ -447,6 +447,13 @@
   (even if the naive approach still uses parallelism) - 553 ms vs. 900 ms!
 </p>
 
+<figure>
+  <img
+    src="https://sethhweidman-personal-website.s3.us-east-1.amazonaws.com/2025-11-29_cuda-matmul/plots/01-kernel-timings.png"
+    alt="Bar chart showing the shared-memory CUDA kernel (0.553 s) beating the naive global-memory kernel (0.900 s) on an 8192×8192 matmul."
+  />
+</figure>
+
 <h3>Benchmarking against PyTorch</h3>
 
 <p>
@@ -462,6 +469,13 @@
   much-more-highly optimized CUDA kernels under-the-hood.
 </p>
 
+<figure>
+  <img
+    src="https://sethhweidman-personal-website.s3.us-east-1.amazonaws.com/2025-11-29_cuda-matmul/plots/02-cuda-vs-torch-timings.png"
+    alt="Bar chart comparing the shared-memory CUDA kernel (8.32 ms) against torch.mm (1.11 ms) for a 2048×2048 matmul."
+  />
+</figure>
+
 <h2>Conclusion</h2>
 
 <p>
@@ -471,6 +485,8 @@
   widely-used FlashAttention technique uses a similar pattern to speed up the attention
   computation. Look for a deeper dive on FlashAttention in a future blog post!
 </p>
+
+<h3>Footnotes</h3>
 
 <p id="fn1" class="footnote">
   <sup>
