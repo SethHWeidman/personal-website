@@ -23,7 +23,6 @@
 
 <!-- Twitter Card tags (for X) -->
 <meta name="twitter:card" content="summary_large_image" />
-<!-- This enables a large image preview -->
 <meta name="twitter:title" content="Tiling Matrix Multiplication on the GPU" />
 <meta
   name="twitter:description"
@@ -45,9 +44,9 @@
 
 <p>
   CUDA is an important part of the AI stack, allowing programmers to use NVIDIA GPUs to
-  their full capacity. This essay, targeted at developers who mostly code at the Python /
-  PyTorch level, will go into "the first couple layers" of CUDA, explaining what it is
-  and how it allows programmers to write programs that take advantage of the unique
+  their full capacity. This blog post, targeted at developers who mostly code at the
+  Python / PyTorch level, will go into "the first couple layers" of CUDA, explaining what
+  it is and how it allows programmers to write programs that take advantage of the unique
   properties of NVIDIA GPUs. In particular, we'll illustrate one very common structure
   for CUDA programs, a structure that
   <a
@@ -84,11 +83,11 @@
   computations in parallel”. By contrast, your CPU has fewer processors / cores, each of
   which has more functionality and overall power but simply isn't as optimized for
   "extreme parallelism" as a GPU. For example, the M4 chip on the MacBook Pro on which
-  I'm writing this essay has 10 cores, whereas the L4 GPU I used to run the experiments
-  described below has about 7,000 cores. These 7,000 cores come from 58 distinct hardware
-  chips NVIDIA calls "Streaming Multiprocessors (SMs)" all of which are present on a
-  single GPU; each SM has 128 cores that are designed to perform simple computations
-  quickly (so to be exact, the L4 GPU has \(58 \times 128 = 7,424\) cores).
+  I'm writing this blog post has 10 cores, whereas the L4 GPU I used to run the
+  experiments described below has about 7,000 cores. These 7,000 cores come from 58
+  distinct hardware chips NVIDIA calls "Streaming Multiprocessors (SMs)" all of which are
+  present on a single GPU; each SM has 128 cores that are designed to perform simple
+  computations quickly (so to be exact, the L4 GPU has \(58 \times 128 = 7,424\) cores).
 </p>
 
 <p>
@@ -493,7 +492,7 @@
     <a href="#fnref1">1</a>
   </sup>
   There are lower levels of memory beyond the three listed here, but for the purposes of
-  this essay we focus on these, especially the distinction between global and shared
+  this blog post we focus on these, especially the distinction between global and shared
   memory.
   <a href="#fnref1" class="footnote-backref">↩</a>
 </p>
