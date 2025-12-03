@@ -48,10 +48,17 @@
   their full capacity. This essay, targeted at developers who mostly code at the Python /
   PyTorch level, will go into "the first couple layers" of CUDA, explaining what it is
   and how it allows programmers to write programs that take advantage of the unique
-  properties of NVIDIA GPUs. In particular, we'll illustrate one very common pattern for
-  structuring CUDA programs, why this structure aligns with NVIDIA GPUs' hardware, and
-  how this program structure can be used in a beautiful way to speed up matrix
-  multiplication.
+  properties of NVIDIA GPUs. In particular, we'll illustrate one very common structure
+  for CUDA programs, a structure that
+  <a
+    href="https://github.com/Dao-AILab/flash-attention"
+    target="_blank"
+    rel="noopener noreferrer"
+    >FlashAttention</a
+  >
+  uses in a similar but more sophisticated way. We'll also explain why this structure
+  aligns with NVIDIA GPUs' hardware and how it can be used in a beautiful way to speed up
+  matrix multiplication.
 </p>
 
 <h2>Background</h2>
@@ -60,8 +67,8 @@
   Writing programs in a “GPU-aware” way - that is, aware that you have a specialized
   processor called a GPU at your disposal - is different than other programming
   paradigms, such as writing a Python script designed to run on a single core. At the
-  highest level, you must be aware that by default, your program will run on a CPU (
-  referred to in CUDA-land as the
+  highest level, you must be aware that by default, your program will run on a CPU
+  (referred to in CUDA-land as the
   <em>host</em>), whereas you can write special functions called <em>kernels</em> and
   explicitly launch those functions on a GPU (referred to in CUDA-land as a
   <em>device</em>). Before diving into the code, we'll cover the key pieces of the mental
@@ -76,12 +83,12 @@
   quantity than what your CPU has, each of which is optimized for “running many simple
   computations in parallel”. By contrast, your CPU has fewer processors / cores, each of
   which has more functionality and overall power but simply isn't as optimized for
-  parallelism as a GPU. For example, the M4 chip on the MacBook Pro with which I'm
-  writing this essay has 10 cores, whereas the L4 GPU I used to run the experiments
+  "extreme parallelism" as a GPU. For example, the M4 chip on the MacBook Pro on which
+  I'm writing this essay has 10 cores, whereas the L4 GPU I used to run the experiments
   described below has about 7,000 cores. These 7,000 cores come from 58 distinct hardware
   chips NVIDIA calls "Streaming Multiprocessors (SMs)" all of which are present on a
   single GPU; each SM has 128 cores that are designed to perform simple computations
-  quickly (so to be exact, the L4 GPU has \(58 \times 128 = 7,424\ cores)).
+  quickly (so to be exact, the L4 GPU has \(58 \times 128 = 7,424\) cores).
 </p>
 
 <p>
@@ -126,8 +133,8 @@
   CUDA - technically what we'll describe here is “CUDA C++”, an extension of C++ that has
   additional keywords like <code>__global__</code> and <code>__shared__</code> - programs
   run via "CUDA kernels": these are special C++ functions designed to run on GPUs.
-  Understanding the level at which these CUDA kernels actually run is complicated; they
-  actually operate at multiple levels.
+  Understanding the level at which these CUDA kernels actually run is subtle, as they
+  actually operate at multiple levels at once.
 </p>
 <p>
   The actual “atomic units” that do work within SMs, at a software level, are
@@ -136,26 +143,40 @@
   kernels); instead, we launch it with a <em>group of blocks of threads</em> known as a
   <em>grid</em>. To make this happen, we pass in two special keywords into the kernel
   before we pass in the the regular function arguments: the number of blocks of threads
-  to launch, and the number of threads within each block. See an example of this
+  to launch, and the number of threads within each block. See the code block
   <a
     href="https://github.com/SethHWeidman/intro_to_cuda/blob/main/demo3_matmul/matmul.cu#L159"
     target="_blank"
     rel="noopener noreferrer"
     >here</a
-  >: what we are saying there is.<sup id="fnref2"><a href="#fn2">2</a></sup>
+  >
+  for an example of this kernel launch<sup id="fnref2"><a href="#fn2">2</a></sup
+  >. Conceptually, this line
 </p>
+
+<blockquote>
+  <p>
+    <code
+      >mm_kernel&lt;&lt;&lt;blocks_per_grid, threads_per_block&gt;&gt;&gt;(d_U, d_V, d_V,
+      d_W_GPU, N);</code
+    >
+  </p>
+</blockquote>
+
+<p>says:</p>
 
 <blockquote>
   <p>
     "launch a function that will run on the SMs on a GPU, in a grid of
     <code>blocks_per_grid</code> blocks, with <code>threads_per_block</code> threads per
-    block, and arguments <code>d_A</code>, <code>d_B</code>, etc."
+    block, and arguments <code>d_U</code>, <code>d_V</code>, <code>d_W_GPU</code>, and
+    <code>N</code>"
   </p>
 </blockquote>
 
 <p>
   The consequence of all this is that there are three “levels” of computation happening
-  on the GPU, each of which the programmer must keep in mind:
+  when we launch a CUDA kernel on a GPU, each of which the programmer must keep in mind:
 </p>
 
 <ul>
@@ -164,10 +185,7 @@
   <li>These "blocks of threads" are grouped into a grid</li>
 </ul>
 
-<p>
-  How do <em>kernels</em> fit into this? The CUDA kernel actually operates across all
-  three of these levels:
-</p>
+<p>The CUDA kernel is operating across all three of these levels:</p>
 
 <ul>
   <li>The kernel itself is replicated across and runs in each thread.</li>
@@ -181,9 +199,9 @@
       <li>The thread’s position within its block: <code>threadIdx</code></li>
     </ul>
   </li>
-  <li>Kernels define what each thread should do.</li>
+  <li>Kernels must of course what each thread should do.</li>
   <li>
-    <strong>Critical point:</strong> kernels can <em>also</em> define and access objects
+    <strong>Critical point</strong>: kernels can <em>also</em> define and access objects
     that are accessible by <em>all threads within a block of threads</em>. Going back to
     the three layers of memory above, such objects live in
     <strong>“shared” memory</strong>, on the SM. We now know why this is called “shared
@@ -221,8 +239,8 @@
 <p>
   This pattern can allow for an order of magnitude fewer reads from “global memory” (on
   the GPU) which are relatively slow compared to reading from “shared memory” (on the
-  SM). In the rest of this essay, we’ll cover how this pattern can be applied to matrix
-  multiplication!
+  SM). Now we have all the scaffolding to explain how this pattern can be applied to
+  matrix multiplication!
 </p>
 
 <h2 id="matrix-multiplication">Matrix multiplication</h2>
@@ -415,7 +433,7 @@
   another blog post!
 </p>
 
-<h2>Benchmarking</h2>
+<h3>Benchmarking against the naive approach</h3>
 
 <p>
   The
@@ -429,7 +447,7 @@
   (even if the naive approach still uses parallelism) - 553 ms vs. 900 ms!
 </p>
 
-<h2>Benchmarking</h2>
+<h3>Benchmarking against PyTorch</h3>
 
 <p>
   Lest you be impressed:
@@ -440,7 +458,8 @@
     >this comparison</a
   >
   shows separately that the custom kernel shown here is about \(8 \times\) slower than
-  just calling “<code>torch.mm</code>”!
+  just calling “<code>torch.mm</code>”! This is because <code>torch.mm</code> uses
+  much-more-highly optimized CUDA kernels under-the-hood.
 </p>
 
 <h2>Conclusion</h2>
@@ -449,15 +468,8 @@
   This blog post covered some basics about CUDA programming, how those basics lead to a
   common pattern for writing "GPU-aware" code, and how that pattern can be used to speed
   up matrix multiplication. This pattern is very prevalent throughout AI coding; the
-  widely-used
-  <a
-    href="https://github.com/Dao-AILab/flash-attention"
-    target="_blank"
-    rel="noopener noreferrer"
-    >Flash Attention</a
-  >
-  technique uses a similar pattern to speed up the attention computation. Look for a
-  deeper dive on Flash Attention in a future blog post!
+  widely-used FlashAttention technique uses a similar pattern to speed up the attention
+  computation. Look for a deeper dive on FlashAttention in a future blog post!
 </p>
 
 <p id="fn1" class="footnote">
