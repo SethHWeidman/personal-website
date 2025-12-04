@@ -28,6 +28,8 @@
 
 <h2>Background</h2>
 
+<p></p>
+
 <p>
   At SentiLink, we developed scores for the purpose of helping FIs stop "first party
   fraud". FPF was a new product space for us; entering it was an attempt to expand our
@@ -42,38 +44,26 @@
 </p>
 
 <p>
-  At the time we decided to develop first party fraud scores, we had two flagship
-  products: a synthetic fraud score and an identity theft score. These score were REST
-  APIs which took in as input:
-</p>
-
-<ul>
-  <li>Name</li>
-  <li>Date of birth</li>
-  <li>SSN</li>
-  <li>Address</li>
-  <li>Phone</li>
-  <li>Email</li>
-  <li>IP address</li>
-</ul>
-
-<p>
-  and returned scores that partners could "use in their application decisioning flows":
-  concretely, this meant FIs would typically call our APIs when a prospective customer
-  applied for a credit card, loan, or DDA, and, if our synthetic fraud or identity theft
-  scores were high, apply an additional high-friction step that would be difficult, if
-  not impossible, to pass if the application were actually an instance of synthetic fraud
-  or identity theft.
+  At the time we decided to develop first party fraud scores, SentiLink made most of its
+  ARR through two related products: a synthetic fraud score and an identity theft score.
+  These were APIs that our customers - financial institutions that offered either lending
+  (loans or credit cards) or depository (checking accounts, savings accounts) products -
+  would call when a potential customer applied for one of their products. There is a
+  standard set of PII our API accepted as input;<sup id="fnref1"
+    ><a href="#fn1">1</a></sup
+  >
+  as output, the API returned scores; we recommended that if our scores were sufficiently
+  high, the customer should apply additional steps that would be difficult, if not
+  impossible, to pass if the application were actually an instance of synthetic fraud or
+  identity theft, but would be easy for regular customers to pass.
 </p>
 
 <p>
-  The value proposition of these scores was that, due to the structure of other credit
-  and fraud decisioning systems, synthetic fraud and identity theft applications would
-  often present as low-to-medium risk, while actually being extremely high risk.
-</p>
-
-<p>
-  There was another kind of fraud we kept hearing about that has this same property:
+  The value proposition of these scores was that, due to long-standing properties of
+  other common components of credit and fraud decisioning systems, synthetic fraud and
+  identity theft applications would often present as low-to-medium risk, while actually
+  being extremely high risk. There was another kind of fraud we kept hearing about that
+  has this same property:
   <strong>first party fraud</strong>. We understood this much less well than synthetic
   fraud or ID theft; our founders had direct experience dealing with the former two
   problems at Affirm, but didn't have the same experience with FPF. To understand how we
@@ -560,7 +550,7 @@
   with recall; we found that it was easier for potential customers to translate: "This
   feature flags 30% of your fraud while flagging 2% of your approved applications, a 15x
   ratio" into business value than "This feature has a 30% recall (flagging 30% of your
-  fraud) and a 15% precision."<sup id="fnref1"><a href="#fn1">1</a></sup>
+  fraud) and a 15% precision."<sup id="fnref2"><a href="#fn2">2</a></sup>
 </p>
 
 <!-- Credit Union 1 relative likelihood table -->
@@ -777,16 +767,6 @@
   confirmed that our inferences about their fraud categories were correct.
 </p>
 
-<p id="fn1" class="footnote">
-  <sup>
-    <a href="#fnref1">1</a>
-  </sup>
-  Assuming the overall fraud rate is 1%, flagging 30% of all fraud while flagging 2% of
-  approvals implies roughly 15% precision—the precision value referenced in the main
-  text.
-  <a href="#fnref1" class="footnote-backref">↩</a>
-</p>
-
 <h2>From signals to scores</h2>
 
 <h2>Overall product development philosophy</h2>
@@ -875,6 +855,27 @@
   Seth Weidman worked at SentiLink for about six years, from when the company was about
   two-and-a-half years old (December 2019) to when it was eight-and-a-half years old
   (November 2025).
+</p>
+
+<h3>Footnotes</h3>
+
+<p id="fn1" class="footnote">
+  <sup>
+    <a href="#fnref1">1</a>
+  </sup>
+  I won't enumerate the specific fields here, but go look at the application for a credit
+  card or checking account with a major bank and you'll get the idea.
+  <a href="#fnref1" class="footnote-backref">↩</a>
+</p>
+
+<p id="fn2" class="footnote">
+  <sup>
+    <a href="#fnref2">2</a>
+  </sup>
+  Assuming the overall fraud rate is 1%, flagging 30% of all fraud while flagging 2% of
+  approvals implies roughly 15% precision—the precision value referenced in the main
+  text.
+  <a href="#fnref2" class="footnote-backref">↩</a>
 </p>
 
 <br />
