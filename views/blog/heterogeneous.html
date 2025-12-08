@@ -3,32 +3,36 @@
 <h1>Building fraud models with heterogeneous labels of unknown quality</h1>
 
 <p>
-  There is a well-known set of techniques data scientists can use to solve business
-  problems by applying a statistical model such as logistic regression or random forests
-  to structured, tabular data, where target labels may be unreliable. Train-test splits
-  can be generated, hyperparameters can be tuned, and various techniques can be used to
-  QA labels for correctness, such as manually reviewing extreme false positives or false
-  negatives to find mislabeled records. Such patterns are widely applied throughout
-  financial services. However, their application relies on a couple keys things to be
-  true. One is that the labels are actually relevant to the business problem; in other
-  words, that building a model that targets those labels does in fact lead to a model
-  that predicts the kind of risks or outcomes you want. The second relates mostly to
-  label QA, but also touch: that if you choose to do so, you review an individual record
-  and "reveal" whether its label is correct. If both of these assumpions.
+  Most normal<sup id="fnref1"><a href="#fn1">1</a></sup> "data science" problems can be
+  solved using a standard playbook of techniques. Train-test splits can be generated,
+  statistical models such as logistic regression or gradient boosted trees can be
+  applied, hyperparameters can be tuned, evaluation metrics can be computed, and the
+  cycle can be repeated several times until a generalizable model is reached. One
+  challenge can be that some target labels are be incorrect; even in this case, various
+  techniques can be used to QA labels for correctness, such as manually reviewing extreme
+  false positives or false negatives to find mislabeled records. Such patterns are often
+  successfully applied by data scientists in traditional industries such as financial
+  services. However, their application relies on a couple keys things to be true. One is
+  that the target labels are actually relevant to the business problem; in other words,
+  that building a model that targets those labels does in fact lead to a model that
+  predicts the kind of risks or outcomes you want. The second relates mostly to label QA,
+  but also relates to the first: that if you choose to do so, you review an individual
+  record and "reveal" whether its label is correct. If both of these assumpions.
 </p>
 
 <p>
   For the two core machine-learning powered scores we built at SentiLink, these
   assumptions were true; when we decided to try to move outside of these and build a new
   set of scores to address a less-well-understood kind of fraud, first party fraud,
-  neither of these assumptions held. This essay covers how we built a set of scores to
-  stop this new fraud variant despite having only a heterogeneous set of often-unreliable
-  labels.
+  neither of these assumptions held: we could not determine through manual review whether
+  a record was in fact first party fraud which led to us having to rely on a
+  heterogeneous set of labels from our customers which were often not relevant. Despite
+  these obstacles, we were able to build a set of scores to stop this new fraud variant.
+  In this essay, I'll cover how we did this, and the lessons it provides for modeling and
+  model evaluation in domains with structured data and beyond.
 </p>
 
 <h2>Background</h2>
-
-<p></p>
 
 <p>
   At SentiLink, we developed scores for the purpose of helping FIs stop "first party
@@ -50,7 +54,7 @@
   (loans or credit cards) or depository (checking accounts, savings accounts) products -
   would call when a potential customer applied for one of their products. There is a
   standard set of PII our API accepted as input;<sup id="fnref1"
-    ><a href="#fn1">1</a></sup
+    ><a href="#fn1">2</a></sup
   >
   as output, the API returned scores; we recommended that if our scores were sufficiently
   high, the customer should apply additional steps that would be difficult, if not
@@ -550,7 +554,7 @@
   with recall; we found that it was easier for potential customers to translate: "This
   feature flags 30% of your fraud while flagging 2% of your approved applications, a 15x
   ratio" into business value than "This feature has a 30% recall (flagging 30% of your
-  fraud) and a 15% precision."<sup id="fnref2"><a href="#fn2">2</a></sup>
+  fraud) and a 15% precision."<sup id="fnref2"><a href="#fn2">3</a></sup>
 </p>
 
 <!-- Credit Union 1 relative likelihood table -->
@@ -868,9 +872,18 @@
   <a href="#fnref1" class="footnote-backref">↩</a>
 </p>
 
+<p id="fn1" class="footnote">
+  <sup>
+    <a href="#fnref1">2</a>
+  </sup>
+  I won't enumerate the specific fields here, but go look at the application for a credit
+  card or checking account with a major bank and you'll get the idea.
+  <a href="#fnref1" class="footnote-backref">↩</a>
+</p>
+
 <p id="fn2" class="footnote">
   <sup>
-    <a href="#fnref2">2</a>
+    <a href="#fnref2">3</a>
   </sup>
   Assuming the overall fraud rate is 1%, flagging 30% of all fraud while flagging 2% of
   approvals implies roughly 15% precision—the precision value referenced in the main
