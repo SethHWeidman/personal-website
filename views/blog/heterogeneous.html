@@ -17,7 +17,7 @@
   that building a model that targets those labels does in fact lead to a model that
   predicts the kind of risks or outcomes you want. The second relates mostly to label QA,
   but also relates to the first: that if you choose to do so, you review an individual
-  record and "reveal" whether its label is correct. If both of these assumpions.
+  record and "reveal" whether its label is correct.
 </p>
 
 <p>
@@ -25,11 +25,16 @@
   assumptions were true; when we decided to try to move outside of these and build a new
   set of scores to address a less-well-understood kind of fraud, first party fraud,
   neither of these assumptions held: we could not determine through manual review whether
-  a record was in fact first party fraud which led to us having to rely on a
-  heterogeneous set of labels from our customers which were often not relevant. Despite
-  these obstacles, we were able to build a set of scores to stop this new fraud variant.
-  In this essay, I'll cover how we did this, and the lessons it provides for modeling and
-  model evaluation in domains with structured data and beyond.
+  a record was in fact first party fraud (whereas we could for synthetic fraud and
+  identity theft) which led to us having to rely on a heterogeneous set of labels from
+  our customers which were often not relevant (we took a completely different approach to
+  getting labels for our core scores that I describe later). Despite these obstacles, we
+  were able to build a set of scores that generalized well beyond the labels they were
+  trained on, that helped our customers stop this new fraud variant and achieved
+  commercial success for SentiLink. In this essay, I'll cover how we did this,
+  contrasting our approach with the approach we took to building our core products, and
+  the lessons it provides for modeling and model evaluation both in domains with
+  structured data and beyond.
 </p>
 
 <h2>Background</h2>
