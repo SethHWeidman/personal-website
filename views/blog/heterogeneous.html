@@ -40,31 +40,21 @@
 <h2>Background</h2>
 
 <p>
-  At SentiLink, we developed scores for the purpose of helping FIs stop "first party
-  fraud". FPF was a new product space for us; entering it was an attempt to expand our
-  TAM beyond our two initial products: scores that helped FIs stop synthetic fraud and
-  identity theft, respectively. Building our first set of products in the first party
-  fraud space required a different approach than the one we took to develop these two
-  initial products; specifically, we had to train models on heterogeneous sets of
-  "labels" (applications that various of our partner FIs had tagged as fraud) that had
-  inconsistent definitions and reliability. This essay will describe this approach; as
-  necessary background, we'll describe the state of SentiLink's product suite at the time
-  we began to build these FPF scores.
+  SentiLink developed two successful products in the first several years of its existence
+  that helped FIs stop two distinct kinds of fraud at the point of application: synthetic
+  fraud and identity theft. At a technical level, these were APIs that took in a set of
+  PII<sup id="fnref1"><a href="#fn1">2</a></sup> and returned scores from 1 to 999,
+  indicating the application.
 </p>
 
 <p>
-  At the time we decided to develop first party fraud scores, SentiLink made most of its
-  ARR through two related products: a synthetic fraud score and an identity theft score.
   These were APIs that our customers - financial institutions that offered either lending
   (loans or credit cards) or depository (checking accounts, savings accounts) products -
-  would call when a potential customer applied for one of their products. There is a
-  standard set of PII our API accepted as input;<sup id="fnref1"
-    ><a href="#fn1">2</a></sup
-  >
-  as output, the API returned scores; we recommended that if our scores were sufficiently
-  high, the customer should apply additional steps that would be difficult, if not
-  impossible, to pass if the application were actually an instance of synthetic fraud or
-  identity theft, but would be easy for regular customers to pass.
+  would call when a potential customer applied for one of their products. T as output,
+  the API returned scores; we recommended that if our scores were sufficiently high, the
+  customer should apply additional steps that would be difficult, if not impossible, to
+  pass if the application were actually an instance of synthetic fraud or identity theft,
+  but would be easy for regular customers to pass.
 </p>
 
 <p>
@@ -835,11 +825,32 @@
 <h2>Lessons</h2>
 
 <p>
-  Great products in financial services are built up from simple-to-understand facts.
-  Starting with the empirical facts of the recalls and relative likelihoods of several
+  Careful EDA - here, looking at the performance of each of your model's top ~10
+  individual signals on heterogeneous sets of labels - can reveal patterns about
+</p>
+
+<p>
+  Evaluation is a first class problem. Setting up a way of thinking about evaluation, an
+  internal set of practices of how to run the evaluation scripts (i.e. version-controlled
+  scripts that every), and a team culture that views running these evaluations as
+  important. The rows of the table above, each representing a set of labels we could
+  evaluate against, ended up being more important than the columns, which were the
+  initial set of first party fraud signals we came up with, because the rows could be
+  used to evaluate other signals and even scores we came up with in the future.
 </p>
 
 <h2>Next steps</h2>
+
+<ul>
+  <li>
+    Launched in early 2024, these scores were our fastest-growing product by the time I
+    left in late 2025, accounting for roughly 5% of SentiLink's ARR, despite not having
+    done any marketing push; we simply offered that existing customers could test the
+    products out as they tested out our synthetic fraud and identity theft scores, and
+    more often than not they found that they worked and that they caught fraud that was
+    not caught by our other scores.
+  </li>
+</ul>
 
 <p>
   These scores allowed us to initiate collaborations with the major U.S. FIs around first
