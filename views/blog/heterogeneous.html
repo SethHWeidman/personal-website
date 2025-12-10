@@ -40,37 +40,35 @@
 <h2>Background</h2>
 
 <p>
-  SentiLink developed two successful products in the first several years of its existence
-  that helped FIs stop two distinct kinds of fraud at the point of application: synthetic
-  fraud and identity theft. At a technical level, these were APIs that took in a set of
-  PII<sup id="fnref1"><a href="#fn1">2</a></sup> and returned scores from 1 to 999,
-  indicating the application.
+  By late 2021-early 2022, about four-and-a-half years after its founding, SentiLink had
+  two successful products with substantial commercial traction: one score that helped FIs
+  stop synthetic fraud and another that helped them stop identity theft. These scores
+  were delivered via APIs that we intended our customers, who were financial institutions
+  that offered either lending (loans or credit cards) or depository (checking accounts)
+  products, to call <em>their</em> customers applied to them. These APIs took in the
+  PII<sup id="fnref1"><a href="#fn1">2</a></sup>
+  of those applying customers and returned scores from 1 to 999. We recommended that if
+  our scores were sufficiently high, the customer should apply additional steps that
+  would be difficult, if not impossible, to pass if the application were actually an
+  instance of synthetic fraud or identity theft, but would be easy for regular customers
+  to pass.
 </p>
 
 <p>
-  These were APIs that our customers - financial institutions that offered either lending
-  (loans or credit cards) or depository (checking accounts, savings accounts) products -
-  would call when a potential customer applied for one of their products. T as output,
-  the API returned scores; we recommended that if our scores were sufficiently high, the
-  customer should apply additional steps that would be difficult, if not impossible, to
-  pass if the application were actually an instance of synthetic fraud or identity theft,
-  but would be easy for regular customers to pass.
+  The value proposition of these scores was that, due to long-standing properties of the
+  other components of credit and fraud decisioning systems, synthetic fraud and identity
+  theft applications would often present as low-to-medium risk, while actually being
+  extremely high risk<sup id="fnref1"><a href="#fn1">3</a></sup
+  >. There was another kind of fraud we kept hearing about that had this same property:
+  <strong>first party fraud</strong>, which we often abbreviated as "FPF". We understood
+  FPF much less well than synthetic fraud or ID theft: our founders (and many early
+  employees) had direct experience dealing with the former two problems at Affirm,
+  whereas they didn't with FPF. As it turns out, we couldn't just port the methodology we
+  used for synthetic fraud and identity theft to FPF; to understand why, we'll first need
+  to dive into that methodology and the scaffolding we'd built to support it.
 </p>
 
-<p>
-  The value proposition of these scores was that, due to long-standing properties of
-  other common components of credit and fraud decisioning systems, synthetic fraud and
-  identity theft applications would often present as low-to-medium risk, while actually
-  being extremely high risk. There was another kind of fraud we kept hearing about that
-  has this same property:
-  <strong>first party fraud</strong>. We understood this much less well than synthetic
-  fraud or ID theft; our founders had direct experience dealing with the former two
-  problems at Affirm, but didn't have the same experience with FPF. To understand how we
-  got started with FPF, it is important to understand the methodology and internal
-  scaffolding we had built to solve synthetic fraud and ID theft.
-</p>
-
-<h2>The scaffolding we had for synthetic fraud and identity theft</h2>
+<h2>The scaffolding we built for synthetic fraud and identity theft</h2>
 
 <p>
   There were two key pieces of scaffolding that backed our synthetic fraud and identity
@@ -107,6 +105,7 @@
   <a href="https://medium.com/craft-ventures/why-we-invested-in-sentilink-a8ef2cddb58f"
     >Series B fundraise</a
   >
+  in May 2021 and through the time period when this essay begins.
 </p>
 
 <p>
@@ -114,23 +113,29 @@
   for success on FPF in many ways. Still, as we began to work on FPF, we found that it
   was fundamentally different from these initial two types of fraud in one important way,
   a way that ended up necessitating a different modeling approach than we took with the
-  models that underlied our synthetic fraud and identity theft scores.
+  models at the core of our synthetic fraud and identity theft scores.
 </p>
 
 <h2>What made first party fraud different</h2>
 
 <p>
-  First party fraud had properties that necessitated us taking a different approach to
-  developing our initial score than we did for our synthetic fraud and identity theft
-  models. Synthetic fraud and identity theft are defined mostly by relationships between
-  the PII elements received on an application being directly contradictory or
-  inconsistent with other data sources (such as our "identity database" or our "graph");
-  first party fraud is a function of how these relationships signal that the applicant
-  being dishonest about their future intent. First party fraud is often detected
-  retroactively by observing some post-application behavior that strongly suggested the
-  applicant was concealing some aspect of their identity when they applied; *[See, for
-  example, this white paper from Experian that defines first party fraud as being 90+
-  days delinquent ]
+  We couldn't tell whether an application was first party fraud through manual review, as
+  we could for synthetic fraud or identity theft. Synthetic fraud and ID theft are: "this
+  application is bad by the definition of the PII presented". FPF is "this application is
+  higher risk than it appears".
+</p>
+
+<p>
+  We couldn't tell whether an application was first party fraud through manual review, as
+  we could for synthetic fraud or identity theft. Synthetic fraud and identity theft are
+  defined mostly by relationships between the PII elements received on an application
+  being directly contradictory or inconsistent with other data sources (such as our
+  "identity database" or our "graph"); first party fraud is a function of how these
+  relationships signal that the applicant being dishonest about their future intent.
+  First party fraud is often detected retroactively by observing some post-application
+  behavior that strongly suggested the applicant was concealing some aspect of their
+  identity when they applied; *[See, for example, this white paper from Experian that
+  defines first party fraud as being 90+ days delinquent ]
 </p>
 
 <p>
@@ -900,6 +905,14 @@
 <p id="fn2" class="footnote">
   <sup>
     <a href="#fnref2">3</a>
+  </sup>
+  Description of the "credit report" aspect of synthetic fraud and identity theft.
+  <a href="#fnref2" class="footnote-backref">↩</a>
+</p>
+
+<p id="fn2" class="footnote">
+  <sup>
+    <a href="#fnref2">4</a>
   </sup>
   Assuming the overall fraud rate is 1%, flagging 30% of all fraud while flagging 2% of
   approvals implies roughly 15% precision—the precision value referenced in the main
