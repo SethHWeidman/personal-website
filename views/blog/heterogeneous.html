@@ -4,24 +4,25 @@
 
 <p>
   Most normal<sup id="fnref1"><a href="#fn1">1</a></sup> "data science" problems can be
-  solved using a standard playbook of techniques. Train-test splits can be generated,
+  solved using a standard playbook of techniques: train-test splits can be generated,
   statistical models such as logistic regression or gradient boosted trees can be
   applied, hyperparameters can be tuned, evaluation metrics can be computed, and the
-  cycle can be repeated several times until a generalizable model is reached. One
-  challenge can be that some target labels are be incorrect; even in this case, various
+  cycle can be repeated until a likely-generalizable model is reached. One complicating
+  factor can be that some target labels are incorrect; even in this case, various
   techniques can be used to QA labels for correctness, such as manually reviewing extreme
   false positives or false negatives to find mislabeled records. Such patterns are often
   successfully applied by data scientists in traditional industries such as financial
-  services. However, their application relies on a couple keys things to be true. One is
-  that the target labels are actually relevant to the business problem; in other words,
-  that building a model that targets those labels does in fact lead to a model that
-  predicts the kind of risks or outcomes you want. The second relates mostly to label QA,
-  but also relates to the first: that if you choose to do so, you review an individual
-  record and "reveal" whether its label is correct.
+  services whose problems naturally lend themselves to these techniques. However, a
+  couple of key things need to be true to run this playbook. One is that the target
+  labels are actually relevant to the business problem, meaning that building a model
+  that targets those labels would in fact lead to a model that predicts the kind of risks
+  or outcomes you want. The second relates mostly to label QA, but also relates to the
+  first: that if you choose to do so, you review an individual record and "reveal"
+  whether its label is correct.
 </p>
 
 <p>
-  For the two core machine-learning powered scores we built at SentiLink, these
+  For the two core machine learning model-powered scores we built at SentiLink, these
   assumptions were true; when we decided to try to move outside of these and build a new
   set of scores to address a less-well-understood kind of fraud, first party fraud,
   neither of these assumptions held: we could not determine through manual review whether
@@ -33,8 +34,8 @@
   trained on, that helped our customers stop this new fraud variant and achieved
   commercial success for SentiLink. In this essay, I'll cover how we did this,
   contrasting our approach with the approach we took to building our core products, and
-  the lessons it provides for modeling and model evaluation both in domains with
-  structured data and beyond.
+  the lessons it provides for model evaluation both in domains like financial services
+  with structured data and beyond.
 </p>
 
 <h2>Background</h2>
@@ -43,22 +44,22 @@
   By late 2021-early 2022, about four-and-a-half years after its founding, SentiLink had
   two successful products with substantial commercial traction: one score that helped FIs
   stop synthetic fraud and another that helped them stop identity theft. These scores
-  were delivered via APIs that we intended our customers, who were financial institutions
-  that offered either lending (loans or credit cards) or depository (checking accounts)
-  products, to call <em>their</em> customers applied to them. These APIs took in the
+  were delivered via APIs that our customers, who were financial institutions that
+  offered either lending (loans or credit cards) or depository (checking accounts)
+  products, to call when <em>their</em> customers applied to them. These APIs took in the
   PII<sup id="fnref1"><a href="#fn1">2</a></sup>
   of those applying customers and returned scores from 1 to 999. We recommended that if
   our scores were sufficiently high, the customer should apply additional steps that
   would be difficult, if not impossible, to pass if the application were actually an
   instance of synthetic fraud or identity theft, but would be easy for regular customers
-  to pass.
+  submitting normal applications to pass.
 </p>
 
 <p>
-  The value proposition of these scores was that, due to long-standing properties of the
-  other components of credit and fraud decisioning systems, synthetic fraud and identity
-  theft applications would often present as low-to-medium risk, while actually being
-  extremely high risk<sup id="fnref1"><a href="#fn1">3</a></sup
+  The value proposition of these scores went beyond "fraud is bad": due to long-standing
+  properties of the other components of credit and fraud decisioning systems, synthetic
+  fraud and identity theft applications would often present as low-to-medium risk, while
+  actually being extremely high risk<sup id="fnref1"><a href="#fn1">3</a></sup
   >. There was another kind of fraud we kept hearing about that had this same property:
   <strong>first party fraud</strong>, which we often abbreviated as "FPF". We understood
   FPF much less well than synthetic fraud or ID theft: our founders (and many early
