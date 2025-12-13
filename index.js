@@ -150,6 +150,17 @@ app.get("/blog/heterogeneous.html", (req, res) => {
   );
 });
 
+app.get("/blog/streaming_softmax.html", (req, res) => {
+  res.send(
+    renderHTML(
+      "Streaming Softmax: A Trick Powering FlashAttention",
+      `
+      ${loadView("blog/streaming_softmax.html")}
+      `
+    )
+  );
+});
+
 app.get("/blog/cuda_matmul.html", (req, res) => {
   const cudaOgMeta = `
         <meta property="og:type" content="article">
