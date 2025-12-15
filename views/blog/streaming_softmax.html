@@ -11,6 +11,40 @@
       src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"
     ></script>
 
+    <!-- Open Graph tags (for LinkedIn, etc.) -->
+    <meta
+      property="og:title"
+      content="Streaming Softmax: A Trick Powering FlashAttention"
+    />
+    <meta
+      property="og:description"
+      content="A beautiful trick that lets us compute softmax-related vector functions in a 'streaming' fashion."
+    />
+    <meta
+      property="og:url"
+      content="https://www.sethweidman.com/blog/streaming_softmax.html"
+    />
+    <meta
+      property="og:image"
+      content="https://sethhweidman-personal-website.s3.us-east-1.amazonaws.com/2025-12-12_streaming-softmax/banner_image.png"
+    />
+    <meta property="og:type" content="article" />
+
+    <!-- Twitter Card tags (for X) -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta
+      name="twitter:title"
+      content="Streaming Softmax: A Trick Powering FlashAttention"
+    />
+    <meta
+      name="twitter:description"
+      content="A beautiful trick that lets us compute softmax-related vector functions in a 'streaming' fashion."
+    />
+    <meta
+      name="twitter:image"
+      content="https://sethhweidman-personal-website.s3.us-east-1.amazonaws.com/2025-12-12_streaming-softmax/banner_image.png"
+    />
+
     <!-- highlight.js CSS + JS -->
     <link
       rel="stylesheet"
@@ -24,6 +58,14 @@
     </script>
   </head>
   <body>
+    <figure class="post-banner">
+      <img
+        src="https://sethhweidman-personal-website.s3.us-east-1.amazonaws.com/2025-12-12_streaming-softmax/banner_image.png"
+        alt="Conceptual illustration of streaming softmax, showing data flowing through a process block by block."
+        class="wide-image"
+        loading="eager"
+      />
+    </figure>
     <h1 class="post-title">Streaming Softmax</h1>
     <p class="post-subtitle">A Trick Powering FlashAttention</p>
     <p class="post-date">December 12, 2025</p>
@@ -46,14 +88,13 @@
 
     <p>
       be computed in an "online" or "streaming" fashion, meaning that we process the of
-      vectors one chunk at a time, never loading the whole thing into memory. As it turns
-      out, streaming the second of these, "softmax dot", is essential to allowing the
-      whole family of FlashAttention algorithms to work, a family of GPU kernels that
+      vectors one chunk at a time without loading the entire thing into memory. As it
+      turns out, streaming the second of these, "softmax dot", is an essential component
+      of the whole family of FlashAttention algorithms (a family of GPU kernels that
       compute attention using a "tiling" approach similar to the one described
-      <a href="https://www.sethweidman.com/blog/cuda_matmul.html">here</a>. A virtually
-      identical version of the technique for computing "softmax dot" can be applied in
-      the much simpler context of "the sum of scaled exponentials", so we'll cover that
-      first.
+      <a href="https://www.sethweidman.com/blog/cuda_matmul.html">here</a>). Instead of
+      diving into "softmax dot", we'll start by showing how the core trick works in the
+      even simpler setting of "the sum of scaled exponentials".
     </p>
 
     <h2>Background: The Numerical Stability Trick</h2>
@@ -62,20 +103,21 @@
 
     <figure>
       <img
-        src="https://sethhweidman-personal-website.s3.us-east-1.amazonaws.com/2025-12-12_streaming-softmax/softmax_definition.jpg"
-        alt="Diagram showing the definition of softmax."
+        src="https://sethhweidman-personal-website.s3.us-east-1.amazonaws.com/2025-12-12_streaming-softmax/01-streaming-softmax-definition.jpg"
+        alt="The mathematical formula for the softmax function, showing e to the power of x_j divided by the sum of e to the power of x_i for all i."
       />
     </figure>
 
     <p>
-      Softmax has an extremely interesting property that allows us to ensure numerical
-      stability:
+      All those exponentials could lead to the values in the softmax vector getting large
+      enough to lead to numeric instability. Softmax has an extremely interesting
+      property that allows us to ensure numerical stability:
     </p>
 
     <figure>
       <img
-        src="https://sethhweidman-personal-website.s3.us-east-1.amazonaws.com/2025-12-12_streaming-softmax/softmax_c.jpg"
-        alt="Diagram showing the definition of softmax."
+        src="https://sethhweidman-personal-website.s3.us-east-1.amazonaws.com/2025-12-12_streaming-softmax/02-streaming-softmax-stability.jpg"
+        alt="The mathematical formula showing that subtracting a constant 'c' from each element of the input vector to softmax does not change the result."
       />
     </figure>
 
@@ -100,9 +142,11 @@
     <h2 id="sum-of-scaled-exponentials">Streaming the "Sum of Scaled Exponentials"</h2>
 
     <p>
-      So we want to compute the sum of the exponentials of the vector elements, while
-      subtracting the maximum of the vector and thus ensuring numeric stability; that is,
-      we want to compute:
+      So we want to compute the sum of the exponentials of the vector elements,
+      <em
+        >while subtracting the maximum of the vector and thus ensuring numeric
+        stability</em
+      >; that is, we want to compute:
     </p>
 
     \[ L = \sum_{i} e^{x_i - M} \]
@@ -188,12 +232,12 @@
 
     <p>
       Thus, multiplying by \(e^{M_9 - M_{10}}\) transforms \(S_{9}\) into what its value
-      would be <em>if it had been scaled by M_{10} all along</em>. It turns out this is
-      exactly what we want to do. Note why this makes sense intuitively: since M_9 is
-      smaller than M_{10}, \(e^{M_9 - M_{10}}\) is a number between 0 and 1. In some
-      sense, we were "too optimistic" with \(S_{9}\) previously, scaling it according to
-      a maximum that was smaller than the <em>actual</em> maximum by which we should have
-      been scaling it.
+      would be <em>if it had been scaled by M_{10} all along</em>. It turns out that
+      indeed, multiplying by \(e^{M_9 - M_{10}}\) "rescales" \(S_{9}\) in exactly the
+      right way. Note why this makes sense intuitively: since M_9 is smaller than M_{10},
+      \(e^{M_9 - M_{10}}\) is a number between 0 and 1. In some sense, we were "too
+      optimistic" with \(S_{9}\) previously, scaling it according to a maximum that was
+      smaller than the <em>actual</em> maximum by which we should have been scaling it.
     </p>
 
     <h3>The Code</h3>
@@ -222,20 +266,20 @@
         >second script</a
       >
       shows that the code still works - that is, the sums when processing this vector the
-      normal way and the streaming way - when processing a vector of length 1,000 filled
-      with random integers between 0 and 100, processed in blocks of 50.
+      normal way and the streaming way are identical - when processing a vector of length
+      1,000 filled with random integers between 0 and 100, processed in blocks of 50.
     </p>
 
     <p>
       The second vector function we cover here is slightly more complicated, and also
-      more directly tied to attention - and it relies on the same trick in order to
-      stream it!
+      more directly tied to attention - but it relies on the same straightforward trick
+      in order to stream it!
     </p>
 
     <h2 id="softmax-dot">Streaming "Softmax Dot"</h2>
 
     <p>
-      Thi second vector-to-scalar function I call \(\operatorname{softmax\_dot}\): the
+      The second vector-to-scalar function I call \(\operatorname{softmax\_dot}\): the
       "\(\operatorname{softmax\_dot}\)" of two vectors \(\mathbf{q}) and \(\mathbf{v})
       is:
     </p>
@@ -248,9 +292,9 @@
     <h3>Motivation: Softmax-Dot in Attention</h3>
 
     <p>
-      One of the absolutely critical steps in attention can be described in terms of this
-      operation. Attention is often written in the following technically-correct way that
-      nevertheless does not elucidate the ideas involved at all:
+      One of the core steps in attention can be described in terms of this operation.
+      Attention is often written in the following technically-correct way that
+      nevertheless barely, if at all, elucidates the ideas involved:
     </p>
 
     \[ \text{Attention}(Q, K, V) = \text{softmax}\left(\frac{QK^T}{\sqrt{d_k}}\right)V \]
@@ -262,8 +306,8 @@
 
     <figure>
       <img
-        src="https://sethhweidman-personal-website.s3.us-east-1.amazonaws.com/2025-12-12_streaming-softmax/softmax_dot_attention.jpg"
-        alt="Diagram showing the definition of softmax."
+        src="https://sethhweidman-personal-website.s3.us-east-1.amazonaws.com/2025-12-12_streaming-softmax/03-streaming-softmax-in-attention.jpg"
+        alt="The attention formula with a red box highlighting the softmax of the scaled dot-product of Q and K-transpose, which is then multiplied by V."
       />
     </figure>
 
@@ -288,7 +332,7 @@
     <p>
       in a streaming fashion using
       <em>exactly</em> the method we just covered in the prior section - it is literally
-      a sum of scaled exponentials! And the numerator,
+      a <strong>sum of scaled exponentials</strong>! And the numerator,
     </p>
 
     <p>\[ e^{q_1 - M} v_1 + e^{q_2 - M} v_2 + \cdots + e^{q_n - M} v_n. \]</p>
@@ -296,16 +340,17 @@
     <p>
       can be streamed using the same high level method as the sum of scaled exponentials
       - keeping track of the maximum of each block, and using the Rescaling Trick on the
-      old sum when we get a block with a greater maximum than we've seen so far - we just
-      \(e^{q_i - M} v_i\) elements to our running sum instead of just \(e^{q_i - M}\)
-      elements as before.
+      "accumulated sum" when we get a block with a greater maximum than we've seen so far
+      - we just add \(e^{q_i - M} v_i\) elements to our running sum instead of \(e^{q_i -
+      M}\) elements as before.
     </p>
 
     <p>
       The key point is that <em>the same rescaling trick works</em> for softmax-dot: the
-      trickiest part of this computation is keeping track of the global maximum of
-      \(\mathbf{q}\), and we handle both checking for that and rescaling using
-      \(e^{m_{old} - m_{new}}\) in exactly the same way!
+      trickiest part of this computation is dealing with the fact that the maximum value
+      of \(\mathbf{q}\) we've seen so far can change as we get more elements, and we
+      handle both checking for that and rescaling using \(e^{m_{old} - m_{new}}\) in
+      exactly the same way!
     </p>
 
     <p>
@@ -326,10 +371,9 @@
     <p>
       The block-by-block computation of the softmax-dot operation, along with the
       <a href="https://www.sethweidman.com/blog/cuda_matmul.html">tiling approach</a>
-      that pairs perfectly with GPUs' memory structures, together enable huge speedups in
-      GPU kernels such as those in the FlashAttention family. In a future post and/or
-      implementation, we'll put these ideas together to show how a fuller version of
-      FlashAttenion works.
+      discussed in my previous post is the secret sauce behind the massive speedups seen
+      in FlashAttention. In a future post and/or implementation, we'll put these ideas
+      together to show how a fuller version of FlashAttenion works.
     </p>
 
     <p></p>
