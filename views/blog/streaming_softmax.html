@@ -327,7 +327,7 @@
 
     <p>
       \[ \operatorname{softmax\text{-}dot}(\mathbf{q}, \mathbf{v}) = \frac{\sum_{i=1}^n
-      e^{q_i - M} v_i}{\sum_{i=1}^n e^{q_i - M}}, \qquad M = \max_j q_j. \]
+      e^{q_i - M} * v_i}{\sum_{i=1}^n e^{q_i - M}}, \qquad M = \max_j q_j. \]
     </p>
 
     <p>But we know how to stream both of these! We can calculate the denominator,</p>
@@ -340,14 +340,14 @@
       a <strong>sum of scaled exponentials</strong>! And the numerator,
     </p>
 
-    <p>\[ e^{q_1 - M} v_1 + e^{q_2 - M} v_2 + \cdots + e^{q_n - M} v_n. \]</p>
+    <p>\[ e^{q_1 - M} * v_1 + e^{q_2 - M} * v_2 + \cdots + e^{q_n - M} * v_n. \]</p>
 
     <p>
       can be streamed using the same high level method as the sum of scaled exponentials
       - keeping track of the maximum of each block, and using the Rescaling Trick on the
-      "accumulated sum" when we get a block with a greater maximum than we've seen so far
-      - we just add \(e^{q_i - M} v_i\) elements to our running sum instead of \(e^{q_i -
-      M}\) elements as before.
+      "accumulated sum" when we get a block with a greater maximum than we've seen so
+      far, etc. - except that we add elements like \(e^{q_i - M} * v_i\) to our running
+      sum instead of elements like \(e^{q_i - M}\) as before.
     </p>
 
     <p>
@@ -357,6 +357,8 @@
       handle both checking for that and rescaling using \(e^{m_{old} - m_{new}}\) in
       exactly the same way!
     </p>
+
+    <h3>The Code</h3>
 
     <p>
       As with the first two scripts, the
