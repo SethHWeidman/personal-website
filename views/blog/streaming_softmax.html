@@ -193,21 +193,21 @@
       which is the core of this blog post.
     </p>
 
-    <p>First, the easy case: m_{10} is smaller than M_9. That is:</p>
+    <p>First, the easy case: \(m_{10}\) is smaller than \(M_9\). That is:</p>
 
     \[ M_{10} = \max\left(M_9,\, m_{10}\right) = M_9 \]
 
     <p>Then if the new block's elements are</p>
 
-    \[ b_1, b_2, ..., b_{50} \],
+    \[ b_1, b_2, \ldots, b_{50} \],
 
     <p>we can simply add</p>
 
-    \[ e^{b_1 - M_9} + e^{b_2 - M_9} + ... + e^{b_9 - M_9} \]
+    \[ e^{b_1 - M_9} + e^{b_2 - M_9} + \cdots + e^{b_{50} - M_9} \]
 
     <p>
-      to the running sum \(S_9\) to get \(S_{10}\). Once we update the new M_{10} to
-      simply be M_9, we'll be done processing this block.
+      to the running sum \(S_9\) to get \(S_{10}\). Once we update the new \(M_{10}\) to
+      simply be \(M_9\), we'll be done processing this block.
     </p>
 
     <p>
@@ -232,12 +232,13 @@
 
     <p>
       Thus, multiplying by \(e^{M_9 - M_{10}}\) transforms \(S_{9}\) into what its value
-      would be <em>if it had been scaled by M_{10} all along</em>. It turns out that
+      would be <em>if it had been scaled by \(M_{10}\) all along</em>. It turns out that
       indeed, multiplying by \(e^{M_9 - M_{10}}\) "rescales" \(S_{9}\) in exactly the
-      right way. Note why this makes sense intuitively: since M_9 is smaller than M_{10},
-      \(e^{M_9 - M_{10}}\) is a number between 0 and 1. In some sense, we were "too
-      optimistic" with \(S_{9}\) previously, scaling it according to a maximum that was
-      smaller than the <em>actual</em> maximum by which we should have been scaling it.
+      right way. Note why this makes sense intuitively: since \(M_9\) is smaller than
+      \(M_{10}\), \(e^{M_9 - M_{10}}\) is a number between 0 and 1. In some sense, we
+      were "too optimistic" with \(S_{9}\) previously, scaling it according to a maximum
+      that was smaller than the <em>actual</em> maximum by which we should have been
+      scaling it.
     </p>
 
     <h3>The Code</h3>
@@ -279,13 +280,13 @@
     <h2 id="softmax-dot">Streaming "Softmax Dot"</h2>
 
     <p>
-      The second vector-to-scalar function I call \(\operatorname{softmax\_dot}\): the
-      "\(\operatorname{softmax\_dot}\)" of two vectors \(\mathbf{q}) and \(\mathbf{v})
-      is:
+      The second vector-to-scalar function I call \(\operatorname{softmax\text{-}dot}\):
+      the "\(\operatorname{softmax\text{-}dot}\)" of two vectors \(\mathbf{q}\) and
+      \(\mathbf{v}\) is:
     </p>
 
     <p>
-      \[ \operatorname{softmax\_dot}(\mathbf{q}, \mathbf{v}) =
+      \[ \operatorname{softmax\text{-}dot}(\mathbf{q}, \mathbf{v}) =
       \operatorname{softmax}(\mathbf{q}) \cdot \mathbf{v} \]
     </p>
 
@@ -297,7 +298,8 @@
       nevertheless barely, if at all, elucidates the ideas involved:
     </p>
 
-    \[ \text{Attention}(Q, K, V) = \text{softmax}\left(\frac{QK^T}{\sqrt{d_k}}\right)V \]
+    \[ \operatorname{Attention}(Q, K, V) =
+    \operatorname{softmax}\left(\frac{QK^T}{\sqrt{d_k}}\right)V \]
 
     <p>
       I bring this up just to make the following point about where softmax-dot is used in
@@ -311,18 +313,20 @@
       />
     </figure>
 
+    <p>Now that we're motivated, let's actually discuss how to compute this thing.</p>
+
     <h3>Streaming "Softmax Dot" (for real this time)</h3>
 
     <p>
       So how can we actually stream this sum? First, note that each entry of
       \(\operatorname{softmax}(\mathbf{q})\) is the fraction
       \(\frac{e^{q_j}}{\sum_{i=1}^n e^{q_i}}\). Therefore, we can rewrite
-      \(\operatorname{softmax\_dot}(\mathbf{q}, \mathbf{v})\) as:
+      \(\operatorname{softmax\text{-}dot}(\mathbf{q}, \mathbf{v})\) as:
     </p>
 
     <p>
-      \[ \operatorname{softmax\_dot}(\mathbf{q}, \mathbf{v}) = \frac{\sum_{i=1}^n e^{q_i
-      - M} v_i}{\sum_{i=1}^n e^{q_i - M}}, \qquad M = \max_j q_j. \]
+      \[ \operatorname{softmax\text{-}dot}(\mathbf{q}, \mathbf{v}) = \frac{\sum_{i=1}^n
+      e^{q_i - M} v_i}{\sum_{i=1}^n e^{q_i - M}}, \qquad M = \max_j q_j. \]
     </p>
 
     <p>But we know how to stream both of these! We can calculate the denominator,</p>
