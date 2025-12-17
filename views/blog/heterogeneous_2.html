@@ -1,0 +1,760 @@
+<link rel="stylesheet" href="/fraud-tables.css" />
+
+<h1>Building models with heterogeneous labels of unknown quality</h1>
+
+<p>
+  This essay is about how we successfully built a 0-to-1 fraud risk score product at
+  SentiLink, based on a machine learning model, despite having to train the model on
+  heterogeneous sets of labels whose quality and relevance we weren't able to completely
+  verify. The fraud we were trying to detect was the broad category of "first party
+  fraud", a collection of fraud variants that our FI customers typically discovered only
+  "after the fact": they would observe some unusually bad behavior from one of
+  <em>their</em> customers, after seeing few or no red flags when that person applied,
+  and conclude that first party fraud had taken place when the person applied. The result
+  was that our labels were sets of cases where our partners had observed behaviors highly
+  suggestive of FPF: sets of accounts where bad checks were passed, sets of accounts with
+  large customer-initiated ACH returns, or even just sets of accounts with large missed
+  payments. This presents three problems, the first of which is these labels' obvious
+  heterogeneity. The second is that the bad behaviors may not have occurred due to FPF -
+  they may have been instances of identity theft, for example. The third is that in some
+  cases, these labels may simply be wrong; while not common, there was no way for us to
+  verify within data we had on prem that the bad outcome had occurred.
+</p>
+
+<p>This third property was especially unusual for SentiLink to deal with.</p>
+
+<p>
+  The score was intended to detect first party fraud: as an analogy, imagine you were
+  tasked with building a model to detect whether an image had a car in it.
+</p>
+
+<h2>An analogy</h2>
+
+<p>
+  To give an analogy from a more commonly-seen machine learning setting: imagine your job
+  is to train a classifier to detect whether a car is in an image. You have several sets
+  of images available to you: 1,000 images in a chunk, 2,000 images in another chunk,
+  etc. However, *looking at the images wouldn't actually confirm whether there was a car
+  in the image*; while most chunks presumably are actually of cars, some may be images of
+  motorcycles, some of trucks, and some chunks may not even be images of cars at all!
+</p>
+<p>
+  You can, however, define certain "patterns of material", and check whether those
+  patterns are present in each image: you can detect whether there is a sheet of metal
+  (which could be part of a door), whether there is a pane of glass (which would be a
+  window or a windshield), whether there is a metal circle inside a rubber circle (which
+  could indicate a wheel), and so on. By checking the prevalence of these patterns among
+  the images, and comparing this prevalence to the prevalence among a random set of
+  images pulled from the internet, we can suss out which of the original chunks of images
+  are actually of cars, and thus are suitable for inclusion as "targets" in the "car"
+  model.
+</p>
+
+<h2>Developing first party fraud scores</h2>
+
+<p>
+  We first reviewed applications from these heterogeneous datasets, where our customers
+  told us they'd seen FPF-adjacent behavior - analogous to the "car images" described
+  above - using our internal tool that displayed the "identity database" and the "graph"
+  we used to investigate synthetic fraud and identity theft cases, and hypotheized
+  "patterns" that might be predictive of FPF - analogous to the "patterns of material"
+  described above. A couple example patterns:
+</p>
+
+<ul>
+  <li>
+    In the identity database, we measured whether someone had likely committed synthetic
+    fraud in the past. This suggested a propensity to present one’s credit history
+    inaccurately, which we believed would correlate with first party fraud.
+  </li>
+  <li>
+    In the application graph, we measured velocity-based behaviors such as elevated DDA
+    application velocity. Many first party fraud M.O.s require multiple checking
+    accounts, so rapid application patterns made sense as a strong signal a priori.
+  </li>
+</ul>
+
+<p>
+  We ended up finding eight of these signals that were predictive: prevalent among many
+  of the FPF label datasets we'd received, and not so prevalent overall. Each of these
+  eight signals was a boolean true/false flag, accompanied by numeric “sub-signals”
+  (e.g., the number of distinct SSNs someone had committed synthetic fraud with or the
+  number of DDAs applied for in different time windows). The next section covers
+  specifically how we validated that these signals were actually strong quantitatively.
+</p>
+
+<h2>Evaluating hypothesized signals on heterogeneous, unreliable labels</h2>
+
+<p>Suppose we started with three sets of potential first party fraud labels:</p>
+
+<ul>
+  <li>
+    One from a credit union, with 4,000 overall “first party fraud” labels divided into
+    three subcategories.
+  </li>
+  <li>
+    One from a large bank, consisting of a single lump of 2,000 first party fraud labels.
+  </li>
+  <li>
+    One from another large bank, with 18,000 first party fraud labels divided into two
+    subcategories.
+  </li>
+</ul>
+
+<p>
+  For each dataset, we would produce a table showing how each signal behaved on both the
+  fraud labels and the relevant population of which the applications were a subset:
+</p>
+
+<!-- Credit Union 1 table -->
+<div class="fraud-table-container">
+  <h3>Credit Union 1</h3>
+  <div class="fraud-table-scroll">
+    <table id="credit-union-1-table" class="fraud-table">
+      <thead>
+        <tr>
+          <th>label category</th>
+          <th>n_total</th>
+          <th>fpf_signal_1<br />recall</th>
+          <th>fpf_signal_2<br />recall</th>
+          <th>fpf_signal_3<br />recall</th>
+          <th>fpf_signal_4<br />recall</th>
+          <th>high_synthetic_score_recall</th>
+          <th>high_id_theft_score_recall</th>
+          <th>n_pos_fpf_signal_1</th>
+          <th>n_pos_fpf_signal_2</th>
+          <th>n_pos_fpf_signal_3</th>
+          <th>n_pos_fpf_signal_4</th>
+          <th>n_high_synthetic_score</th>
+          <th>n_high_id_theft_score</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>bad_labels_overall</td>
+          <td>4,000</td>
+          <td class="highlight">32.9%</td>
+          <td class="highlight">39.0%</td>
+          <td>2.6%</td>
+          <td>3.0%</td>
+          <td>4.4%</td>
+          <td>1.3%</td>
+          <td>1,317</td>
+          <td>1,560</td>
+          <td>105</td>
+          <td>119</td>
+          <td>177</td>
+          <td>50</td>
+        </tr>
+        <tr>
+          <td>bad_label_sub_category_1</td>
+          <td>2,500</td>
+          <td class="highlight">37.9%</td>
+          <td class="highlight">30.0%</td>
+          <td>3.3%</td>
+          <td>1.4%</td>
+          <td>1.3%</td>
+          <td>1.2%</td>
+          <td>948</td>
+          <td>749</td>
+          <td>82</td>
+          <td>36</td>
+          <td>33</td>
+          <td>30</td>
+        </tr>
+        <tr>
+          <td>bad_label_sub_category_2</td>
+          <td>1,000</td>
+          <td>3.8%</td>
+          <td>3.8%</td>
+          <td>2.8%</td>
+          <td>1.7%</td>
+          <td>2.7%</td>
+          <td>2.8%</td>
+          <td>38</td>
+          <td>38</td>
+          <td>28</td>
+          <td>17</td>
+          <td>27</td>
+          <td>28</td>
+        </tr>
+        <tr>
+          <td>bad_label_sub_category_3</td>
+          <td>500</td>
+          <td class="highlight">32.8%</td>
+          <td class="highlight">22.8%</td>
+          <td>3.2%</td>
+          <td>4.0%</td>
+          <td>2.4%</td>
+          <td>2.6%</td>
+          <td>164</td>
+          <td>114</td>
+          <td>16</td>
+          <td>20</td>
+          <td>12</td>
+          <td>13</td>
+        </tr>
+        <tr>
+          <td>overall_approvals</td>
+          <td>200,000</td>
+          <td>4.2%</td>
+          <td>2.8%</td>
+          <td>4.0%</td>
+          <td>3.8%</td>
+          <td>1.5%</td>
+          <td>1.7%</td>
+          <td>8,422</td>
+          <td>5,676</td>
+          <td>7,908</td>
+          <td>7,581</td>
+          <td>3,096</td>
+          <td>3,368</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Large Bank 1 table -->
+<div class="fraud-table-container">
+  <h3>Large Bank 1</h3>
+  <div class="fraud-table-scroll">
+    <table id="large-bank-1-table" class="fraud-table">
+      <thead>
+        <tr>
+          <th>label category</th>
+          <th>n_total</th>
+          <th>fpf_signal_1<br />recall</th>
+          <th>fpf_signal_2<br />recall</th>
+          <th>fpf_signal_3<br />recall</th>
+          <th>fpf_signal_4<br />recall</th>
+          <th>high_synthetic_score_recall</th>
+          <th>high_id_theft_score_recall</th>
+          <th>n_pos_fpf_signal_1</th>
+          <th>n_pos_fpf_signal_2</th>
+          <th>n_pos_fpf_signal_3</th>
+          <th>n_pos_fpf_signal_4</th>
+          <th>n_high_synthetic_score</th>
+          <th>n_high_id_theft_score</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>bad_labels_overall</td>
+          <td>2,000</td>
+          <td>4.3%</td>
+          <td class="highlight">15.1%</td>
+          <td class="highlight">21.2%</td>
+          <td class="highlight">27.4%</td>
+          <td>1.2%</td>
+          <td>3.2%</td>
+          <td>86</td>
+          <td>302</td>
+          <td>425</td>
+          <td>547</td>
+          <td>24</td>
+          <td>63</td>
+        </tr>
+        <tr>
+          <td>overall_approvals</td>
+          <td>165,000</td>
+          <td>4.4%</td>
+          <td>2.1%</td>
+          <td>2.5%</td>
+          <td>3.6%</td>
+          <td>4.3%</td>
+          <td>3.4%</td>
+          <td>7,179</td>
+          <td>3,469</td>
+          <td>4,192</td>
+          <td>5,981</td>
+          <td>7,076</td>
+          <td>5,578</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Large Bank 2 table -->
+<div class="fraud-table-container">
+  <h3>Large Bank 2</h3>
+  <div class="fraud-table-scroll">
+    <table id="large-bank-2-table" class="fraud-table">
+      <thead>
+        <tr>
+          <th>label category</th>
+          <th>n_total</th>
+          <th>fpf_signal_1<br />recall</th>
+          <th>fpf_signal_2<br />recall</th>
+          <th>fpf_signal_3<br />recall</th>
+          <th>fpf_signal_4<br />recall</th>
+          <th>high_synthetic_score_recall</th>
+          <th>high_id_theft_score_recall</th>
+          <th>n_pos_fpf_signal_1</th>
+          <th>n_pos_fpf_signal_2</th>
+          <th>n_pos_fpf_signal_3</th>
+          <th>n_pos_fpf_signal_4</th>
+          <th>n_high_synthetic_score</th>
+          <th>n_high_id_theft_score</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>bad_labels_overall</td>
+          <td>18,000</td>
+          <td>3.5%</td>
+          <td>3.4%</td>
+          <td>3.5%</td>
+          <td>1.1%</td>
+          <td>1.9%</td>
+          <td>3.8%</td>
+          <td>622</td>
+          <td>606</td>
+          <td>639</td>
+          <td>200</td>
+          <td>350</td>
+          <td>683</td>
+        </tr>
+        <tr>
+          <td>bad_label_sub_category_1</td>
+          <td>12,500</td>
+          <td>4.1%</td>
+          <td>3.4%</td>
+          <td>2.2%</td>
+          <td>3.2%</td>
+          <td>3.9%</td>
+          <td class="highlight">17.8%</td>
+          <td>513</td>
+          <td>419</td>
+          <td>269</td>
+          <td>405</td>
+          <td>482</td>
+          <td>2,227</td>
+        </tr>
+        <tr>
+          <td>bad_label_sub_category_2</td>
+          <td>5,500</td>
+          <td class="highlight">27.6%</td>
+          <td class="highlight">30.3%</td>
+          <td>4.5%</td>
+          <td>2.0%</td>
+          <td>2.9%</td>
+          <td>4.0%</td>
+          <td>1,517</td>
+          <td>1,666</td>
+          <td>248</td>
+          <td>109</td>
+          <td>160</td>
+          <td>218</td>
+        </tr>
+        <tr>
+          <td>overall_apps</td>
+          <td>240,000</td>
+          <td>2.6%</td>
+          <td>8.2%</td>
+          <td>8.9%</td>
+          <td>8.4%</td>
+          <td>2.6%</td>
+          <td>5.8%</td>
+          <td>2,580</td>
+          <td>8,239</td>
+          <td>8,947</td>
+          <td>8,474</td>
+          <td>2,753</td>
+          <td>5,818</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<h2>What these tables tell us</h2>
+
+<p>
+  These tables show, for each individual "chunk" of fraud labels, the percent of those
+  labels flagged by each individual signal. For comparison, we also show in the bottom
+  row of each table the percent of the overall dataset that was flagged by the signal.
+</p>
+
+<p>
+  The ratio of these numbers was an important quantity for us: we called it "relative
+  likelihood":
+</p>
+
+<pre><code>relative_likelihood = P(label = fraud | signal = 1) / P(label = fraud | signal
+= 0)</code></pre>
+
+<p>
+  This is a proxy for precision that we would both look at internally and present along
+  with recall; we found that it was easier for potential customers to translate: "This
+  feature flags 30% of your fraud while flagging 2% of your approved applications, a 15x
+  ratio" into business value than "This feature has a 30% recall (flagging 30% of your
+  fraud) and a 15% precision."<sup id="fnref2"><a href="#fn2">3</a></sup>
+</p>
+
+<!-- Credit Union 1 relative likelihood table -->
+<div class="fraud-table-container">
+  <h3>Credit Union 1 (relative likelihood)</h3>
+  <div class="fraud-table-scroll">
+    <table id="credit-union-1-relative-table" class="fraud-table">
+      <thead>
+        <tr>
+          <th>label category</th>
+          <th>n_total</th>
+          <th>fpf_signal_1<br />relative likelihood</th>
+          <th>fpf_signal_2<br />relative likelihood</th>
+          <th>fpf_signal_3<br />relative likelihood</th>
+          <th>fpf_signal_4<br />relative likelihood</th>
+          <th>high_synthetic_score<br />relative likelihood</th>
+          <th>high_id_theft_score<br />relative likelihood</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>bad_labels_overall</td>
+          <td>4,000</td>
+          <td class="highlight">7.83</td>
+          <td class="highlight">13.93</td>
+          <td>0.65</td>
+          <td>0.79</td>
+          <td>2.93</td>
+          <td>0.76</td>
+        </tr>
+        <tr>
+          <td>bad_label_sub_category_1</td>
+          <td>2,500</td>
+          <td class="highlight">9.02</td>
+          <td class="highlight">10.71</td>
+          <td>0.82</td>
+          <td>0.37</td>
+          <td>0.87</td>
+          <td>0.71</td>
+        </tr>
+        <tr>
+          <td>bad_label_sub_category_2</td>
+          <td>1,000</td>
+          <td>0.90</td>
+          <td>1.36</td>
+          <td>0.70</td>
+          <td>0.45</td>
+          <td>1.80</td>
+          <td>1.65</td>
+        </tr>
+        <tr>
+          <td>bad_label_sub_category_3</td>
+          <td>500</td>
+          <td class="highlight">7.81</td>
+          <td class="highlight">8.14</td>
+          <td>0.80</td>
+          <td>1.05</td>
+          <td>1.60</td>
+          <td>1.53</td>
+        </tr>
+        <tr>
+          <td>overall_approvals</td>
+          <td>200,000</td>
+          <td>1.00</td>
+          <td>1.00</td>
+          <td>1.00</td>
+          <td>1.00</td>
+          <td>1.00</td>
+          <td>1.00</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Large Bank 1 relative likelihood table -->
+<div class="fraud-table-container">
+  <h3>Large Bank 1 (relative likelihood)</h3>
+  <div class="fraud-table-scroll">
+    <table id="large-bank-1-relative-table" class="fraud-table">
+      <thead>
+        <tr>
+          <th>label category</th>
+          <th>n_total</th>
+          <th>fpf_signal_1<br />relative likelihood</th>
+          <th>fpf_signal_2<br />relative likelihood</th>
+          <th>fpf_signal_3<br />relative likelihood</th>
+          <th>fpf_signal_4<br />relative likelihood</th>
+          <th>high_synthetic_score<br />relative likelihood</th>
+          <th>high_id_theft_score<br />relative likelihood</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>bad_labels_overall</td>
+          <td>2,000</td>
+          <td>0.98</td>
+          <td class="highlight">7.19</td>
+          <td class="highlight">8.48</td>
+          <td class="highlight">7.61</td>
+          <td>0.28</td>
+          <td>0.94</td>
+        </tr>
+        <tr>
+          <td>overall_approvals</td>
+          <td>165,000</td>
+          <td>1.00</td>
+          <td>1.00</td>
+          <td>1.00</td>
+          <td>1.00</td>
+          <td>1.00</td>
+          <td>1.00</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Large Bank 2 relative likelihood table -->
+<div class="fraud-table-container">
+  <h3>Large Bank 2 (relative likelihood)</h3>
+  <div class="fraud-table-scroll">
+    <table id="large-bank-2-relative-table" class="fraud-table">
+      <thead>
+        <tr>
+          <th>label category</th>
+          <th>n_total</th>
+          <th>fpf_signal_1<br />relative likelihood</th>
+          <th>fpf_signal_2<br />relative likelihood</th>
+          <th>fpf_signal_3<br />relative likelihood</th>
+          <th>fpf_signal_4<br />relative likelihood</th>
+          <th>high_synthetic_score<br />relative likelihood</th>
+          <th>high_id_theft_score<br />relative likelihood</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>bad_labels_overall</td>
+          <td>18,000</td>
+          <td>1.35</td>
+          <td>0.41</td>
+          <td>0.39</td>
+          <td>0.13</td>
+          <td>0.73</td>
+          <td>0.66</td>
+        </tr>
+        <tr>
+          <td>bad_label_sub_category_1</td>
+          <td>12,500</td>
+          <td>1.58</td>
+          <td>0.41</td>
+          <td>0.25</td>
+          <td>0.38</td>
+          <td>1.50</td>
+          <td class="highlight">3.07</td>
+        </tr>
+        <tr>
+          <td>bad_label_sub_category_2</td>
+          <td>5,500</td>
+          <td class="highlight">10.62</td>
+          <td class="highlight">3.70</td>
+          <td>0.51</td>
+          <td>0.24</td>
+          <td>1.12</td>
+          <td>0.69</td>
+        </tr>
+        <tr>
+          <td>overall_apps</td>
+          <td>240,000</td>
+          <td>1.00</td>
+          <td>1.00</td>
+          <td>1.00</td>
+          <td>1.00</td>
+          <td>1.00</td>
+          <td>1.00</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<p>
+  You'll note that we also included in these tables the recalls and relative likelihoods
+  that scored high on our synthetic fraud and identity theft models. Extending the cars,
+  trucks, and bicycles analogy above: in addition to telling you whether there were
+  certain metal patterns present, imagine you had models that you knew were 80%-90%
+  accurate at telling you whether the image contained a truck or a bicycle.
+</p>
+
+<p>Looking just at these six tables, several things jump out</p>
+
+<ul>
+  <li>
+    Signals 1 and 2 tend to “pop” on sub-categories 1 and 3 from the credit union, and
+    sub-category 2 from the second large bank. These signals typically “fire together”,
+    firing on distinct sets of fraud label datasets.
+  </li>
+  <li>
+    Signal 1 did not fire on the dataset of large bank 2 and 3, whereas Signals 3 and 4
+    did.
+  </li>
+  <li>
+    Sub-category 1 of fraud for the second large bank has a high rate of ID theft
+    (measured by the percentage of these applications that score highly on our ID theft
+    score); this indicated to us
+  </li>
+  <li>Sub-category 2 from the credit union did not fire on any of our FPF signals</li>
+</ul>
+
+<p>
+  Creating these tables did not depend on intensive back-and-forth with our partners; we
+  could generate them independently and then use them to drive much more focused
+  conversations about what each label set actually represented. In many cases, customers
+  confirmed that our inferences about their fraud categories were correct.
+</p>
+
+<h2>From signals to scores</h2>
+
+<h2>Overall product development philosophy</h2>
+
+<p>Triangulating:</p>
+
+<ul>
+  <li>Our primary research into the fraud M.O.s</li>
+  <li>The recalls and relative likelihoods of the individual fraud signals</li>
+  <li>
+    Using this analysis to engage partners in conversations about their fraud labels
+    refine our labels
+  </li>
+</ul>
+
+<p>
+  Led us to launch with two FPF scores that targeted two distinct M.O.s: in each case we
+  saw several sets of signals that consistently predicted We did not use statistical
+  techniques such as clustering to inform our assessment that we ought to launch two
+  scores; we had on the order of 10-20 datasets, and eight signals, so we simply manually
+  reviewed
+</p>
+
+<p>
+  We ended up training our initial scores on one customer’s information each; these were
+  customers where we were able to deeply engage with them about the sub-categories of
+  labels they had sent, and thus end up with a concentrated set of 1,000-2,000 very high
+  quality labels for each model.
+</p>
+
+<h2>The scores did well</h2>
+
+<p>Launched in early 2024, by the time I left SentiLink in late 2025,</p>
+
+<ul>
+  <li>Many top FIs were using them as part of their fraud decisioning, including</li>
+  <li>Four top fifteen banks</li>
+  <li>Two top ten credit card issuers</li>
+  <li>A top five credit union</li>
+  <li>One more had signed to use them but had not yet integrated them</li>
+  <li>
+    Nearly all the top FIs SentiLink works with were engaged in the retrostudy process
+    with these scores
+  </li>
+</ul>
+
+<p>
+  We eventually created a score that combined these two scores via a simple linear
+  transformation. And as I was in the process of transitioning out, they were exploring
+  the creation of a score trained across Nevertheless, these simple scores, informed by
+  our deep understanding of the underlying signals’ performance and, generalize well
+  enough to constitute SentiLink’s largest and fastest-growing product launched during
+  the last two years I was at the company; the last quarter at the company four of the
+  top FIs mentioned above went live via API.
+</p>
+
+<h2>Lessons</h2>
+
+<p>
+  Careful EDA - here, looking at the performance of each of your model's top ~10
+  individual signals on heterogeneous sets of labels - can reveal patterns about
+</p>
+
+<p>
+  Evaluation is a first class problem. Setting up a way of thinking about evaluation, an
+  internal set of practices of how to run the evaluation scripts (i.e. version-controlled
+  scripts that every), and a team culture that views running these evaluations as
+  important. The rows of the table above, each representing a set of labels we could
+  evaluate against, ended up being more important than the columns, which were the
+  initial set of first party fraud signals we came up with, because the rows could be
+  used to evaluate other signals and even scores we came up with in the future.
+</p>
+
+<h2>Next steps</h2>
+
+<ul>
+  <li>
+    Launched in early 2024, these scores were our fastest-growing product by the time I
+    left in late 2025, accounting for roughly 5% of SentiLink's ARR, despite not having
+    done any marketing push; we simply offered that existing customers could test the
+    products out as they tested out our synthetic fraud and identity theft scores, and
+    more often than not they found that they worked and that they caught fraud that was
+    not caught by our other scores.
+  </li>
+</ul>
+
+<p>
+  These scores allowed us to initiate collaborations with the major U.S. FIs around first
+  party fraud that continue to this day. SentiLink has used these relationships to
+  explore more “determinative” solutions for first party fraud Moreover, A couple of the
+  eight signals we developed for first party fraud detection
+</p>
+
+<p>
+  Most importantly, however, this work established at SentiLink a set of practices for
+  evaluating fraud signals on external datasets in a systematic way. As I was departing,
+  the business had launched an initiative to evaluate our identity theft score and some
+  of the key underlying signals on a set of external datasets, in the same way we
+  evaluated our FPF signals. Paving the way for SentiLink to use customer data in a more
+  thoughtful and systematic way, that enabled us to begin tackling problems outside of
+  our core business, is what I’m proudest of.
+</p>
+
+<h2>About the author</h2>
+
+<p>
+  Seth Weidman worked at SentiLink for about six years, from when the company was about
+  two-and-a-half years old (December 2019) to when it was eight-and-a-half years old
+  (November 2025).
+</p>
+
+<h3>Footnotes</h3>
+
+<p id="fn1" class="footnote">
+  <sup>
+    <a href="#fnref1">1</a>
+  </sup>
+  I won't enumerate the specific fields here, but go look at the application for a credit
+  card or checking account with a major bank and you'll get the idea.
+  <a href="#fnref1" class="footnote-backref">↩</a>
+</p>
+
+<p id="fn1" class="footnote">
+  <sup>
+    <a href="#fnref1">2</a>
+  </sup>
+  I won't enumerate the specific fields here, but go look at the application for a credit
+  card or checking account with a major bank and you'll get the idea.
+  <a href="#fnref1" class="footnote-backref">↩</a>
+</p>
+
+<p id="fn2" class="footnote">
+  <sup>
+    <a href="#fnref2">3</a>
+  </sup>
+  Description of the "credit report" aspect of synthetic fraud and identity theft.
+  <a href="#fnref2" class="footnote-backref">↩</a>
+</p>
+
+<p id="fn2" class="footnote">
+  <sup>
+    <a href="#fnref2">4</a>
+  </sup>
+  Assuming the overall fraud rate is 1%, flagging 30% of all fraud while flagging 2% of
+  approvals implies roughly 15% precision—the precision value referenced in the main
+  text.
+  <a href="#fnref2" class="footnote-backref">↩</a>
+</p>
+
+<br />
+<button onclick="window.location.href='/'">Back to Home</button>
