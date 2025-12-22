@@ -42,30 +42,25 @@
   With first party fraud, due to the behavior-based method of detecting it, we couldn't
   get to ground truth on whether an individual application was FPF. Instead we had to
   rely on labels from our customers; and again due to the nature of the problem, these
-  labels were at best heterogeneous, and at worst misclassified. How did we proceed,
-  given that we knew these labels were imperfect...
-</p>
-
-<h2>An analogy</h2>
-
-<p>
-  To give an analogy from a more commonly-seen machine learning setting: imagine your job
-  is to train a classifier to detect whether a car is in an image. You have several sets
-  of images available to you: 1,000 images in a chunk, 2,000 images in another chunk,
-  etc. However, *looking at the images wouldn't actually confirm whether there was a car
-  in the image*; while most chunks presumably are actually of cars, some may be images of
-  motorcycles, some of trucks, and some chunks may not even be images of cars at all!
-</p>
-<p>
-  You can, however, define certain "patterns of material", and check whether those
-  patterns are present in each image: you can detect whether there is a sheet of metal
-  (which could be part of a door), whether there is a pane of glass (which would be a
-  window or a windshield), whether there is a metal circle inside a rubber circle (which
-  could indicate a wheel), and so on. By checking the prevalence of these patterns among
-  the images, and comparing this prevalence to the prevalence among a random set of
-  images pulled from the internet, we can suss out which of the original chunks of images
-  are actually of cars, and thus are suitable for inclusion as "targets" in the "car"
-  model.
+  labels were at best heterogeneous, and at worst inaccurate. To give an analogy from a
+  more commonly-seen machine learning setting: imagine your job is to train a classifier
+  to detect whether a car is in an image. You have several "sets" of images that various
+  "car experts" have given to you: maybe one expert gave you two chunks, one of 1,000
+  images and another of 2,000 images, and a second expert gave you a chunk of 3,000
+  images. However, *looking at the images wouldn't actually confirm whether there was a
+  car in the image*; while most chunks presumably are actually of cars, some may be
+  images of motorcycles, some of trucks, and some chunks may not even be images of cars
+  at all! It would seem like you'd be stuck; however, you do the following:
+  <em
+    >manually define certain "<strong>patterns</strong>", and check whether those
+    patterns are present in each image</em
+  >: you can detect whether there is a sheet of metal (which could be part of a door),
+  whether there is a pane of glass (which would be a window or a windshield), whether
+  there is a metal circle inside a rubber circle (which could indicate a wheel), and so
+  on. By checking the prevalence of these patterns among the images, and comparing this
+  prevalence to the prevalence among a random set of images pulled from the internet, we
+  can suss out which of the chunks of images are likely to be of cars, and thus are
+  suitable for inclusion as "targets" in the "car" model.
 </p>
 
 <h2>Developing first party fraud scores</h2>
