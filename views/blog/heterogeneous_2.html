@@ -5,7 +5,7 @@
 <p>
   This essay is about how we successfully built a 0-to-1 fraud risk score product at
   SentiLink, based on a machine learning model, despite having to train the model on
-  heterogeneous sets of labels whose quality and relevance we weren't able to completely
+  heterogeneous sets of labels whose quality and relevance we weren't able to directly
   verify. The fraud we were trying to detect was the broad category of "first party
   fraud", a collection of fraud variants that our FI customers typically discovered only
   "after the fact": they would observe some unusually bad behavior from one of
@@ -14,43 +14,52 @@
   application. The result was that our labels were sets of cases where our partners had
   observed behaviors highly suggestive of FPF: sets of accounts where bad checks were
   passed, sets of accounts with large customer-initiated ACH returns, or even just sets
-  of accounts with large missed payments. This presents three problems, the first of
-  which is these labels' obvious heterogeneity. The second is that the bad behaviors may
-  not have occurred due to FPF - they may have been instances of identity theft, for
-  example. The third is that in some cases, these labels may simply be wrong; for some
-  behaviors, such as missed payments. while not common, there was no way for us to verify
-  within data we had on prem that the bad outcome had occurred.
+  of accounts with large missed payments. This presents three potential problems, the
+  first of which is these labels' obvious heterogeneity. The second is that the bad
+  behaviors may not have occurred due to FPF - they may have been instances of identity
+  theft, for example. The third is that in some cases; while this was uncommon, there was
+  no way for us to verify within data we had on prem that the bad outcome had occurred.
+</p>
+
+<p>
+  In cases where label quality is important, but direct verification of label quality is
+  not possible, the techniques described in this essay allow for indirect verification of
+  label quality.
 </p>
 
 <p>
   These properties were new for SentiLink to deal with. At the time we started working on
-  these first party fraud scores in late 2022, SentiLink had two very successful
-  products: scores to help FIs stop synthetic fraud and identity theft. SentiLink's two
-  founders had built solutions to address these problems at Affirm, the online lender,
-  and thus had strong priors on the building blocks needed to enable machine learning
-  models tailored to solving them: we licensed data sources relevant to the patterns
-  associated with synthetic fraud and identity theft, used these data sources along with
-  data collected in the course of our customers using our APIs to build data structures
-  relevant to detecting the patterns that identified synthetic fraud and ID theft, built
-  internal tooling to visualize these data structures, and hired an internal team of
-  fraud analysts to use this tooling to label subsets of applications our partners sent
-  us, where the data science team sampled cases using a variety of rules. These manual
-  labels were then used by the data science team to train our models.
+  these first party fraud scores in late 2022, SentiLink had two successful products:
+  scores to help FIs stop synthetic fraud and identity theft. SentiLink's two founders
+  had built solutions to address these problems at Affirm, the online lender, and thus
+  had strong priors on the building blocks needed to enable machine learning models
+  tailored to solving them: we licensed data sources relevant to the patterns associated
+  with synthetic fraud and identity theft, used these data sources along with data
+  collected in the course of our customers using our APIs to build data structures
+  relevant to detecting these fraud M.O.s, built internal tooling to visualize these data
+  structures, and hired an internal team of fraud analysts to use this tooling to label
+  subsets of applications our partners sent us, where the applications they focused on
+  labeling were selected by the data science team. These manual labels were then used by
+  the data science team to train our models.
 </p>
 
 <p>
   With first party fraud, due to the behavior-based method of detecting it, we couldn't
   get to ground truth on whether an individual application was FPF. Instead we had to
-  rely on labels from our customers; and again due to the nature of the problem, these
-  labels were at best heterogeneous, and at worst inaccurate. To give an analogy from a
-  more commonly-seen machine learning setting: imagine your job is to train a classifier
-  to detect whether a car is in an image. You have several "sets" of images that various
-  "car experts" have given to you: maybe one expert gave you two chunks, one of 1,000
-  images and another of 2,000 images, and a second expert gave you a chunk of 3,000
-  images. However, *looking at the images wouldn't actually confirm whether there was a
-  car in the image*; while most chunks presumably are actually of cars, some may be
-  images of motorcycles, some of trucks, and some chunks may not even be images of cars
-  at all! It would seem like you'd be stuck; however, you do the following:
+  rely on labels from our customers where they had observed "FPF-like" behaviors; due to
+  the nature of the problem, these labels were at best heterogeneous (covering many
+  distinct variants of first party fraud), and at worst inaccurate (a set of observed
+  behaviors may not have been due to first party fraud). The task before us was akin to:
+  training a classifier to detect whether a car is in an image, given several "sets" of
+  images handed to you by supposed "car image experts": maybe one expert gave you two
+  chunks, one of 1,000 images and another of 2,000 images, and a second expert gave you a
+  chunk of 3,000 images, and so on. However,
+  <em
+    >looking at the images wouldn't actually confirm whether there was a car in the
+    image</em
+  >; while most chunks presumably actually do have cars in them, some may instead have
+  motorcycles, some may have trucks, and some chunks may not even be images of cars at
+  all! It would seem like you'd be stuck; however, you do the following:
   <em
     >manually define certain "<strong>patterns</strong>", and check whether those
     patterns are present in each image</em
