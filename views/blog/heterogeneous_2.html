@@ -22,12 +22,6 @@
 </p>
 
 <p>
-  In cases where label quality is important, but direct verification of label quality is
-  not possible, the techniques described in this essay allow for indirect verification of
-  label quality.
-</p>
-
-<p>
   These properties were new for SentiLink to deal with. At the time we started working on
   these first party fraud scores in late 2022, SentiLink had two successful products:
   scores to help FIs stop synthetic fraud and identity theft. SentiLink's two founders
@@ -43,34 +37,44 @@
   the data science team to train our models.
 </p>
 
+<h2>Our FPF Problem and an Analogy to Understand It</h2>
+
 <p>
-  With first party fraud, due to the behavior-based method of detecting it, we couldn't
-  get to ground truth on whether an individual application was FPF. Instead we had to
-  rely on labels from our customers where they had observed "FPF-like" behaviors; due to
-  the nature of the problem, these labels were at best heterogeneous (covering many
-  distinct variants of first party fraud), and at worst inaccurate (a set of observed
-  behaviors may not have been due to first party fraud). The task before us was akin to:
-  training a classifier to detect whether a car is in an image, given several "sets" of
-  images handed to you by supposed "car image experts": maybe one expert gave you two
-  chunks, one of 1,000 images and another of 2,000 images, and a second expert gave you a
-  chunk of 3,000 images, and so on. However,
+  With first party fraud, due to the behavior-based method of determining that an
+  application was first party fraud, we couldn't get to ground truth on whether an
+  individual application was FPF. Instead we had to rely on labels from our customers
+  where they had observed "FPF-like" behaviors; due to the nature of the problem, these
+  labels were at best heterogeneous (covering many distinct variants of first party
+  fraud), and at worst inaccurate (a set of observed behaviors may not have been due to
+  first party fraud). An analogy: suppose your task is to train a classifier to detect
+  whether a car is in an image, given several "sets" of images handed to you by
+  individuals of varying expertise on cars: maybe one person gave you two chunks, one of
+  1,000 images and another of 2,000 images, and a second person gave you a chunk of 3,000
+  images, and so on. However,
   <em
     >looking at the images wouldn't actually confirm whether there was a car in the
     image</em
   >; while most chunks presumably actually do have cars in them, some may instead have
   motorcycles, some may have trucks, and some chunks may not even be images of cars at
-  all! It would seem like you'd be stuck; however, you do the following:
-  <em
-    >manually define certain "<strong>patterns</strong>", and check whether those
-    patterns are present in each image</em
-  >: you can detect whether there is a sheet of metal (which could be part of a door),
-  whether there is a pane of glass (which would be a window or a windshield), whether
-  there is a metal circle inside a rubber circle (which could indicate a wheel), and so
-  on. By checking the prevalence of these patterns among the images, and comparing this
-  prevalence to the prevalence among a random set of images pulled from the internet, we
-  can suss out which of the chunks of images are likely to be of cars, and thus are
-  suitable for inclusion as "targets" in the "car" model.
+  all!
 </p>
+
+<p>
+  How to proceed? Suppose you can manually define certain "<strong>patterns</strong>",
+  and check whether each pattern is present in each image. For example you can detect
+  whether there is a sheet of metal (which could be part of a door), whether there is a
+  pane of glass (which would be a window or a windshield), whether there is a metal
+  circle inside a rubber circle (which could indicate a wheel), and so on. We can also
+  define patterns that might be present in an image containing a motorcycle or a truck
+  (handlebars, a large cab), but not in one containing a car. This information, even
+  taken all together, would not be sufficient to determine whether a set of images
+  actually contain cars; for the prevalence of these patterns among the images, and
+  comparing this prevalence to the prevalence among a random set of images pulled from
+  the internet, we can suss out which of the chunks of images are likely to be of cars,
+  and thus are likely to be beneficial if included as "targets" in the "car" model.
+</p>
+
+<p>Paragraph directly tying this to first party fraud.</p>
 
 <h2>Developing first party fraud scores</h2>
 
@@ -776,6 +780,12 @@
   approvals implies roughly 15% precision—the precision value referenced in the main
   text.
   <a href="#fnref2" class="footnote-backref">↩</a>
+</p>
+
+<p>
+  In cases where label quality is important, but direct verification of label quality is
+  not possible, the techniques described in this essay allow for indirect verification of
+  label quality.
 </p>
 
 <br />
