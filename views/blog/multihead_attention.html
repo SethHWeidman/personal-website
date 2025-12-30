@@ -95,8 +95,11 @@
     alt="Hand-drawn diagram of self-attention: input vectors produce queries/keys/values, which form attention weights that combine values into output vectors."
   />
   <figcaption>
-    Self-attention in one picture: build Q/K/V from the inputs, compute attention weights
-    from QK<sup>T</sup>, and use them to weight-average V into output vectors.
+    <em>
+      Self-attention in one picture: build Q/K/V from the inputs, compute attention
+      weights from QK<sup>T</sup>, and compute the output vectors by weighting V with
+      these attention weights.
+    </em>
   </figcaption>
 </figure>
 
@@ -149,8 +152,10 @@
     alt="Hand-drawn diagram of multi-head attention: token vectors split into heads, each head runs self-attention, outputs are concatenated and mixed into final output vectors."
   />
   <figcaption>
-    Multi-head attention: attention is computed independently in each head, then
-    concatenated and mixed to produce the final output vectors.
+    <em>
+      Multi-head attention: attention is computed independently in each head, then
+      concatenated and mixed to produce the final output vectors.
+    </em>
   </figcaption>
 </figure>
 
@@ -190,6 +195,46 @@
     heads.
   </li>
 </ul>
+
+<h2>Attention's Bottleneck and the Motivation for FlashAttention</h2>
+
+<p>
+  Much has been written about the computational cost of attention. Here we'll just
+  mention the key advantage, from a computational perspective, of attention over its
+  precursors, as well as its largest downside - a downside which FlashAttention is
+  designed to mitigate.
+</p>
+
+<ul>
+  <li>
+    The bottleneck of the actual computations in attention precursors such as LSTMs was
+    that they had to be processed sequentially: you couldn't compute the representation
+    for token \(t\) until you had computed all prior tokens, 1 to \(t-1\). By contrast,
+    attention computes representations for all tokens at once, in parallel.
+  </li>
+  <li>
+    The bottleneck of the computation of Attention is...attention. Namely, computing, and
+    especially storing in memory, the "sequence_length x sequence_length" attention
+    matrix itself (the red one in the banner image above). For a 10K token sequence,
+    that's a matrix with 100 million elements, which is 200-400 MB in memory (depending
+    on precision), for a single attention layer; bleeding edge LLMs now advertise 1M
+    token context lengths.
+  </li>
+</ul>
+
+<p>
+  This memory bottleneck is exactly what <strong>FlashAttention</strong> targets. Working
+  within the memory hierarchy of GPUs, using a very similar tiling strategy to the one
+  described <a href="https://www.sethweidman.com/blog/cuda_matmul.html">here</a>, as well
+  as the elegant "<a href="https://www.sethweidman.com/blog/streaming_softmax.html"
+    >streaming softmax</a
+  >" trick, it brings the attention computation down from \(O(L^2)\) memory to \(O(L)\)
+  memory. Without tricks like FlashAttention, we might not be able to have LLMs with
+  100K+ token context windows! These tricks are truly enablers of the AI age in which
+  we're living; they even power the LLMs that helped the author learn this subject and
+  write this blog post that you are now reading, about them. They thus recursively help
+  make the world smarter.
+</p>
 
 <h3>Footnotes</h3>
 
@@ -265,3 +310,6 @@
   >" sections in the bonus content for Chapter 4 of his book.
   <a href="#fnref4" class="footnote-backref">↩</a>
 </p>
+
+<br />
+<button onclick="window.location.href='/'">Back to Home</button>
