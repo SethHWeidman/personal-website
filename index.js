@@ -262,12 +262,24 @@ app.get("/blog/cuda_matmul.html", (req, res) => {
 });
 
 app.get("/blog/multihead_attention.html", (req, res) => {
+  const title = "Attention, Single and Multi-Head";
+  const multiheadAttentionHead = renderHeadParts(
+    renderSocialCards({
+      title,
+      description:
+        "An illustrated walkthrough of self-attention and multi-head attention, motivating where FlashAttention fits in.",
+      url: "https://www.sethweidman.com/blog/multihead_attention.html",
+      image:
+        "https://sethhweidman-personal-website.s3.us-east-1.amazonaws.com/2025-12-29_attention/banner-image.png",
+    })
+  );
   res.send(
     renderHTML(
-      "MultiHead Attention",
+      title,
       `
       ${loadView("blog/multihead_attention.html")}
-      `
+      `,
+      multiheadAttentionHead
     )
   );
 });
