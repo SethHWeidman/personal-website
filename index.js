@@ -104,6 +104,68 @@ function renderHTML(title, bodyContent, extraHead = "") {
   `;
 }
 
+function escapeHtmlAttr(value) {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+function renderHeadParts(...parts) {
+  return parts.filter(Boolean).join("\n");
+}
+
+function renderMathJaxHead() {
+  return `
+    <script src="/mathjax-config.js"></script>
+    <script
+      id="MathJax-script"
+      defer
+      src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"
+    ></script>
+    <script>
+      window.addEventListener("load", function () {
+        if (window.MathJax && typeof window.MathJax.typesetPromise === "function") {
+          window.MathJax.typesetPromise();
+        }
+      });
+    </script>
+  `;
+}
+
+function renderHighlightJsHead(theme = "default") {
+  return `
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/highlight.js@11/styles/${escapeHtmlAttr(
+        theme
+      )}.min.css"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/highlight.js@11/lib/highlight.min.js"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        hljs.highlightAll();
+      });
+    </script>
+  `;
+}
+
+function renderSocialCards({ title, description, url, image }) {
+  return `
+    <meta property="og:type" content="article" />
+    <meta property="og:title" content="${escapeHtmlAttr(title)}" />
+    <meta property="og:description" content="${escapeHtmlAttr(description)}" />
+    <meta property="og:url" content="${escapeHtmlAttr(url)}" />
+    <meta property="og:image" content="${escapeHtmlAttr(image)}" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="${escapeHtmlAttr(title)}" />
+    <meta name="twitter:description" content="${escapeHtmlAttr(description)}" />
+    <meta name="twitter:image" content="${escapeHtmlAttr(image)}" />
+  `;
+}
+
 // Display "Hello World" on the home page with a link to the visitor log
 app.get("/", (req, res) => {
   res.send(
@@ -151,41 +213,50 @@ app.get("/blog/heterogeneous_2.html", (req, res) => {
 });
 
 app.get("/blog/streaming_softmax.html", (req, res) => {
+  const title = "Streaming Softmax: A Trick Powering FlashAttention";
+  const streamingSoftmaxHead = renderHeadParts(
+    renderMathJaxHead(),
+    renderSocialCards({
+      title,
+      description:
+        "A beautiful trick that lets us compute softmax-related vector functions in a 'streaming' fashion.",
+      url: "https://www.sethweidman.com/blog/streaming_softmax.html",
+      image:
+        "https://sethhweidman-personal-website.s3.us-east-1.amazonaws.com/2025-12-12_streaming-softmax/banner-image.png",
+    }),
+    renderHighlightJsHead("default")
+  );
   res.send(
     renderHTML(
-      "Streaming Softmax: A Trick Powering FlashAttention",
+      title,
       `
       ${loadView("blog/streaming_softmax.html")}
-      `
+      `,
+      streamingSoftmaxHead
     )
   );
 });
 
 app.get("/blog/cuda_matmul.html", (req, res) => {
-  const cudaOgMeta = `
-        <meta property="og:type" content="article">
-        <meta property="og:title" content="Tiling Matrix Multiplication on the GPU">
-        <meta
-          property="og:description"
-          content="An illustrated walkthrough of how CUDA shared-memory tiling speeds up matrix multiplication on NVIDIA GPUs."
-        >
-        <meta property="og:url" content="https://sethweidman.com/blog/cuda_matmul.html">
-        <meta property="og:image" content="https://sethweidman.com/images/banner_image.png">
-        <meta name="twitter:card" content="summary_large_image">
-        <meta name="twitter:title" content="Tiling Matrix Multiplication on the GPU">
-        <meta
-          name="twitter:description"
-          content="An illustrated walkthrough of how CUDA shared-memory tiling speeds up matrix multiplication on NVIDIA GPUs."
-        >
-        <meta name="twitter:image" content="https://sethweidman.com/images/banner_image.png">
-      `;
+  const title = "Tiling Matrix Multiplication on the GPU";
+  const cudaMatmulHead = renderHeadParts(
+    renderMathJaxHead(),
+    renderSocialCards({
+      title,
+      description:
+        "An illustrated walkthrough of how CUDA shared-memory tiling speeds up matrix multiplication on the GPU.",
+      url: "https://www.sethweidman.com/blog/cuda_matmul.html",
+      image:
+        "https://sethhweidman-personal-website.s3.us-east-1.amazonaws.com/2025-11-29_cuda-matmul/banner-image.png",
+    })
+  );
   res.send(
     renderHTML(
-      "Tiling Matrix Multiplication on the GPU",
+      title,
       `
       ${loadView("blog/cuda_matmul.html")}
       `,
-      cudaOgMeta
+      cudaMatmulHead
     )
   );
 });
