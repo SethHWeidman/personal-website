@@ -1,6 +1,15 @@
 <h1 class="post-title">Attention, Single and Multi-Head</h1>
 <p class="post-date">December 30, 2025</p>
 
+<figure class="post-banner">
+  <img
+    src="https://sethhweidman-personal-website.s3.us-east-1.amazonaws.com/2025-12-29_attention/banner-image.png"
+    alt="Hand-drawn overview diagram of self-attention and multi-head attention."
+    class="wide-image"
+    loading="eager"
+  />
+</figure>
+
 <p>
   Much can and has been written on attention, yet deep understanding of its inner
   workings is still rare. The original paper that described the "Multi-Head Attention"
@@ -122,14 +131,13 @@
 <p>
   The intuition behind trying Multi-Head Attention is that each head could learn
   independent aspects of the language we are trying to model; one head could focus on
-  grammar in the current sentence, while another could focus on logical consistentcy with
+  grammar in the current sentence, while another could focus on logical consistency with
   what tokens from long before. It's a bit speculative whether that actually happens
   within Multi-Head Attention, but empirically, the authors found that Multi-Head
-  Attention did perform better than just doing one larger Self-Attention<sup id="fnref4"
+  Attention did perform better than just doing a one big Single-Head Attention
+  <sup id="fnref4"><a href="#fn4">4</a></sup> operation. This has been corroborated many
+  times since, and Multi-Head Attention (and variants thereof<sup id="fnref4"
     ><a href="#fn4">4</a></sup
-  >
-  operation. This has been corroborated many times since, and Multi-Head Attention (and
-  variants thereof<sup id="fnref4"><a href="#fn4">4</a></sup
   >) is still used within leading LLMs today.
 </p>
 
