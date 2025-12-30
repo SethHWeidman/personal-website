@@ -151,18 +151,56 @@ function renderHighlightJsHead(theme = "default") {
   `;
 }
 
-function renderSocialCards({ title, description, url, image }) {
+function renderSocialCards({
+  title,
+  description,
+  url,
+  image,
+  imageAlt,
+  imageWidth,
+  imageHeight,
+}) {
   return `
     <meta property="og:type" content="article" />
     <meta property="og:title" content="${escapeHtmlAttr(title)}" />
     <meta property="og:description" content="${escapeHtmlAttr(description)}" />
     <meta property="og:url" content="${escapeHtmlAttr(url)}" />
     <meta property="og:image" content="${escapeHtmlAttr(image)}" />
+    <meta property="og:image:secure_url" content="${escapeHtmlAttr(image)}" />
+    ${
+      imageAlt
+        ? `<meta property="og:image:alt" content="${escapeHtmlAttr(
+            imageAlt
+          )}" />`
+        : ""
+    }
+    ${
+      imageWidth
+        ? `<meta property="og:image:width" content="${escapeHtmlAttr(
+            imageWidth
+          )}" />`
+        : ""
+    }
+    ${
+      imageHeight
+        ? `<meta property="og:image:height" content="${escapeHtmlAttr(
+            imageHeight
+          )}" />`
+        : ""
+    }
 
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="${escapeHtmlAttr(title)}" />
     <meta name="twitter:description" content="${escapeHtmlAttr(description)}" />
+    <meta name="twitter:url" content="${escapeHtmlAttr(url)}" />
     <meta name="twitter:image" content="${escapeHtmlAttr(image)}" />
+    ${
+      imageAlt
+        ? `<meta name="twitter:image:alt" content="${escapeHtmlAttr(
+            imageAlt
+          )}" />`
+        : ""
+    }
   `;
 }
 
@@ -270,7 +308,9 @@ app.get("/blog/multihead_attention.html", (req, res) => {
         "An illustrated walkthrough of self-attention and multi-head attention, motivating where FlashAttention fits in.",
       url: "https://www.sethweidman.com/blog/multihead_attention.html",
       image:
-        "https://sethhweidman-personal-website.s3.us-east-1.amazonaws.com/2025-12-29_attention/banner-image.png",
+        "https://sethhweidman-personal-website.s3.us-east-1.amazonaws.com/2025-12-29_attention/banner-image.png?v=1",
+      imageAlt:
+        "Hand-drawn overview diagram of self-attention and multi-head attention.",
     })
   );
   res.send(
