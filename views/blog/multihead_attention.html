@@ -176,6 +176,19 @@
     is an implementation of <strong>Multi-Head Attention</strong>, naively implemented as
     several single-head modules whose outputs are concatenated and mixed.
   </li>
+  <li>
+    <a
+      href="https://github.com/SethHWeidman/ai_computing/blob/master/05_multihead_attention/compare_implementations.py#L133-L143"
+      target="_blank"
+      rel="noopener noreferrer"
+      >Here</a
+    >
+    is a more standard PyTorch implementation of Multi-Head Attention: it computes each
+    the queries, keys, and values for all heads in just one operation each, reshapes the
+    keys and queries to compute all the attention weights for all heads at once, and
+    finally does another reshaping followed by the mixing of the output vectors across
+    heads.
+  </li>
 </ul>
 
 <h3>Footnotes</h3>
