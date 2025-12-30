@@ -139,12 +139,12 @@ app.get("/blog/o1-tools", (req, res) => {
   );
 });
 
-app.get("/blog/heterogeneous.html", (req, res) => {
+app.get("/blog/heterogeneous_2.html", (req, res) => {
   res.send(
     renderHTML(
       "Evaluating Heterogeneous Fraud Models",
       `
-      ${loadView("blog/heterogeneous.html")}
+      ${loadView("blog/heterogeneous_2.html")}
       `
     )
   );
@@ -186,6 +186,17 @@ app.get("/blog/cuda_matmul.html", (req, res) => {
       ${loadView("blog/cuda_matmul.html")}
       `,
       cudaOgMeta
+    )
+  );
+});
+
+app.get("/blog/multihead_attention.html", (req, res) => {
+  res.send(
+    renderHTML(
+      "MultiHead Attention",
+      `
+      ${loadView("blog/multihead_attention.html")}
+      `
     )
   );
 });

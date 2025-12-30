@@ -1,0 +1,213 @@
+<h1 class="post-title">Attention, Single and Multi-Head</h1>
+<p class="post-date">December 30, 2025</p>
+
+<p>
+  Much can and has been written on attention. The original paper that kicked off the
+  latest wave of LLMs,
+  <a href="https://arxiv.org/abs/1706.03762"><em>Attention Is All You Need</em></a
+  >, is ten technical pages, and originally shipped with a TensorFlow implementation (now
+  buried in
+  <a
+    href="https://github.com/tensorflow/tensor2tensor"
+    target="_blank"
+    rel="noopener noreferrer"
+    >this archived GitHub repo</a
+  >) - even when folks published simplified PyTorch implementations, the 4D Tensor
+  reshapings were hard to map to the operations described in the paper. Many technical
+  writers published deep dives breaking these simplified steps down even further; still,
+  I don't meet many who could explain attention. Thus, this post adds yet another
+  attention explainer to this universe, focusing on the high level structure and
+  motivating where FlashAttention fits in.
+</p>
+
+<h2>Quick background on attention</h2>
+
+<p>
+  Attention is used to process sequences, specifically sequences where each element is
+  represented as a vector, as is the case with language models where the sequence of
+  vectors represents a sequence of tokens. Like other sequence-modeling building blocks
+  (historically: RNNs, and their evolved variants, LSTMs and GRUs<sup id="fnref1"
+    ><a href="#fn1">1</a></sup
+  >), it takes in a sequence of token vectors and outputs a sequence of new, “refined”
+  token vectors. But Attention is ultimately just a composable neural-network block, as
+  with its precursors. Indeed, the <em>Attention Is All You Need</em> paper showed that
+  multi-head attention worked well specifically inside a broader “sequence-to-sequence”
+  architecture they called a <strong>Transformer</strong>. If you want to see what this
+  looks like in straightforward PyTorch code, you can see a clean Transformer
+  implementation
+  <a
+    href="https://github.com/SethHWeidman/LLMs-from-scratch/blob/main/ch04/01_main-chapter-code/gpt.py#L167-L182"
+    target="_blank"
+    rel="noopener noreferrer"
+    >here</a
+  >; the <code>x = self.att(x)</code> line applies multi-head attention.
+</p>
+
+<p>So what actually happens inside an attention block?</p>
+
+<h2>Inside an attention block</h2>
+
+<p>
+  Intuitively, given that they will be used inside LLMs, we want each Attention block to
+  be able to generate an updated representation, after the block, that can optionally
+  “taken into consideration” or, to use the term commonly used in Attention, "<em
+    >attend to</em
+  >" each of the prior tokens<sup id="fnref2"><a href="#fn2">2</a></sup
+  >. Attention achieves this with an approach loosely motivated by database retrieval: it
+  starts by creating three different representations of each token, using three sets of
+  learnable parameters so the model can refine these representations as it is trained:
+</p>
+
+<ul>
+  <li>
+    <strong>Queries (Q)</strong> and <strong>Keys (K)</strong>: these together let the
+    model learn, for each token: “of all the tokens that came before this token,
+    including this one, which tokens should I ‘pay attention to’?” These quantities are
+    known as the <strong>attention scores</strong> for that token; they sum to 1.
+  </li>
+  <li>
+    The third learned representation is known as the <strong>Values (V)</strong>; the
+    final representation of each token, after Attention, is a weighted average of these
+    Values, with the weights given by the attention scores.
+  </li>
+</ul>
+
+<p>
+  Note: Because the Queries, Keys, and Values are all derived from the same input
+  sequence in the context of LLMs, this variant of Attention is called
+  <strong>Self-Attention</strong>.
+</p>
+
+<figure>
+  <img
+    src="https://sethhweidman-personal-website.s3.us-east-1.amazonaws.com/2025-12-29_attention/01-self-attention.png"
+    alt="Hand-drawn diagram of self-attention: input vectors produce queries/keys/values, which form attention weights that combine values into output vectors."
+  />
+  <figcaption>
+    Self-attention in one picture: build Q/K/V from the inputs, compute attention weights
+    from QK<sup>T</sup>, and use them to weight-average V into output vectors.
+  </figcaption>
+</figure>
+
+<h2>Multi-head attention</h2>
+
+<p>
+  The Attention is All You Need paper didn't just suggest using one big single
+  Self-Attention operation; it proposed a variant known as
+  <strong>Multi-Head Attention</strong>. Mechanically, it works like this:
+</p>
+
+<ol>
+  <li>
+    Each input token vector is split into chunks<sup id="fnref3"
+      ><a href="#fn3">3</a></sup
+    >. We interpret each chunk as an attention head.
+  </li>
+  <li>
+    We do the attention steps described above on each head <em>independently</em>. Each
+    “head”—really just a slice of the input vectors—gets its own queries and keys,
+    computes its own attention scores, and weights those attention scores by the values.
+  </li>
+  <li>We concatenate these attention head outputs back together.</li>
+  <li>
+    We do one last step to let the model learn output representations of each token that
+    are a “mix” of the concatenated attention head outputs.
+  </li>
+</ol>
+
+<p>
+  The intuition behind trying Multi-Head Attention is that each head could learn
+  independent aspects of the language we are trying to model; one head could focus on
+  grammar in the current sentence, while another could focus on logical consistentcy with
+  what tokens from long before. It's a bit speculative whether that actually happens
+  within Multi-Head Attention, but empirically, the authors found that Multi-Head
+  Attention did perform better than just doing one larger Self-Attention<sup id="fnref4"
+    ><a href="#fn4">4</a></sup
+  >
+  operation. This has been corroborated many times since, and Multi-Head Attention (and
+  variants thereof) is still used within leading LLMs today.
+</p>
+
+<p>Here's a diagram of what that looks like:</p>
+
+<figure>
+  <img
+    src="https://sethhweidman-personal-website.s3.us-east-1.amazonaws.com/2025-12-29_attention/02-multi-head-attention.png"
+    alt="Hand-drawn diagram of multi-head attention: token vectors split into heads, each head runs self-attention, outputs are concatenated and mixed into final output vectors."
+  />
+  <figcaption>
+    Multi-head attention: attention is computed independently in each head, then
+    concatenated and mixed to produce the final output vectors.
+  </figcaption>
+</figure>
+
+<h2 id="implementation">Implementations</h2>
+
+<ul>
+  <li>
+    <a
+      href="https://github.com/SethHWeidman/ai_computing/blob/master/05_multihead_attention/compare_implementations.py#L34-L55"
+      target="_blank"
+      rel="noopener noreferrer"
+      >Here</a
+    >
+    is an implementation of <strong>Single-Head Attention</strong>
+  </li>
+  <li>
+    <a
+      href="https://github.com/SethHWeidman/ai_computing/blob/master/05_multihead_attention/compare_implementations.py#L93-L103"
+      target="_blank"
+      rel="noopener noreferrer"
+      >Here</a
+    >
+    is an implementation of <strong>Multi-Head Attention</strong>, naively implemented as
+    several single-head modules whose outputs are concatenated and mixed.
+  </li>
+</ul>
+
+<h3>Footnotes</h3>
+
+<p id="fn1" class="footnote">
+  <sup>
+    <a href="#fnref1">1</a>
+  </sup>
+  For an overview of RNNs, LSTMs, and GRUs, see Chapter 6 of my book,
+  <a
+    href="https://www.amazon.com/Deep-Learning-Scratch-Building-Principles/dp/1492041416"
+    target="_blank"
+    rel="noopener noreferrer"
+    >Deep Learning from Scratch</a
+  >.
+  <a href="#fnref1" class="footnote-backref">↩</a>
+</p>
+
+<p id="fn2" class="footnote">
+  <sup>
+    <a href="#fnref2">2</a>
+  </sup>
+  This "prior tokens only" claim is true for decoder-style Transformers used for
+  next-token prediction (LLMs), where a causal mask prevents attending to future tokens.
+  In encoder-style Transformers (e.g., BERT), tokens can attend bidirectionally across
+  the sequence.
+  <a href="#fnref2" class="footnote-backref">↩</a>
+</p>
+
+<p id="fn3" class="footnote">
+  <sup>
+    <a href="#fnref3">3</a>
+  </sup>
+  Concretely, if the model dimension is <code>d_model</code> and there are
+  <code>n_heads</code> heads, each token vector is reshaped into
+  <code>n_heads</code> chunks of size <code>d_head = d_model / n_heads</code>.
+  <a href="#fnref3" class="footnote-backref">↩</a>
+</p>
+
+<p id="fn4" class="footnote">
+  <sup>
+    <a href="#fnref4">4</a>
+  </sup>
+  In comparisons to multi-head attention, self-attention is often referred to as
+  "single-head attention"; this is why in code you'll see that the class name for this
+  operation is <code>SingleHeadAttention</code>
+  <a href="#fnref4" class="footnote-backref">↩</a>
+</p>
