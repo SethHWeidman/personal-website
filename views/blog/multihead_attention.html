@@ -2,22 +2,24 @@
 <p class="post-date">December 30, 2025</p>
 
 <p>
-  Much can and has been written on attention. The original paper that kicked off the
-  latest wave of LLMs,
+  Much can and has been written on attention, yet deep understanding of its inner
+  workings is still rare. The original paper that described the "Multi-Head Attention"
+  mechanism now ubiquitous in LLMs,
   <a href="https://arxiv.org/abs/1706.03762"><em>Attention Is All You Need</em></a
-  >, is ten technical pages, and originally shipped with a TensorFlow implementation (now
-  buried in
+  >, is ten technical pages, and originally shipped with an implementation in the
+  powerful but notoriously difficult TensorFlow framework (now buried in
   <a
     href="https://github.com/tensorflow/tensor2tensor"
     target="_blank"
     rel="noopener noreferrer"
     >this archived GitHub repo</a
   >) - even when folks published simplified PyTorch implementations, the 4D Tensor
-  reshapings were hard to map to the operations described in the paper. Many technical
-  writers published deep dives breaking these simplified steps down even further; still,
-  I don't meet many who could explain attention. Thus, this post adds yet another
-  attention explainer to this universe, focusing on the high level structure and
-  motivating where FlashAttention fits in.
+  reshapings were hard to map to the operations and diagrams from the paper. Several
+  technical writers published deep dives breaking these simplified steps down even
+  further; nevertheless, in my experience, few can give even a "whiteboard-level"
+  overview of Attention. Thus, this post adds yet another attention explainer to this
+  universe, making sure we understand the high level structure and motivating where
+  FlashAttention fits in.
 </p>
 
 <h2>Quick background on attention</h2>
@@ -28,13 +30,13 @@
   vectors represents a sequence of tokens. Like other sequence-modeling building blocks
   (historically: RNNs, and their evolved variants, LSTMs and GRUs<sup id="fnref1"
     ><a href="#fn1">1</a></sup
-  >), it takes in a sequence of token vectors and outputs a sequence of new, “refined”
-  token vectors. But Attention is ultimately just a composable neural-network block, as
-  with its precursors. Indeed, the <em>Attention Is All You Need</em> paper showed that
-  multi-head attention worked well specifically inside a broader “sequence-to-sequence”
-  architecture they called a <strong>Transformer</strong>. If you want to see what this
-  looks like in straightforward PyTorch code, you can see a clean Transformer
-  implementation
+  >), Attention blocks take in a sequence of token vectors and output a sequence of new,
+  “refined” token vectors. So on one level, Attention is yet another composable neural
+  network block, with the same precursors. Indeed, the
+  <em>Attention Is All You Need</em> paper showed that multi-head attention worked well
+  specifically inside a broader “sequence-to-sequence” architecture they called a
+  <strong>Transformer</strong>. If you want to see what this looks like in
+  straightforward PyTorch code, you can see a clean Transformer implementation
   <a
     href="https://github.com/SethHWeidman/LLMs-from-scratch/blob/main/ch04/01_main-chapter-code/gpt.py#L167-L182"
     target="_blank"
@@ -43,19 +45,19 @@
   >; the <code>x = self.att(x)</code> line applies multi-head attention.
 </p>
 
-<p>So what actually happens inside an attention block?</p>
+<p>So what actually happens inside one of these "Attention blocks"?</p>
 
 <h2>Inside an attention block</h2>
 
 <p>
-  Intuitively, given that they will be used inside LLMs, we want each Attention block to
-  be able to generate an updated representation, after the block, that can optionally
-  “taken into consideration” or, to use the term commonly used in Attention, "<em
-    >attend to</em
-  >" each of the prior tokens<sup id="fnref2"><a href="#fn2">2</a></sup
+  Given that they will be used inside LLMs, we want each Attention block to be able to
+  generate an updated representation for each input token, after the block, that can
+  optionally “take into consideration” or, to use the term commonly used in Attention,
+  "<em>attend to</em>" each of the prior tokens<sup id="fnref2"><a href="#fn2">2</a></sup
   >. Attention achieves this with an approach loosely motivated by database retrieval: it
-  starts by creating three different representations of each token, using three sets of
-  learnable parameters so the model can refine these representations as it is trained:
+  starts by creating three different representations of each token, using three distinct
+  sets of learnable parameters (allowing these representations to be refined as the model
+  is trained):
 </p>
 
 <ul>
@@ -63,12 +65,12 @@
     <strong>Queries (Q)</strong> and <strong>Keys (K)</strong>: these together let the
     model learn, for each token: “of all the tokens that came before this token,
     including this one, which tokens should I ‘pay attention to’?” These quantities are
-    known as the <strong>attention scores</strong> for that token; they sum to 1.
+    known as the <strong>attention weights</strong> for that token; they sum to 1.
   </li>
   <li>
     The third learned representation is known as the <strong>Values (V)</strong>; the
-    final representation of each token, after Attention, is a weighted average of these
-    Values, with the weights given by the attention scores.
+    final output vector, of each token, after Attention, is a weighted average of these
+    Values, weighted by the attention weights.
   </li>
 </ul>
 
@@ -101,17 +103,19 @@
   <li>
     Each input token vector is split into chunks<sup id="fnref3"
       ><a href="#fn3">3</a></sup
-    >. We interpret each chunk as an attention head.
+    >. We interpret each chunk as an "attention head".
   </li>
   <li>
     We do the attention steps described above on each head <em>independently</em>. Each
-    “head”—really just a slice of the input vectors—gets its own queries and keys,
-    computes its own attention scores, and weights those attention scores by the values.
+    “head” - which is just a slice of the input vectors - gets its own queries, keys, and
+    values, and uses these to compute its own attention weights and ultimately its own
+    output vectors; that is, it does Self-Attention, but on just a slice of the input
+    vectors.
   </li>
   <li>We concatenate these attention head outputs back together.</li>
   <li>
-    We do one last step to let the model learn output representations of each token that
-    are a “mix” of the concatenated attention head outputs.
+    We do one last step to let the model's final representation of each token be a
+    “learned mix” of the concatenated attention head outputs.
   </li>
 </ol>
 
@@ -125,7 +129,8 @@
     ><a href="#fn4">4</a></sup
   >
   operation. This has been corroborated many times since, and Multi-Head Attention (and
-  variants thereof) is still used within leading LLMs today.
+  variants thereof<sup id="fnref4"><a href="#fn4">4</a></sup
+  >) is still used within leading LLMs today.
 </p>
 
 <p>Here's a diagram of what that looks like:</p>
@@ -186,9 +191,9 @@
     <a href="#fnref2">2</a>
   </sup>
   This "prior tokens only" claim is true for decoder-style Transformers used for
-  next-token prediction (LLMs), where a causal mask prevents attending to future tokens.
-  In encoder-style Transformers (e.g., BERT), tokens can attend bidirectionally across
-  the sequence.
+  next-token prediction (LLMs). In encoder-style Transformers such as BERT, where the
+  goal is to create a representation of the entire sequence, tokens can attend to future
+  tokens as well.
   <a href="#fnref2" class="footnote-backref">↩</a>
 </p>
 
@@ -209,5 +214,33 @@
   In comparisons to multi-head attention, self-attention is often referred to as
   "single-head attention"; this is why in code you'll see that the class name for this
   operation is <code>SingleHeadAttention</code>
+  <a href="#fnref4" class="footnote-backref">↩</a>
+</p>
+
+<p id="fn5" class="footnote">
+  <sup>
+    <a href="#fnref5">5</a>
+  </sup>
+  Sebastian Raschka does a great job covering several of these in the "<a
+    href="https://github.com/rasbt/LLMs-from-scratch/tree/main/ch04/04_gqa"
+    target="_blank"
+    rel="noopener noreferrer"
+    >04</a
+  >", "<a
+    href="https://github.com/rasbt/LLMs-from-scratch/tree/main/ch04/05_mla"
+    target="_blank"
+    rel="noopener noreferrer"
+    >05</a
+  >", "<a
+    href="https://github.com/rasbt/LLMs-from-scratch/tree/main/ch04/06_swa"
+    target="_blank"
+    rel="noopener noreferrer"
+    >06</a
+  >", and "<a
+    href="https://github.com/rasbt/LLMs-from-scratch/tree/main/ch04/07_moe"
+    target="_blank"
+    rel="noopener noreferrer"
+    >07</a
+  >" sections in the bonus content for Chapter 4 of his book.
   <a href="#fnref4" class="footnote-backref">↩</a>
 </p>
