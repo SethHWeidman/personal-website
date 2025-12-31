@@ -302,6 +302,7 @@ app.get("/blog/cuda_matmul.html", (req, res) => {
 app.get("/blog/multihead_attention.html", (req, res) => {
   const title = "Attention, Single and Multi-Head";
   const multiheadAttentionHead = renderHeadParts(
+    renderMathJaxHead(),
     renderSocialCards({
       title,
       description:
