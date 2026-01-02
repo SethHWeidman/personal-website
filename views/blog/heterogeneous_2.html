@@ -5,20 +5,25 @@
 <p>
   This essay is about how we successfully built a 0-to-1 fraud risk score product at
   SentiLink, based on a machine learning model, despite having to train the model on
-  heterogeneous sets of labels whose quality and relevance we weren't able to directly
-  verify. The fraud we were trying to detect was the broad category of "first party
-  fraud", a collection of fraud variants that our FI customers typically discovered only
-  "after the fact": they would observe some unusually bad behavior from one of
-  <em>their</em> customers, after seeing few or no red flags when that person applied,
-  and conclude that first party fraud actually had taken place at the time of the
-  application. The result was that our labels were sets of cases where our partners had
-  observed behaviors highly suggestive of FPF: sets of accounts where bad checks were
-  passed, sets of accounts with large customer-initiated ACH returns, or even just sets
-  of accounts with large missed payments. This presents three potential problems, the
-  first of which is these labels' obvious heterogeneity. The second is that the bad
-  behaviors may not have occurred due to FPF - they may have been instances of identity
-  theft, for example. The third is that in some cases; while this was uncommon, there was
-  no way for us to verify within data we had on prem that the bad outcome had occurred.
+  heterogeneous sets of labels whose quality and relevance to the fraud problem at hand
+  we weren't able to directly verify. The problem was the broad category of "first party
+  fraud", a collection of fraud variants that our customers - FIs offering lending and
+  depository products - typically discovered only "after the fact": they would observe
+  some unusually bad behavior from one of
+  <em>their</em> customers, and, possibly after doing additional manual review, conclude
+  that first party fraud actually had taken place at the time of the application. The
+  result was that our labels were an amalgam of heterogeneous sets of cases, most where
+  our partners had observed behaviors highly suggestive of FPF, but some where our
+  partners had reached the FPF determination through manual review. For example, sets of
+  accounts where bad checks were passed, sets of accounts with large customer-initiated
+  ACH returns, and a set of cases where a partner had determined that a customer had
+  charged off and never had intent to pay (possibly because they planned to engage in
+  credit washing). This presented three potential problems for building a score. The
+  first was these labels' obvious heterogeneity. The second was that some labels,
+  especially for those based on observed behaviors, may not have occurred due to FPF -
+  the behaviors may occurred due to identity theft, for example. The third is that in
+  some cases, especially the labels generated through manual review, no fraud may have
+  occurred at all.
 </p>
 
 <p>
