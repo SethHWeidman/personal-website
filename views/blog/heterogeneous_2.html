@@ -28,7 +28,7 @@
 
 <p>
   These properties were new for SentiLink to deal with. At the time we started working on
-  these first party fraud scores in late 2022, SentiLink had two successful products:
+  these first party fraud scores in mid 2022, SentiLink had two successful products:
   scores to help FIs stop synthetic fraud and identity theft. SentiLink's two founders
   had built solutions to address these problems at Affirm, the online lender, and thus
   had strong priors on the building blocks needed to enable machine learning models
@@ -36,26 +36,40 @@
   with synthetic fraud and identity theft, used these data sources along with data
   collected in the course of our customers using our APIs to build data structures
   relevant to detecting these fraud M.O.s, built internal tooling to visualize these data
-  structures, and hired an internal team of fraud analysts to use this tooling to label
-  subsets of applications our partners sent us, where the applications they focused on
-  labeling were selected by the data science team. These manual labels were then used by
-  the data science team to train our models.
+  structures, and hired an internal team of fraud analysts (several of whom came from
+  Affirm) to use this tooling to label subsets of applications our partners sent us,
+  where the applications they focused on labeling were selected by the data science team.
+  These curated labels, each based on manual review of data we had on prem relevant to
+  the application, were then used by the data science team to train our models. This
+  innovative set of approaches drove the company from a few months after the founding
+  (when the decision to focus on "scores" was made) through the Series B fundraise from
+  Craft Ventures in May 2021.
 </p>
 
 <h2>Our FPF Problem and an Analogy to Understand It</h2>
 
 <p>
-  With first party fraud, due to the behavior-based method of determining that an
-  application was first party fraud, we couldn't get to ground truth on whether an
-  individual application was FPF. Instead we had to rely on labels from our customers
-  where they had observed "FPF-like" behaviors; due to the nature of the problem, these
-  labels were at best heterogeneous (covering many distinct variants of first party
-  fraud), and at worst inaccurate (a set of observed behaviors may not have been due to
-  first party fraud). An analogy: suppose your task is to train a classifier to detect
-  whether a car is in an image, given several "sets" of images handed to you by
-  individuals of varying expertise on cars: maybe one person gave you two chunks, one of
-  1,000 images and another of 2,000 images, and a second person gave you a chunk of 3,000
-  images, and so on. However,
+  With first party fraud, due the nature of the fraud, we could not determine through
+  manual review that an individual application was FPF in the same way that we could for
+  synthetic fraud and ID theft. The main reason for this was that, as described above,
+  FPF is typically discovered through some unusually bad behavior on the part of an FI's
+  customer. Two other reasons relate to the definitions of the fraud types themselves and
+  the data we had on prem. The first other reason is that synthetic fraud and identity
+  theft can be detected in large part due to "mismatches" in the PII on an application
+  itself: a brand new social security number on a person in their 40s is a sign of
+  synthetic fraud (specifically
+  <em>first party</em>
+  synthetic fraud) and an address, phone number, and social security number all from
+  different states is a sign of identity theft. The second related to the fact that the
+  data we had licensed and the data structures we built were highly tailored toward
+  detecting synthetic fraud and identity theft. So we <em>had</em> to rely on labels from
+  our partners, which had the issues of heterogeneity and accuracy described above.
+</p>
+<p>
+  An analogy: suppose your task is to train a classifier to detect whether a car is in an
+  image, given several "sets" of images handed to you by individuals of varying expertise
+  on cars: maybe one person gave you two chunks, one of 1,000 images and another of 2,000
+  images, and a second person gave you a chunk of 3,000 images, and so on. However,
   <em
     >looking at the images wouldn't actually confirm whether there was a car in the
     image</em
