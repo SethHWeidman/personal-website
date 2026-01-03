@@ -99,9 +99,10 @@
 <p>
   Below is a diagram that summarizes this; each thick black line from an element
   indicates that that element is an input to a matrix multiplication. Note that three key
-  weight matrices are used: W_Q, W_K, and W_V, for the queries, keys, and values,
-  respectively. These are each "model_dimension" by "model_dimension"; this enables each
-  token vector to have the same "model_dimension" output length as its input.
+  weight matrices are used: \(W_Q\), \(W_K\), and \(W_V\), for the queries, keys, and
+  values, respectively. These are each <code>model_dimension</code> by
+  <code>model_dimension</code>; this enables each token vector to have the same
+  <code>model_dimension</code> output length as its input.
 </p>
 
 <figure>
@@ -131,11 +132,12 @@
   </li>
   <li>
     We do the attention steps described above on each head <em>independently</em>. Each
-    “head” uses the <strong>entire</strong> input vector, as well as the three
-    <code>model_dimension</code> by <code>head_dimension</code>-sized weight matrices
-    described above to compute its own attention weights and ultimately its own output
-    vectors; that is, it does Self-Attention, but projects the input into a smaller
-    "head" dimension first.
+    “head” uses the <strong>entire</strong> input vector, as well as the three "<code
+      >model_dimension</code
+    >
+    by <code>head_dimension</code>"-sized weight matrices described above to compute its
+    own attention weights and ultimately its own output vectors; that is, it does
+    Self-Attention, but projects the input into a smaller "head" dimension first.
   </li>
   <li>We concatenate these "attention head outputs" back together.</li>
   <li>
@@ -256,8 +258,8 @@
 <h3>Acknowledgment</h3>
 
 <p>
-  An earlier version of this post had an inaccuracy in how it described one component of
-  the Attention mechanism. Thanks to
+  An earlier version of this post described one component of the Attention mechanism
+  inaccurately. It has been corrected. Thanks to
   <a
     href="https://www.linkedin.com/in/chao-zhong-96778618/"
     target="_blank"
