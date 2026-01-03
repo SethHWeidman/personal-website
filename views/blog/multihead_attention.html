@@ -1,5 +1,5 @@
 <h1 class="post-title">Attention, Single and Multi-Head</h1>
-<p class="post-date">December 30, 2025</p>
+<p class="post-date">Updated: January 2, 2026</p>
 
 <figure class="post-banner">
   <img
@@ -98,12 +98,16 @@
 
 <p>
   Below is a diagram that summarizes this; each thick black line from an element
-  indicates that that element is an input to a matrix multiplication:
+  indicates that that element is an input to a matrix multiplication. Note that three key
+  weight matrices are used: \(W_Q\), \(W_K\), and \(W_V\), for the queries, keys, and
+  values, respectively. These are each <code>model_dimension</code> by
+  <code>model_dimension</code>; this enables each token vector to have the same
+  <code>model_dimension</code> output length as its input.
 </p>
 
 <figure>
   <img
-    src="https://sethhweidman-personal-website.s3.us-east-1.amazonaws.com/2025-12-29_attention/01-self-attention.png"
+    src="https://sethhweidman-personal-website.s3.us-east-1.amazonaws.com/2025-12-29_attention/01-self-attention-2.png"
     alt="Hand-drawn diagram of self-attention: input vectors produce queries/keys/values, which form attention weights that combine values into output vectors."
   />
 </figure>
@@ -118,16 +122,22 @@
 
 <ol>
   <li>
-    Each input token vector is split into chunks<sup id="fnref3"
-      ><a href="#fn3">3</a></sup
-    >. We interpret each chunk as an "attention head".
+    The \(W_Q\), \(W_K\), and \(W_V\) matrices are "split up along the output dimension"
+    to create \(N\) different "heads". Concretely, this means that if the input vectors
+    originally have length <code>model_dimension</code>, then each head will have
+    dimension <code>model_dimension / N</code>, which we can define as
+    <code>head_dimension</code>. Each of these three matrices \(W_Q\), \(W_K\), and
+    \(W_V\) will thus be <code>model_dimension</code> by <code>head_dimension</code>, and
+    there will be \(N\) of them per type.
   </li>
   <li>
     We do the attention steps described above on each head <em>independently</em>. Each
-    “head” - which is just a slice of the input vectors - gets its own queries, keys, and
-    values, and uses these to compute its own attention weights and ultimately its own
-    output vectors; that is, it does Self-Attention, but on just a slice of the input
-    vectors.
+    “head” uses the <strong>entire</strong> input vector, as well as the three "<code
+      >model_dimension</code
+    >
+    by <code>head_dimension</code>"-sized weight matrices described above to compute its
+    own attention weights and ultimately its own output vectors; that is, it does
+    Self-Attention, but projects the input into a smaller "head" dimension first.
   </li>
   <li>We concatenate these "attention head outputs" back together.</li>
   <li>
@@ -143,9 +153,9 @@
   what tokens from long before. It's a bit speculative whether that actually happens
   within Multi-Head Attention, but empirically, the authors found that Multi-Head
   Attention did perform better than just doing a one big Single-Head Attention
-  <sup id="fnref4"><a href="#fn4">4</a></sup> operation. This has been corroborated many
+  <sup id="fnref4"><a href="#fn4">3</a></sup> operation. This has been corroborated many
   times since, and Multi-Head Attention (and variants thereof<sup id="fnref4"
-    ><a href="#fn4">5</a></sup
+    ><a href="#fn4">4</a></sup
   >) is still used within leading LLMs today.
 </p>
 
@@ -157,7 +167,7 @@
 
 <figure>
   <img
-    src="https://sethhweidman-personal-website.s3.us-east-1.amazonaws.com/2025-12-29_attention/02-multi-head-attention.png"
+    src="https://sethhweidman-personal-website.s3.us-east-1.amazonaws.com/2025-12-29_attention/02-multi-head-attention-2.png"
     alt="Hand-drawn diagram of multi-head attention: token vectors split into heads, each head runs self-attention, outputs are concatenated and mixed into final output vectors."
   />
 </figure>
@@ -245,6 +255,20 @@
   thus recursively help make the world smarter.
 </p>
 
+<h3>Acknowledgment</h3>
+
+<p>
+  An earlier version of this post described one component of the Attention mechanism
+  inaccurately. It has been corrected. Thanks to
+  <a
+    href="https://www.linkedin.com/in/chao-zhong-96778618/"
+    target="_blank"
+    rel="noopener noreferrer"
+    >Chao (Albert) Zhong</a
+  >
+  for pointing it out.
+</p>
+
 <h3>Footnotes</h3>
 
 <p id="fn1" class="footnote">
@@ -272,19 +296,9 @@
   <a href="#fnref2" class="footnote-backref">↩</a>
 </p>
 
-<p id="fn3" class="footnote">
-  <sup>
-    <a href="#fnref3">3</a>
-  </sup>
-  Concretely, if the model dimension is <code>d_model</code> and there are
-  <code>n_heads</code> heads, each token vector is reshaped into
-  <code>n_heads</code> chunks of size <code>d_head = d_model / n_heads</code>.
-  <a href="#fnref3" class="footnote-backref">↩</a>
-</p>
-
 <p id="fn4" class="footnote">
   <sup>
-    <a href="#fnref4">4</a>
+    <a href="#fnref4">3</a>
   </sup>
   In comparisons to multi-head attention, self-attention is often referred to as
   "single-head attention"; this is why in code you'll see that the class name for this
@@ -294,7 +308,7 @@
 
 <p id="fn5" class="footnote">
   <sup>
-    <a href="#fnref5">5</a>
+    <a href="#fnref5">4</a>
   </sup>
   <a href="https://sebastianraschka.com" target="_blank" rel="noopener noreferrer"
     >Sebastian Raschka</a
