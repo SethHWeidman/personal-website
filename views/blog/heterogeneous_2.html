@@ -62,18 +62,32 @@
   synthetic fraud) and an address, phone number, and social security number all from
   different states is a sign of identity theft. The second related to the fact that the
   data we had licensed and the data structures we built were highly tailored toward
-  detecting synthetic fraud and identity theft. So we <em>had</em> to rely on labels from
-  our partners, which had the issues of heterogeneity and accuracy described above.
+  detecting synthetic fraud and identity theft. Two examples of this:
 </p>
+
+<ul>
+  <li>
+    we had an "identity database", based mostly off of licensed data, that was structured
+    in such a way that it more or less "natively" showed if someone was committing first
+    party synthetic fraud, an extremely common synthetic fraud variant.
+  </li>
+  <li>Graph / ID theft bullet placeholder</li>
+</ul>
+
+<p>
+  So we <em>had</em> to rely on labels from our partners, which had the issues of
+  heterogeneity and accuracy described above.
+</p>
+
 <p>
   An analogy: suppose your task is to train a classifier to detect whether a car is in an
-  image, given several "sets" of images handed to you by individuals of varying expertise
+  image given several "sets" of images handed to you by individuals of varying expertise
   on cars: maybe one person gave you two chunks, one of 1,000 images and another of 2,000
   images, and a second person gave you a chunk of 3,000 images, and so on. However,
   <em
-    >looking at the images wouldn't actually confirm whether there was a car in the
-    image</em
-  >; while most chunks presumably actually do have cars in them, some may instead have
+    >looking at the images yourself wouldn't actually confirm whether there was a car in
+    the image</em
+  >! While most chunks presumably actually do have cars in them, some may instead have
   motorcycles, some may have trucks, and some chunks may not even be images of cars at
   all!
 </p>
@@ -98,12 +112,12 @@
 <h2>Developing first party fraud scores</h2>
 
 <p>
-  We first reviewed applications from these heterogeneous datasets, where our customers
-  told us they'd seen FPF-adjacent behavior - analogous to the "car images" described
-  above - using our internal tool that displayed the "identity database" and the "graph"
-  we used to investigate synthetic fraud and identity theft cases, and hypotheized
-  "patterns" that might be predictive of FPF - analogous to the "patterns of material"
-  described above. A couple example patterns:
+  We first reviewed applications from the sets of labels described above, doing the same
+  kinds - analogous to the "car images" described above - using our internal tool that
+  displayed the "identity database" and the "graph" we used to investigate synthetic
+  fraud and identity theft cases, and hypotheized "patterns" that might be predictive of
+  FPF - analogous to the "patterns of material" described above. A couple example
+  patterns:
 </p>
 
 <ul>
