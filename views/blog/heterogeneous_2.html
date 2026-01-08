@@ -67,11 +67,17 @@
 
 <ul>
   <li>
-    we had an "identity database", based mostly off of licensed data, that was structured
+    We had an "identity database", based mostly off of licensed data, that was structured
     in such a way that it more or less "natively" showed if someone was committing first
-    party synthetic fraud, an extremely common synthetic fraud variant.
+    party synthetic fraud (where one person uses multiple SSNs with their own name and
+    date of birth), an extremely common synthetic fraud variant.
   </li>
-  <li>Graph / ID theft bullet placeholder</li>
+  <li>
+    We had a "graph" based mostly off of first party data (e.g. our FI customers calling
+    our API) that let us see if one phone number was being used on multiple applications
+    with different pieces of core PII, a sign that it might be the phone of a fraudster
+    who had stolen multiple identities.
+  </li>
 </ul>
 
 <p>
