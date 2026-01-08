@@ -73,10 +73,10 @@
     date of birth), an extremely common synthetic fraud variant.
   </li>
   <li>
-    We had a "graph" based mostly off of first party data (e.g. our FI customers calling
-    our API) that let us see if one phone number was being used on multiple applications
-    with different pieces of core PII, a sign that it might be the phone of a fraudster
-    who had stolen multiple identities.
+    We had an "application graph" based mostly off of first party data (e.g. our FI
+    customers calling our API) that let us see if one phone number was being used on
+    multiple applications with different pieces of core PII, a sign that it might be the
+    phone of a fraudster who had stolen multiple identities.
   </li>
 </ul>
 
@@ -109,43 +109,39 @@
   taken all together, would not be sufficient to determine whether a set of images
   actually contain cars; for the prevalence of these patterns among the images, and
   comparing this prevalence to the prevalence among a random set of images pulled from
-  the internet, we can suss out which of the chunks of images are likely to be of cars,
-  and thus are likely to be beneficial if included as "targets" in the "car" model.
+  the internet, we can infer which of the chunks of images are <em>likely</em> to contain
+  cars, and thus are likely to be beneficial if included as "targets" in the "car" model.
 </p>
 
-<p>Paragraph directly tying this to first party fraud.</p>
-
-<h2>Developing first party fraud scores</h2>
-
 <p>
-  We first reviewed applications from the sets of labels described above, doing the same
-  kinds - analogous to the "car images" described above - using our internal tool that
-  displayed the "identity database" and the "graph" we used to investigate synthetic
-  fraud and identity theft cases, and hypotheized "patterns" that might be predictive of
-  FPF - analogous to the "patterns of material" described above. A couple example
-  patterns:
+  For us, the analogs to these "patterns of material" were patterns we found in the
+  "identity database", the "graph", and the other on prem data structures we had that we
+  thought might be good signals for first party fraud. There was a virtually infinite
+  universe of potential signals we could engineer. We developed hypotheses for these
+  signals through:
 </p>
 
 <ul>
   <li>
-    In the identity database, we measured whether someone had likely committed synthetic
-    fraud in the past. This suggested a propensity to present one’s credit history
-    inaccurately, which we believed would correlate with first party fraud.
+    Primary research into first party fraud M.O.s. A common type of FPF involving ACH
+    transactions requires multiple checking accounts, so we hypothesized that applying
+    for multiple checking accounts in a short period of time might be predictive. Even
+    though it wasn't built for this purpose, we were able to observe this behavior in the
+    application graph.
   </li>
   <li>
-    In the application graph, we measured velocity-based behaviors such as elevated DDA
-    application velocity. Many first party fraud M.O.s require multiple checking
-    accounts, so rapid application patterns made sense as a strong signal a priori.
+    Reviewing cases from the ambiguous labels we'd received from our FI customers. Even
+    though these labels were imperfect, we were able to find certain anomalous patterns
+    coming up repeatedly; for example, we could see in our identity database that many of
+    the supposed first party fraudsters had <em>previously</em> committed synthetic
+    fraud.
   </li>
 </ul>
 
 <p>
-  We ended up finding eight of these signals that were predictive: prevalent among many
-  of the FPF label datasets we'd received, and not so prevalent overall. Each of these
-  eight signals was a boolean true/false flag, accompanied by numeric “sub-signals”
-  (e.g., the number of distinct SSNs someone had committed synthetic fraud with or the
-  number of DDAs applied for in different time windows). The next section covers
-  specifically how we validated that these signals were actually strong quantitatively.
+  While each of these plausibly could be a signal for first party fraud, we then had to
+  validate them quantitatively, using the heterogeneous, unreliable labels we had
+  received from various friendly customers. The next section describes how we did this.
 </p>
 
 <h2>Evaluating hypothesized signals on heterogeneous, unreliable labels</h2>
@@ -672,6 +668,15 @@
   confirmed that our inferences about their fraud categories were correct.
 </p>
 
+<p>
+  We ended up finding eight of these signals that were predictive: prevalent among many
+  of the FPF label datasets we'd received, and not so prevalent overall. Each of these
+  eight signals was a boolean true/false flag, accompanied by numeric “sub-signals”
+  (e.g., the number of distinct SSNs someone had committed synthetic fraud with or the
+  number of DDAs applied for in different time windows). The next section covers
+  specifically how we validated that these signals were actually strong quantitatively.
+</p>
+
 <h2>From signals to scores</h2>
 
 <h2>Overall product development philosophy</h2>
@@ -766,6 +771,12 @@
 </p>
 
 <p>
+  In cases where label quality is important, but direct verification of label quality is
+  not possible, the techniques described in this essay allow for
+  <em>indirect</em> verification of label quality.
+</p>
+
+<p>
   Most importantly, however, this work established at SentiLink a set of practices for
   evaluating fraud signals on external datasets in a systematic way. As I was departing,
   the business had launched an initiative to evaluate our identity theft score and some
@@ -819,12 +830,6 @@
   approvals implies roughly 15% precision—the precision value referenced in the main
   text.
   <a href="#fnref2" class="footnote-backref">↩</a>
-</p>
-
-<p>
-  In cases where label quality is important, but direct verification of label quality is
-  not possible, the techniques described in this essay allow for indirect verification of
-  label quality.
 </p>
 
 <br />
