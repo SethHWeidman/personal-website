@@ -74,4 +74,49 @@
 
 <p>So how does it do it?</p>
 
-<h2>FlashAttention v1, Step-by-Step</h2>
+<h2>FlashAttention v1</h2>
+
+<p>
+  We'll start by giving two high level mental models for what FlashAttention is doing
+  that can be helpful to keep in mind when going through the specific steps of the
+  algorithm:
+</p>
+
+<p>
+  First: in this <a href="/blog/cuda_matmul.html"><strong>blog post</strong></a
+  >, we describe a technique for computing the output of an operation involving
+  <em>two</em> input matrices by dividing the matrices into "tiles", successively feeding
+  those tiles into fast "shared" memory on the GPU, and using those tiles to compute
+  partial sums which were then "accumulated" in the output we wanted to compute. The
+  technique we'll use for FlashAttention is very similar (which is why reading through
+  and making you understand that blog post is great scaffolding for understanding
+  FlashAttention), except now we have <em>three</em> input matrices - Q, K, and V - and
+  the operation in question is the attention operation:
+</p>
+
+\[ \operatorname{Attention}(Q, K, V) =
+\operatorname{softmax}\!\left(\frac{QK^T}{\sqrt{d}}\right)V \]
+
+<p>rather than simply a matrix multiplication.</p>
+
+<p>
+  Second, you might ask: how are we dealing with two dimensional Tensors at all in
+  FlashAttention? Q, K, and V, after all, are typically <em>four</em>-dimensional Tensors
+  of shape <code>[batch_size, sequence_length, head_dim, num_heads]</code> in attention
+  implementations; even if you discount the batch dimension--operations are always the
+  same within each batch element in neural networks, so that they can be thought of as
+  "batch_size" identical operations happening in parallel--you are still left with three
+  dimensional Tensors of shape: <code>[sequence_length, head_dim, num_heads]</code>. Here
+  we take advantage of a further parallel structure in Multi-Head Attention: the
+  computations <em>within each head</em> are identical. Thus, naively, in FlashAttention
+  v1, we launch a GPU kernel with a grid of B * H thread blocks, each of which operates
+  on a single [batch_index, head_index] tuple, and loads in tiles of the
+  <code>[sequence_length, head_dim]</code> sections of Q, K, and V corresponding to that
+  <code>batch_index</code> and <code>head_index</code> in order to compute a 2D
+  <code>[sequence_length, head_dim]</code> section of the output. So, the algorithm we'll
+  describe starting in the next section really is a "three 2D matrix" analogue of the
+  "two 2D matrix" tiling algorithm described in the prior blog post; "the magic of CUDA"
+  scales this up to be the 4D Tensor operation we need.
+</p>
+
+<p>With these preliminaries out of the way, let's dive into the algorithm.</p>
