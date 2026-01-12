@@ -19,3 +19,59 @@
   >. We intentionally keep this post “whiteboard-level”; we'll link to an implementation
   at the end, but save the deep dive into it for a future blog post.
 </p>
+
+<h2>What is FlashAttention?</h2>
+
+<p>
+  FlashAttention is a drop-in replacement for most of the Multi-Head Attention operation,
+  the foundational building block for modeling sequences introduced in
+  <em>Attention is All You Need</em> and described in more detail (with a reference
+  implementation) <a href="/blog/multihead_attention.html">here</a>. It was released in
+  mid-2022 by a team led by
+  <a href="https://tridao.me" target="_blank" rel="noopener noreferrer">Tri Dao</a>, then
+  at Stanford. This release, now known as "FlashAttention v1", already provided a<a
+    href="https://www.youtube.com/watch?v=gMOAud7hZg4&t=31m55s"
+    target="_blank"
+    rel="noopener noreferrer"
+    >13% speedup</a
+  >
+  over highly-optimized CUDA kernels written <em>by NVIDIA</em> for their own GPUs! This
+  work was the first to apply the concepts mentioned above - tiling and streaming softmax
+  - to an attention kernel. Subsequent versions have employed much more sophisticated
+  software features of GPUs, some of which only work on the latest and greatest
+  "Blackwell" systems, and have had varying degrees of involvement from Prof.
+  Dao[footnote], but the basic ideas introduced in v1 continue to be core.
+</p>
+
+<p>
+  Before we dive in: FlashAttention is sometimes described as "a drop-in replacement for
+  attention". That is not entirely accurate; it replaces <em>many</em> of the steps
+  involved in Multi-Head Attention, but not all. Below is a reminder of all the steps
+  involved in Multi-Head Attention:
+</p>
+
+<figure>
+  <img
+    src="https://sethhweidman-personal-website.s3.us-east-1.amazonaws.com/2026-01-08_flash_attention/01_multihead_attention_from_attention.png"
+    alt="Standard Multi-Head Attention requires computing entire attention matrices within each head."
+  />
+</figure>
+
+<p>
+  FlashAttention fuses many of these operations; in particular, standard Multi-Head
+  Attention requires "materializing" - defining and holding as one object in memory -
+  entire "sequence_length by sequence_length" attention matrices within each head,
+  whereas FlashAttention is able to compute the same final result while avoiding this
+  memory-intensive materialization.
+</p>
+
+<figure>
+  <img
+    src="https://sethhweidman-personal-website.s3.us-east-1.amazonaws.com/2026-01-08_flash_attention/02_flash_attention_from_attention.png"
+    alt="FlashAttention fuses operations many operations, avoiding ever materializing an attention matrix."
+  />
+</figure>
+
+<p>So how does it do it?</p>
+
+<h2>FlashAttention v1, Step-by-Step</h2>
