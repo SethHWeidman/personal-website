@@ -1,0 +1,21 @@
+<h1 class="post-title">FlashAttention - Pt. 1</h1>
+<p class="post-subtitle">How Tiling and Streaming Softmax Enable this GPU Kernel</p>
+<p class="post-date">January 12, 2026</p>
+
+<figure class="post-banner">
+  <img
+    src="https://sethhweidman-personal-website.s3.us-east-1.amazonaws.com/2026-01-08_flash_attention/02_flash_attention_from_attention.png"
+    alt="FlashAttention as a replacement for many of the multihead attention steps."
+    class="wide-image"
+    loading="eager"
+  />
+</figure>
+
+<p>
+  This blog post will explain the FlashAttention algorithm, showing how it builds upon
+  the concepts from two prior blog posts:
+  <a href="/blog/cuda_matmul.html"><strong>tiling</strong></a
+  >, and <a href="/blog/streaming_softmax.html"><strong>streaming softmax</strong></a
+  >. We intentionally keep this post “whiteboard-level”; we'll link to an implementation
+  at the end, but save the deep dive into it for a future blog post.
+</p>
