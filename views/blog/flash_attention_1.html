@@ -266,18 +266,20 @@
   complete \(O_{tile}\).
 </p>
 
-<p>
-  We loop through all tiles of \(Q\) in this way - for each \(Q_{tile}\) loaded into
-  shared memory, we loop through all tiles of \(K\) and \(V\), loading them into shared
-  memory one at a time -
-</p>
-
 <figure>
   <img
     src="https://sethhweidman-personal-website.s3.us-east-1.amazonaws.com/2026-01-08_flash_attention/05_ktile_vtile_outer_loop.png"
     alt="The final scaling that happens back in the outer loop, after the entire inner loop"
   />
 </figure>
+
+<p>
+  We loop through all tiles of \(Q\) in this way - for each \(Q_{tile}\) loaded into
+  shared memory, we loop through all tiles of \(K\) and \(V\), loading them into shared
+  memory one at a time - eventually fill in the entire 2D
+  <code>sequence_length</code> &times; <code>head_dim</code> Tensor
+  <code>O[batch_index, head_index, :, :]</code>!
+</p>
 
 <h2>Conclusion and Next Steps</h2>
 
