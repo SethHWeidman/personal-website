@@ -325,8 +325,9 @@ app.get("/blog/multihead_attention.html", (req, res) => {
   );
 });
 
-app.get("/blog/flash_attention_1_c.html", (req, res) => {
-  const title = "FlashAttention: Tiling + Streaming Softmax for Fast, Exact Attention";
+app.get("/blog/flash_attention_1.html", (req, res) => {
+  const title =
+    "FlashAttention: Tiling + Streaming Softmax for Fast, Exact Attention";
   const flashAttentionHead = renderHeadParts(
     renderMathJaxHead(),
     renderHighlightJsHead("default")
@@ -335,7 +336,7 @@ app.get("/blog/flash_attention_1_c.html", (req, res) => {
     renderHTML(
       title,
       `
-      ${loadView("blog/flash_attention_1_c.html")}
+      ${loadView("blog/flash_attention_1.html")}
       `,
       flashAttentionHead
     )
