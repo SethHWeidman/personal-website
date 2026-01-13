@@ -42,8 +42,8 @@
   mentioned above - tiling and streaming softmax - to an attention kernel. Subsequent
   versions have employed much more sophisticated software features of GPUs, some of which
   only work on the latest and greatest "Blackwell" systems, and have had varying degrees
-  of involvement from Prof. Dao[footnote], but the basic ideas introduced in V1 continue
-  to be core and are what produced the original "great leap forward".
+  of involvement from Prof. Dao, but the basic ideas introduced in V1 continue to be core
+  and are what produced the original "great leap forward".
 </p>
 
 <p>
@@ -239,7 +239,7 @@
   </li>
   <li>
     We add this to a \(T \times \texttt{head_dim}\) array we're using to keep track of
-    the accumulation of "\operatorname{scaled\_exponentials}(Q*K^T) \cdot V", that is,
+    the accumulation of \(\operatorname{scaled\_exponentials}(Q*K^T) \cdot V\), that is,
     the numerator of the \(\operatorname{softmax\_dot}\) operation above. We will add to,
     and possibly rescale (just as we did for the scaled exponentials in
     <code>sh_S</code>), this as we loop through the tiles of \(K\) and \(V\).
