@@ -18,7 +18,7 @@
   >, and <a href="/blog/streaming_softmax.html"><strong>streaming softmax</strong></a
   >. We intentionally focus this post on a "whiteboard-level" description of the
   algorithm; we'll link to an implementation at the end, but save the deep dive into the
-  code for a future blog post (though if we do our job here, if should be clear how to
+  code for a future blog post (though if we do our job here, it should be clear how to
   code it up).
 </p>
 
@@ -155,11 +155,11 @@
 
 <p>
   We load in to shared memory \(T\) (for "tile size") rows at a time; each \(Q_{tile}\)
-  has dimension "<code>sequence_length</code> &times; <code>head_dim</code>". Holding
-  this \(Q_{tile}\) in shared memory, we loop through all the rows of \(K\) and \(V\),
-  \(T\) at a time - that is, we successively load in (\(K_{tile}\), (\(V_{tile}\)))
-  pairs. This all adds up to an inner loop which is looping through \(K\) and \(V\) and
-  an outer loop which is looping through \(Q\). This is depicted below.
+  has dimension "\(T \times \texttt{head_dim}\)". Holding this \(Q_{tile}\) in shared
+  memory, we loop through all the rows of \(K\) and \(V\), \(T\) at a time - that is, we
+  successively load in (\(K_{tile}\), (\(V_{tile}\))) pairs. This all adds up to an inner
+  loop which is looping through \(K\) and \(V\) and an outer loop which is looping
+  through \(Q\). This is depicted below.
 </p>
 
 <figure>
