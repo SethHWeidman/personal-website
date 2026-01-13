@@ -16,31 +16,34 @@
   the concepts from two prior blog posts:
   <a href="/blog/cuda_matmul.html"><strong>tiling</strong></a
   >, and <a href="/blog/streaming_softmax.html"><strong>streaming softmax</strong></a
-  >. We intentionally keep this post “whiteboard-level”; we'll link to an implementation
-  at the end, but save the deep dive into it for a future blog post.
+  >. We intentionally focus this post on a "whiteboard-level" description of the
+  algorithm; we'll link to an implementation at the end, but save the deep dive into the
+  code for a future blog post (though if we do our job here, if should be clear how to
+  code it up).
 </p>
 
 <h2>What is FlashAttention?</h2>
 
 <p>
-  FlashAttention is a drop-in replacement for most of the Multi-Head Attention operation,
-  the foundational building block for modeling sequences introduced in
-  <em>Attention is All You Need</em> and described in more detail (with a reference
-  implementation) <a href="/blog/multihead_attention.html">here</a>. It was released in
-  mid-2022 by a team led by
+  FlashAttention is a drop-in replacement for <em>most</em> (see next paragraph) of the
+  Multi-Head Attention operation, the foundational building block for modeling sequences
+  introduced in <em>Attention is All You Need</em> and described in more detail (with a
+  couple reference implementations) <a href="/blog/multihead_attention.html">here</a>. It
+  was released in mid-2022 by a team led by
   <a href="https://tridao.me" target="_blank" rel="noopener noreferrer">Tri Dao</a>, then
-  at Stanford. This release, now known as "FlashAttention v1", already provided a<a
+  at Stanford. This release, now known as "FlashAttention V1", already provided a<a
     href="https://www.youtube.com/watch?v=gMOAud7hZg4&t=31m55s"
     target="_blank"
     rel="noopener noreferrer"
     >13% speedup</a
   >
-  over highly-optimized CUDA kernels written <em>by NVIDIA</em> for their own GPUs! This
-  work was the first to apply the concepts mentioned above - tiling and streaming softmax
-  - to an attention kernel. Subsequent versions have employed much more sophisticated
-  software features of GPUs, some of which only work on the latest and greatest
-  "Blackwell" systems, and have had varying degrees of involvement from Prof.
-  Dao[footnote], but the basic ideas introduced in v1 continue to be core.
+  over highly-optimized CUDA kernels written <em>by NVIDIA</em> for their own GPUs! These
+  impressive speedups were achieved because FA V1 was first to apply the concepts
+  mentioned above - tiling and streaming softmax - to an attention kernel. Subsequent
+  versions have employed much more sophisticated software features of GPUs, some of which
+  only work on the latest and greatest "Blackwell" systems, and have had varying degrees
+  of involvement from Prof. Dao[footnote], but the basic ideas introduced in V1 continue
+  to be core and are what produced the original "great leap forward".
 </p>
 
 <p>
@@ -58,10 +61,11 @@
 </figure>
 
 <p>
-  FlashAttention fuses many of these operations; in particular, standard Multi-Head
-  Attention requires "materializing" - defining and holding as one object in memory -
-  entire "sequence_length by sequence_length" attention matrices within each head,
-  whereas FlashAttention is able to compute the same final result while avoiding this
+  FlashAttention fuses a particular key sequence of these operations into a single
+  kernel; in particular, standard Multi-Head Attention requires "materializing" -
+  defining and holding as one object in memory - entire "<code>sequence_length</code>
+  &times; <code>sequence_length</code>" attention matrices within each head, whereas
+  FlashAttention is able to compute the same final result while avoiding this
   memory-intensive materialization.
 </p>
 
@@ -74,12 +78,11 @@
 
 <p>So how does it do it?</p>
 
-<h2>FlashAttention v1</h2>
+<h2>FlashAttention v1: Preliminaries</h2>
 
 <p>
-  We'll start by giving two high level mental models for what FlashAttention is doing
-  that can be helpful to keep in mind when going through the specific steps of the
-  algorithm:
+  We'll start with two high level comments on FlashAttention that can keep you oriented
+  when going through the specific steps of the algorithm:
 </p>
 
 <p>
@@ -100,23 +103,130 @@
 <p>rather than simply a matrix multiplication.</p>
 
 <p>
-  Second, you might ask: how are we dealing with two dimensional Tensors at all in
-  FlashAttention? Q, K, and V, after all, are typically <em>four</em>-dimensional Tensors
-  of shape <code>[batch_size, sequence_length, head_dim, num_heads]</code> in attention
+  That raises a question: where do these "two dimensional Tensors" we deal with in
+  FlashAttention come from? Q, K, and V, after all, are typically
+  <em>four</em>-dimensional Tensors of shape
+  <code>[batch_size, sequence_length, head_dim, num_heads]</code> in attention
   implementations; even if you discount the batch dimension--operations are always the
-  same within each batch element in neural networks, so that they can be thought of as
-  "batch_size" identical operations happening in parallel--you are still left with three
-  dimensional Tensors of shape: <code>[sequence_length, head_dim, num_heads]</code>. Here
-  we take advantage of a further parallel structure in Multi-Head Attention: the
-  computations <em>within each head</em> are identical. Thus, naively, in FlashAttention
-  v1, we launch a GPU kernel with a grid of B * H thread blocks, each of which operates
-  on a single [batch_index, head_index] tuple, and loads in tiles of the
-  <code>[sequence_length, head_dim]</code> sections of Q, K, and V corresponding to that
-  <code>batch_index</code> and <code>head_index</code> in order to compute a 2D
-  <code>[sequence_length, head_dim]</code> section of the output. So, the algorithm we'll
-  describe starting in the next section really is a "three 2D matrix" analogue of the
-  "two 2D matrix" tiling algorithm described in the prior blog post; "the magic of CUDA"
-  scales this up to be the 4D Tensor operation we need.
+  same within each batch element in neural networks, so that they are actually
+  "<code>batch_size</code>" identical operations happening in parallel--you are still
+  left with three dimensional Tensors of shape:
+  <code>[sequence_length, head_dim, num_heads]</code>. Here we take advantage of a
+  further parallel structure in Multi-Head Attention: the computations
+  <em>within each head</em> are identical. Naturally, then, in FlashAttention v1, we
+  launch a GPU kernel with a grid of \(B * H\) thread blocks, each of which operates on a
+  single <code>(batch_index, head_index)</code> tuple. Each thread block will then
+  operate on the three <code>sequence_length</code> &times; <code>head_dim</code> Tensors
 </p>
 
-<p>With these preliminaries out of the way, let's dive into the algorithm.</p>
+<ul>
+  <li>
+    <code>Q[batch_index, head_index, :, :] </code>
+  </li>
+  <li>
+    <code>K[batch_index, head_index, :, :] </code>
+  </li>
+  <li>
+    <code>V[batch_index, head_index, :, :] </code>
+  </li>
+</ul>
+
+<p>
+  and produce the <code>sequence_length</code> &times; <code>head_dim</code> Tensor
+  <code>O[batch_index, head_index, :, :]</code>. So, the algorithm we'll describe
+  starting in the next section really is a "three 2D matrix" analogue of the "two 2D
+  matrix" tiling algorithm described in the prior blog post; "the magic of CUDA"
+  (specifically being able to launch \(B * H\) blocks of threads at once) scales this up
+  to be the 4D Tensor operation we need.
+</p>
+
+<p>
+  With these preliminaries out of the way, let's dive into the algorithm as it operates
+  on these three 2D Tensors.
+</p>
+
+<h2>The Algorithm, Outer Loop</h2>
+
+<p>
+  We'll first cover the high level structure of the algorithm, then dive into the details
+</p>
+
+<p>
+  We load in to shared memory T (for "tile size") rows at a time; each O_tile has
+  dimension [T, head_dim]. Holding this O_tile in shared memory, we loop through all the
+  rows of K and V, T at a time - that is, we successively load in (K_tile, V_tile) pairs.
+  This all adds up to an inner loop which is looping through K and V and an outer loop
+  which is looping through Q. This is depicted below.
+</p>
+
+<figure>
+  <img
+    src="https://sethhweidman-personal-website.s3.us-east-1.amazonaws.com/2026-01-08_flash_attention/03_outer_loop_inner_loop_overview.png"
+    alt="The Outer Loop (iterating over Q) and Inner Loop (iterating over K/V)."
+  />
+</figure>
+
+<p>
+  With this structure down, we can now dive into what happens on a single iteration of
+  the inner loop, with a single \(Q_{tile}\), \(K_{tile}\), and \(V_{tile}\).
+</p>
+
+<h2>The Algorithm, Inner Loop</h2>
+
+<p>
+  Before we get to how this inner loop computes the values in \(O_{tile}\), we should
+  remind ourselves <em>why</em> we are computing these values; that is, <em>what</em> are
+  we trying to compute. Recall that we want to compute, for each row, (ignoring the
+  \(sqrt{d}\) for now to keep things simple):
+</p>
+
+\[ \operatorname{softmax}(Q*K^T) \cdot V \]
+
+<p>
+  this is just \operatorname{softmax_dot}, which we can stream using the techniques
+  described in the prior blog post, which as a reminder, involve expressing it as:
+</p>
+
+\[ \frac{\operatorname{scaled\_exponentials}(Q*K^T) \cdot V}{
+\operatorname{sum\_of\_scaled\_exponentials}(Q*K^T)} \]
+
+<p>and then streaming the top and the bottom.</p>
+
+<p>So our strategy will be:</p>
+
+<ul>
+  <li>
+    For each (K_tile, V_tile) pair we get, update our accumulation of the
+    <code>scaled_exponentials</code> and the <code>sum_of_scaled_exponentials</code> in
+    each row of O_tile.
+  </li>
+  <li>
+    To do this, have to keep track of the maximum value we've seen so far in each row,
+    since this is what we'll use to scale the exponentials.
+  </li>
+</ul>
+
+<p>The actual steps, then, are:</p>
+
+<ol>
+  <li>
+    We multiply \(Q_{tile}\) and \(K_{tile}^T\) to get a block of raw attention scores
+    (size \(T \times T\)). You'll see this called `sP` in the code. We accumulate both:
+    <ul>
+      <li>The maximum value seen so far in each row.</li>
+      <li>
+        The scaled sum of each row (scaling using this maximum) - we'll use this at the
+        end as the denominator of the \operatorname{softmax_dot} operation.
+      </li>
+    </ul>
+  </li>
+  <li>
+    We take the dot product of this \(T \times T\) block with the \(T \times head_dim\)
+    \(V_{tile}\).
+  </li>
+  <li>
+    We add this to a \(T \times head_dim\) array we're using to keep track of the
+    numerator of the \operatorname{softmax_dot} operation above - we call this `sY` in
+    the code.
+  </li>
+</ol>
