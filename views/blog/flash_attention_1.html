@@ -93,8 +93,8 @@
   partial sums which were then "accumulated" in the output we wanted to compute. The
   technique we'll use for FlashAttention is very similar (which is why reading through
   and making you understand that blog post is great scaffolding for understanding
-  FlashAttention), except now we have <em>three</em> input matrices - Q, K, and V - and
-  the operation in question is the attention operation:
+  FlashAttention), except now we have <em>three</em> input matrices - \(Q\), \(K\), and
+  \(V\) - and the operation in question is the attention operation:
 </p>
 
 \[ \operatorname{Attention}(Q, K, V) =
@@ -104,7 +104,7 @@
 
 <p>
   That raises a question: where do these "two dimensional Tensors" we deal with in
-  FlashAttention come from? Q, K, and V, after all, are typically
+  FlashAttention come from? \(Q\), \(K\), and \(V\), after all, are typically
   <em>four</em>-dimensional Tensors of shape
   <code>[batch_size, sequence_length, head_dim, num_heads]</code> in attention
   implementations; even if you discount the batch dimension--operations are always the
@@ -116,7 +116,8 @@
   <em>within each head</em> are identical. Naturally, then, in FlashAttention v1, we
   launch a GPU kernel with a grid of \(B * H\) thread blocks, each of which operates on a
   single <code>(batch_index, head_index)</code> tuple. Each thread block will then
-  operate on the three <code>sequence_length</code> &times; <code>head_dim</code> Tensors
+  operate on the three "<code>sequence_length</code> &times; <code>head_dim</code>"
+  Tensors:
 </p>
 
 <ul>
@@ -132,7 +133,7 @@
 </ul>
 
 <p>
-  and produce the <code>sequence_length</code> &times; <code>head_dim</code> Tensor
+  and produce the "<code>sequence_length</code> &times; <code>head_dim</code>" Tensor
   <code>O[batch_index, head_index, :, :]</code>. So, the algorithm we'll describe
   starting in the next section really is a "three 2D matrix" analogue of the "two 2D
   matrix" tiling algorithm described in the prior blog post; "the magic of CUDA"
@@ -148,15 +149,17 @@
 <h2>The Algorithm, Outer Loop</h2>
 
 <p>
-  We'll first cover the high level structure of the algorithm, then dive into the details
+  As noted above, the algorithm has an outer loop - over tiles of \(Q\) - and an inner
+  loop - over tiles of \(K\) and \(V\).
 </p>
 
 <p>
-  We load in to shared memory T (for "tile size") rows at a time; each O_tile has
-  dimension [T, head_dim]. Holding this O_tile in shared memory, we loop through all the
-  rows of K and V, T at a time - that is, we successively load in (K_tile, V_tile) pairs.
-  This all adds up to an inner loop which is looping through K and V and an outer loop
-  which is looping through Q. This is depicted below.
+  We load in to shared memory \(T\) (for "tile size") rows at a time; each \(Q_{tile}\)
+  has dimension "<code>sequence_length</code> &times; <code>head_dim</code>". Holding
+  this \(Q_{tile}\) in shared memory, we loop through all the rows of \(K\) and \(V\),
+  \(T\) at a time - that is, we successively load in (\(K_{tile}\), (\(V_{tile}\)))
+  pairs. This all adds up to an inner loop which is looping through \(K\) and \(V\) and
+  an outer loop which is looping through \(Q\). This is depicted below.
 </p>
 
 <figure>
@@ -176,29 +179,35 @@
 <p>
   Before we get to how this inner loop computes the values in \(O_{tile}\), we should
   remind ourselves <em>why</em> we are computing these values; that is, <em>what</em> are
-  we trying to compute. Recall that we want to compute, for each row, (ignoring the
-  \(sqrt{d}\) for now to keep things simple):
+  we trying to compute.
+</p>
+
+<h3>Inner Loop: Strategy</h3>
+
+<p>
+  Recall that we want to compute, for each row, (ignoring the \(\sqrt{d}\) for now to
+  keep things simple):
 </p>
 
 \[ \operatorname{softmax}(Q*K^T) \cdot V \]
 
 <p>
-  this is just \operatorname{softmax_dot}, which we can stream using the techniques
+  this is just \(\operatorname{softmax\_dot}\), which we can stream using the techniques
   described in the prior blog post, which as a reminder, involve expressing it as:
 </p>
 
 \[ \frac{\operatorname{scaled\_exponentials}(Q*K^T) \cdot V}{
 \operatorname{sum\_of\_scaled\_exponentials}(Q*K^T)} \]
 
-<p>and then streaming the top and the bottom.</p>
+<p>and then streaming the numerator and the denominator.</p>
 
 <p>So our strategy will be:</p>
 
 <ul>
   <li>
-    For each (K_tile, V_tile) pair we get, update our accumulation of the
-    <code>scaled_exponentials</code> and the <code>sum_of_scaled_exponentials</code> in
-    each row of O_tile.
+    For each (\(K_{tile}\), \(V_{tile}\)) pair we get, update our accumulation of the
+    \(\operatorname{scaled\_exponentials}\) and the
+    \(\operatorname{sum\_of\_scaled\_exponentials}\) in each row of \(O_{tile}\).
   </li>
   <li>
     To do this, have to keep track of the maximum value we've seen so far in each row,
@@ -206,27 +215,75 @@
   </li>
 </ul>
 
+<h3>Inner Loop: Steps</h3>
+
 <p>The actual steps, then, are:</p>
 
 <ol>
   <li>
     We multiply \(Q_{tile}\) and \(K_{tile}^T\) to get a block of raw attention scores
-    (size \(T \times T\)). You'll see this called `sP` in the code. We accumulate both:
+    (size \(T \times T\)). You'll see this called <code>sh_S</code> in the code; the
+    <code>sh_</code> prefix indicates that it is stored in shared memory, and the
+    <code>S</code> stands for "scores". We accumulate both:
     <ul>
       <li>The maximum value seen so far in each row.</li>
       <li>
         The scaled sum of each row (scaling using this maximum) - we'll use this at the
-        end as the denominator of the \operatorname{softmax_dot} operation.
+        end as the denominator of the \(\operatorname{softmax\_dot}\) operation.
       </li>
     </ul>
   </li>
   <li>
-    We take the dot product of this \(T \times T\) block with the \(T \times head_dim\)
-    \(V_{tile}\).
+    We take the dot product of this \(T \times T\) block with the \(T \times
+    \texttt{head_dim}\)-shaped \(V_{tile}\).
   </li>
   <li>
-    We add this to a \(T \times head_dim\) array we're using to keep track of the
-    numerator of the \operatorname{softmax_dot} operation above - we call this `sY` in
-    the code.
+    We add this to a \(T \times \texttt{head_dim}\) array we're using to keep track of
+    the accumulation of "\operatorname{scaled\_exponentials}(Q*K^T) \cdot V", that is,
+    the numerator of the \(\operatorname{softmax\_dot}\) operation above. We will add to,
+    and possibly rescale (just as we did for the scaled exponentials in
+    <code>sh_S</code>), this as we loop through the tiles of \(K\) and \(V\).
   </li>
 </ol>
+
+<p>Here's a diagram of what all this looks like:</p>
+
+<figure>
+  <img
+    src="https://sethhweidman-personal-website.s3.us-east-1.amazonaws.com/2026-01-08_flash_attention/04_ktile_vtile_inner_loop.png"
+    alt="The Outer Loop (iterating over Q) and Inner Loop (iterating over K/V)."
+  />
+</figure>
+
+<h3>Back to the Outer Loop</h3>
+
+<p>
+  Once we've gone through all the \(K\) and \(V\) tiles, we'll have a \(T \times
+  \texttt{head_dim}\) array containing the values of the numerator of the
+  \(\operatorname{softmax\_dot}\) operation, as well as the
+  \(\operatorname{sum\_of\_scaled\_exponentials}\) for each row, which is the denominator
+  of that operation. All that remains is to divide them! Doing so gives us the final,
+  complete \(O_{tile}\).
+</p>
+
+<p>
+  We loop through all tiles of \(Q\) in this way - for each \(Q_{tile}\) loaded into
+  shared memory, we loop through all tiles of \(K\) and \(V\), loading them into shared
+  memory one at a time -
+</p>
+
+<h2>Conclusion and Next Steps</h2>
+
+<p>
+  This should give you an idea of how tiling and streaming softmax can enable us to
+  compute large parts of the Multi-Head Attention operation without ever materializing
+  the entire attention matrix. We'll walk through the implementation in a future blog
+  post; for now,
+  <a
+    href="https://github.com/SethHWeidman/ai_computing/blob/master/04_flash_attention/flash_attn_v1.cu"
+    target="_blank"
+    rel="noopener noreferrer"
+    >here</a
+  >
+  is a clean implementation you can look through.
+</p>
