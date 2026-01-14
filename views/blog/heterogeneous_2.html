@@ -107,41 +107,43 @@
   define patterns that might be present in an image containing a motorcycle or a truck
   (handlebars, a large cab), but not in one containing a car. This information, even
   taken all together, would not be sufficient to determine whether a set of images
-  actually contain cars; for the prevalence of these patterns among the images, and
-  comparing this prevalence to the prevalence among a random set of images pulled from
-  the internet, we can infer which of the chunks of images are <em>likely</em> to contain
-  cars, and thus are likely to be beneficial if included as "targets" in the "car" model.
+  actually contain cars; however, from the prevalence of these patterns among the images,
+  and from comparing this prevalence to the prevalence among a random set of images
+  pulled from the internet, we can infer which of the chunks of images are
+  <em>likely</em> to contain cars, and thus are likely to be beneficial if included as
+  "targets" in the "car" model.
 </p>
 
 <p>
-  For us, the analogs to these "patterns of material" were patterns we found in the
-  "identity database", the "graph", and the other on prem data structures we had that we
-  thought might be good signals for first party fraud. There was a virtually infinite
-  universe of potential signals we could engineer. We developed hypotheses for these
-  signals through:
+  For us, the analogues to these "patterns of material" were patterns we could observe in
+  the data tied to these applications, in the "identity database", the "graph", and our
+  other on-prem data structures, that we hypothesized could be good signals for first
+  party fraud. There was a virtually infinite universe of these potential signals we
+  could engineer; we refined our possible set of hypotheses through:
 </p>
 
 <ul>
   <li>
     Primary research into first party fraud M.O.s. A common type of FPF involving ACH
     transactions requires multiple checking accounts, so we hypothesized that applying
-    for multiple checking accounts in a short period of time might be predictive. Even
-    though it wasn't built for this purpose, we were able to observe this behavior in the
-    application graph.
+    for multiple checking accounts in a short period of time might be predictive. We were
+    able to observe this behavior in the application graph, even though it was built to
+    identify identity theft.
   </li>
   <li>
     Reviewing cases from the ambiguous labels we'd received from our FI customers. Even
     though these labels were imperfect, we were able to find certain anomalous patterns
-    coming up repeatedly; for example, we could see in our identity database that many of
-    the supposed first party fraudsters had <em>previously</em> committed synthetic
-    fraud.
+    coming up repeatedly; for example, we could see in our identity database that a
+    disproportionately high number of the supposed first party fraudsters had
+    <em>previously</em> committed synthetic fraud, even if they were not committing
+    synthetic fraud on the applications where .
   </li>
 </ul>
 
 <p>
   While each of these plausibly could be a signal for first party fraud, we then had to
   validate them quantitatively, using the heterogeneous, unreliable labels we had
-  received from various friendly customers. The next section describes how we did this.
+  received from our customers. The next section describes how we did this.
 </p>
 
 <h2>Evaluating hypothesized signals on heterogeneous, unreliable labels</h2>
@@ -154,7 +156,8 @@
     three subcategories.
   </li>
   <li>
-    One from a large bank, consisting of a single lump of 2,000 first party fraud labels.
+    One from a large bank, consisting of a single chunk of 2,000 first party fraud
+    labels.
   </li>
   <li>
     One from another large bank, with 18,000 first party fraud labels divided into two
@@ -163,8 +166,9 @@
 </ul>
 
 <p>
-  For each dataset, we would produce a table showing how each signal behaved on both the
-  fraud labels and the relevant population of which the applications were a subset:
+  For each dataset, we would produce a table showing how each potential signal behaved on
+  both the fraud labels and the relevant population of which the applications were a
+  subset:
 </p>
 
 <!-- Credit Union 1 table -->
@@ -433,9 +437,10 @@
 <h2>What these tables tell us</h2>
 
 <p>
-  These tables show, for each individual "chunk" of fraud labels, the percent of those
-  labels flagged by each individual signal. For comparison, we also show in the bottom
-  row of each table the percent of the overall dataset that was flagged by the signal.
+  These tables show, for each individual chunk of fraud labels, the percent of those
+  labels "flagged" by each individual signal - that is, the "recall" of that signal on
+  that chunk. For comparison, we also show in the bottom row of each table the percent of
+  the overall dataset that was flagged by the signal.
 </p>
 
 <p>
@@ -635,11 +640,13 @@
 
 <p>
   You'll note that we also included in these tables the recalls and relative likelihoods
-  that scored high on our synthetic fraud and identity theft models. Extending the cars,
+  for scoring high on our synthetic fraud and identity theft models. Extending the cars,
   trucks, and bicycles analogy above: in addition to telling you whether there were
   certain metal patterns present, imagine you had models that you knew were 80%-90%
   accurate at telling you whether the image contained a truck or a bicycle.
 </p>
+
+<h3>Making sense of these tables</h3>
 
 <p>Looking just at these six tables, several things jump out</p>
 
