@@ -669,24 +669,15 @@
 </ul>
 
 <p>
-  Creating these tables did not depend on intensive back-and-forth with our partners; we
-  could generate them independently and then use them to drive much more focused
-  conversations about what each label set actually represented. In many cases, customers
-  confirmed that our inferences about their fraud categories were correct.
-</p>
-
-<p>
   We ended up finding eight of these signals that were predictive: prevalent among many
-  of the FPF label datasets we'd received, and not so prevalent overall. Each of these
-  eight signals was a boolean true/false flag, accompanied by numeric “sub-signals”
-  (e.g., the number of distinct SSNs someone had committed synthetic fraud with or the
-  number of DDAs applied for in different time windows). The next section covers
-  specifically how we validated that these signals were actually strong quantitatively.
+  of the FPF label datasets we'd received, and not so prevalent overall - in other words,
+  high recall, and high relative likelihood. Each of these eight signals was a boolean
+  true/false flag, accompanied by numeric “sub-signals” (e.g., the number of distinct
+  SSNs someone had committed synthetic fraud with or the number of DDAs applied for in
+  different time windows).
 </p>
 
 <h2>From signals to scores</h2>
-
-<h2>Overall product development philosophy</h2>
 
 <p>Triangulating:</p>
 
@@ -701,10 +692,12 @@
 
 <p>
   Led us to launch with two FPF scores that targeted two distinct M.O.s: in each case we
-  saw several sets of signals that consistently predicted We did not use statistical
-  techniques such as clustering to inform our assessment that we ought to launch two
-  scores; we had on the order of 10-20 datasets, and eight signals, so we simply manually
-  reviewed
+  saw several sets of signals that consistently had high recalls and relative likelihoods
+  at predicting these M.O.s. We did not use statistical techniques such as clustering on
+  the tables above to; we had on the order of 10-20 datasets and 10-20 signals - of which
+  we ended up including 8 in the initial models - so we simply manually reviewed the
+  performances of each boolean signal on each dataset to determine which ones we should
+  include.
 </p>
 
 <p>
