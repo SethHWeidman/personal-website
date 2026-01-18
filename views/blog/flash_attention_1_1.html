@@ -1,0 +1,207 @@
+<h1 class="post-title">FlashAttention - Pt. 1</h1>
+<p class="post-subtitle">How Tiling and Streaming Softmax Enable this GPU Kernel</p>
+<p class="post-date">January 12, 2026</p>
+
+<figure class="post-banner">
+  <img
+    src="https://sethhweidman-personal-website.s3.us-east-1.amazonaws.com/2026-01-08_flash_attention/02_2_flashattention_from_attention.png"
+    alt="FlashAttention as a replacement for many of the multihead attention steps."
+    class="wide-image"
+    loading="eager"
+  />
+</figure>
+
+<p>
+  This blog post will explain the FlashAttention algorithm, showing how it builds upon
+  the concepts from two prior blog posts:
+  <a href="/blog/cuda_matmul.html"><strong>tiling</strong></a
+  >, and <a href="/blog/streaming_softmax.html"><strong>streaming softmax</strong></a
+  >. We intentionally focus this post on a "whiteboard-level" description of the
+  algorithm; we'll link to an implementation at the end, but save the deep dive into the
+  code for a future blog post (though if we do our job here, it should be clear how to
+  code it up).
+</p>
+
+<h2>What is FlashAttention?</h2>
+
+<p>
+  FlashAttention is a drop-in replacement for <em>most</em> (see next paragraph) of the
+  Multi-Head Attention operation, the foundational building block for modeling sequences
+  introduced in <em>Attention is All You Need</em> and described in more detail (with a
+  couple reference implementations) <a href="/blog/multihead_attention.html">here</a>. It
+  was released in mid-2022 by a team led by
+  <a href="https://tridao.me" target="_blank" rel="noopener noreferrer">Tri Dao</a>, then
+  at Stanford. This release, now known as "FlashAttention V1", already provided a<a
+    href="https://www.youtube.com/watch?v=gMOAud7hZg4&t=31m55s"
+    target="_blank"
+    rel="noopener noreferrer"
+    >13% speedup</a
+  >
+  over highly-optimized CUDA kernels written <em>by NVIDIA</em> for their own GPUs! These
+  impressive speedups were achieved because FA V1 was first to apply the concepts
+  mentioned above - tiling and streaming softmax - to an attention kernel. Subsequent
+  versions have employed much more sophisticated software features of GPUs, some of which
+  only work on the latest and greatest "Blackwell" systems, and have had varying degrees
+  of involvement from Prof. Dao, but the basic ideas introduced in V1 continue to be core
+  and are what produced the original "great leap forward".
+</p>
+
+<p>
+  Before we dive in: FlashAttention is sometimes described as "a drop-in replacement for
+  attention". That is not entirely accurate; it replaces <em>many</em> of the steps
+  involved in Multi-Head Attention, but not all. Below is a reminder of all the steps
+  involved in Multi-Head Attention:
+</p>
+
+<figure>
+  <img
+    src="https://sethhweidman-personal-website.s3.us-east-1.amazonaws.com/2026-01-08_flash_attention/01_multihead_attention_from_attention.png"
+    alt="Standard Multi-Head Attention requires computing entire attention matrices within each head."
+  />
+</figure>
+
+<p>
+  FlashAttention fuses a particular key sequence of these operations into a single
+  kernel; in particular, standard Multi-Head Attention requires "materializing" -
+  defining and holding as one object in memory - entire "<code>sequence_length</code>
+  &times; <code>sequence_length</code>" attention matrices within each head, whereas
+  FlashAttention is able to compute the same final result while avoiding this
+  memory-intensive materialization.
+</p>
+
+<figure>
+  <img
+    src="https://sethhweidman-personal-website.s3.us-east-1.amazonaws.com/2026-01-08_flash_attention/02_2_flashattention_from_attention.png"
+    alt="FlashAttention fuses operations many operations, avoiding ever materializing an attention matrix."
+  />
+</figure>
+
+<p>So how does it do it?</p>
+
+<h2>FlashAttention v1: Preliminaries</h2>
+
+<p>
+  We'll start with three high level comments on FlashAttention that can keep you oriented
+  when going through the specific steps of the algorithm:
+</p>
+
+<h3>
+  1. The tiling approach used in FlashAttention is like the one used in matrix
+  multiplication, but with three input matrices rather than two.
+</h3>
+
+<p>
+  In this <a href="/blog/cuda_matmul.html"><strong>blog post</strong></a
+  >, we describe a technique for computing the output of an operation involving
+  <em>two</em> input matrices by dividing the matrices into "tiles", successively feeding
+  those tiles into fast "shared" memory on the GPU, and using those tiles to compute
+  partial sums which were then "accumulated" in the output we wanted to compute. The
+  technique we'll use for FlashAttention is very similar (which is why reading through
+  and making you understand that blog post is great scaffolding for understanding
+  FlashAttention), except now we have <em>three</em> input matrices - \(Q\), \(K\), and
+  \(V\) - and the operation in question is the attention operation:
+</p>
+
+\[ \operatorname{Attention}(Q, K, V) =
+\operatorname{softmax}\!\left(\frac{QK^T}{\sqrt{d}}\right)V \]
+
+<p>rather than simply a matrix multiplication.</p>
+
+<h3>
+  2. FlashAttention exploits that the same exact computation needs to happen within each
+  batch and head element
+</h3>
+
+<p>
+  That raises a question: where do these "two dimensional Tensors" we deal with in
+  FlashAttention come from? \(Q\), \(K\), and \(V\), after all, are typically
+  <em>four</em>-dimensional Tensors of shape
+  <code>[batch_size, sequence_length, head_dim, num_heads]</code> in attention
+  implementations; even if you discount the batch dimension--operations are always the
+  same within each batch element in neural networks, so that they are actually
+  "<code>batch_size</code>" identical operations happening in parallel--you are still
+  left with three dimensional Tensors of shape:
+  <code>[sequence_length, head_dim, num_heads]</code>. Here we take advantage of a
+  further parallel structure in Multi-Head Attention: the computations
+  <em>within each head</em> are identical. Naturally, then, in FlashAttention v1, we
+  launch a GPU kernel with a grid of \(B * H\) thread blocks, each of which operates on a
+  single <code>(batch_index, head_index)</code> tuple. Each thread block will then
+  operate on the three "<code>sequence_length</code> &times; <code>head_dim</code>"
+  Tensors:
+</p>
+
+<ul>
+  <li>
+    <code>Q[batch_index, head_index, :, :] </code>
+  </li>
+  <li>
+    <code>K[batch_index, head_index, :, :] </code>
+  </li>
+  <li>
+    <code>V[batch_index, head_index, :, :] </code>
+  </li>
+</ul>
+
+<p>
+  and produce the "<code>sequence_length</code> &times; <code>head_dim</code>" Tensor
+  <code>O[batch_index, head_index, :, :]</code>. So, the algorithm we'll describe
+  starting in the next section really is a "three 2D matrix" analogue of the "two 2D
+  matrix" tiling algorithm described in the prior blog post; "the magic of CUDA"
+  (specifically being able to launch \(B * H\) blocks of threads at once) scales this up
+  to be the 4D Tensor operation we need.
+</p>
+
+<p>
+  Now that we understand that we can operate on two dimensional slices of \(Q\), \(K\),
+  and, \(V\), we have to think about
+</p>
+
+<h3>
+  3. The specific tiling of \(Q\), \(K\), and, \(V\) that works in FlashAttention comes
+  from the dependencies within attention itself.
+</h3>
+
+<p>
+  If you dive into a single row of the output matrix \(O\), you'll see that it
+  <em>only</em> depends on the values from the corresponding row in \(Q\)! Incidentally,
+  it turns out each element of this row will actually depend on <em>all</em> elements of
+  \(K\) (due to the softmax operation), and all of the elements in the same column as
+  that element within \(V\). Regardless, collectively the row needs to "see" all rows of
+  \(K\) and \(V\) whereas it only needs to see the corresponding row of \(Q\). This leads
+  to the tiling strategy described in the next section.
+</p>
+
+<h2>FlashAttention: Attention on Tiles</h2>
+
+<p>
+  As with the blog post where we covered matrix multiplication, the picture showing the
+  geometry of what is going on is critical. Here, the key picture is
+</p>
+
+<p>
+  We load in a tile of \(O\) - call this \(O_{tile}\), and suppose we load in \(T\) rows
+  at a time. While this is loaded in, we loop through \(K\) and \(V\), \(T\) rows at a
+  time (these tiles don't have to have the same size as \(O\)'s, though it does make the
+  code a bit simpler). For each \(K_{tile}\), we take the dot product of \(O_{tile}\)
+  with \(K_{tile}\) transpose; this creates a \(T\) by \(T\) matrix of these sums, that,
+  in the \(N\) by \(N\) attention matrix, sits in the same <em>set of rows</em> as
+  \(O_{tile}\) and the same <em>set of columns</em> as \(K_{tile}\). Note in the diagram
+  how, for the \(K_{tile}\) roughly two thirds of the way down \(K\), the tile is roughly
+  two thirds of the way to the right of the attention matrix.
+</p>
+
+<h2>Conclusion and Next Steps</h2>
+
+<p>
+  This should give you an idea of how tiling and streaming softmax can enable us to
+  compute large parts of the Multi-Head Attention operation without ever materializing
+  the entire attention matrix. We'll walk through the implementation in a future blog
+  post; for now,
+  <a
+    href="https://github.com/SethHWeidman/ai_computing/blob/master/04_flash_attention/flash_attn_v1.cu"
+    target="_blank"
+    rel="noopener noreferrer"
+    >here</a
+  >
+  is a clean implementation you can look through.
+</p>
