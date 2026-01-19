@@ -668,16 +668,26 @@
   <li>Sub-category 2 from the credit union did not fire on any of our FPF signals</li>
 </ul>
 
+<h2>From signals to scores</h2>
+
 <p>
-  We ended up finding eight of these signals that were predictive: prevalent among many
-  of the FPF label datasets we'd received, and not so prevalent overall - in other words,
-  high recall, and high relative likelihood. Each of these eight signals was a boolean
-  true/false flag, accompanied by numeric “sub-signals” (e.g., the number of distinct
-  SSNs someone had committed synthetic fraud with or the number of DDAs applied for in
-  different time windows).
+  This analysis certainly helped us understand our data deeply; but how did we go from
+  running these numbers to producing first party fraud scores?
 </p>
 
-<h2>From signals to scores</h2>
+<p>
+  There were several decisions we had to make: which features to use, which datasets to
+  use (including which labels), and whether to develop one score or multiple.
+</p>
+
+<p>
+  We ended up finding eight of signals that were individually predictive: prevalent among
+  many of the FPF label datasets we'd received, and not so prevalent overall - in other
+  words, high recall, and high relative likelihood. Each of these eight signals was a
+  boolean true/false flag, accompanied by numeric “sub-signals” (e.g., the number of
+  distinct SSNs someone had committed synthetic fraud with or the number of DDAs applied
+  for in different time windows). Moreover, they were distinct from each other.
+</p>
 
 <p>Triangulating:</p>
 
@@ -685,7 +695,7 @@
   <li>Our primary research into the fraud M.O.s</li>
   <li>The recalls and relative likelihoods of the individual fraud signals</li>
   <li>
-    Using this analysis to engage partners in conversations about their fraud labels
+    Using this analysis to engage partners in conversations about their fraud labels to
     refine our labels
   </li>
 </ul>
@@ -833,4 +843,4 @@
 </p>
 
 <br />
-<button onclick="window.location.href='/'">Back to Home</button>
+<button onclick="window.location.href = '/'">Back to Home</button>
