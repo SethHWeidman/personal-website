@@ -173,22 +173,99 @@
 
 <h2>FlashAttention: Attention on Tiles</h2>
 
-<p>
-  As with the blog post where we covered matrix multiplication, the picture showing the
-  geometry of what is going on is critical. Here, the key picture is
-</p>
+<blockquote>
+  Now that we'll be describing the algorithm in more detail, we'll start employing some
+  shorthand, using:
+  <ol>
+    <li>\(N\) to refer to the <code>sequence_length</code></li>
+    <li>\(D\) to refer to the <code>head_dim</code></li>
+  </ol>
+</blockquote>
 
 <p>
-  We load in a tile of \(O\) - call this \(O_{tile}\), and suppose we load in \(T\) rows
-  at a time. While this is loaded in, we loop through \(K\) and \(V\), \(T\) rows at a
-  time (these tiles don't have to have the same size as \(O\)'s, though it does make the
-  code a bit simpler). For each \(K_{tile}\), we take the dot product of \(O_{tile}\)
-  with \(K_{tile}\) transpose; this creates a \(T\) by \(T\) matrix of these sums, that,
-  in the \(N\) by \(N\) attention matrix, sits in the same <em>set of rows</em> as
-  \(O_{tile}\) and the same <em>set of columns</em> as \(K_{tile}\). Note in the diagram
-  how, for the \(K_{tile}\) roughly two thirds of the way down \(K\), the tile is roughly
-  two thirds of the way to the right of the attention matrix.
+  As with the blog post where we covered matrix multiplication, the picture showing the
+  geometry of what is going on is critical. The key picture is below:
 </p>
+
+<figure>
+  <img
+    src="https://sethhweidman-personal-website.s3.us-east-1.amazonaws.com/2026-01-08_flash_attention/04_tiled_flash_attention.png"
+    alt="FlashAttention fuses operations many operations, avoiding ever materializing an attention matrix."
+  />
+</figure>
+
+<ol>
+  <li>
+    We load in a tile of \(O\) - call this \(O_{tile}\), and suppose we load in \(Tr\)
+    rows at a time.
+  </li>
+  <li>
+    <ol>
+      <li>
+        While this is loaded in, we loop through \(K\) and \(V\), \(Tc\) rows at a time
+        (the
+        <code>c</code>
+        is for columns; you'll see why shortly).
+      </li>
+      <li>
+        For each \(K_{tile}\), we take the dot product of \(O_{tile}\) with \(K_{tile}\)
+        transpose; this creates a "\(Tr\) rows by \(Tc\) columns" matrix of these sums,
+        that, in the \(N\) by \(N\) attention matrix, sits in the same
+        <em>set of rows</em>
+        as \(O_{tile}\) and the same
+        <em>set of columns</em>
+        as \(K_{tile}\) (note in the diagram how, for the \(K_{tile}\) roughly two thirds
+        of the way down \(K\), the tile is roughly two thirds of the way to the right of
+        the attention matrix).
+      </li>
+      <li>
+        We then perform the "streaming softmax" update operations on each row;
+        incrementing the "scaled sum of exponentials" of each row by keeping track of the
+        maximum and rescaling the previous sum if it changed. We call this
+        <code>sh_S</code> (the scaled <strong>sum</strong> of the row, stored in shared
+        memory). We call this <code>sh_S</code> (the scaled <strong>sum</strong> of the
+        row, stored in shared memory). We keep track of both the scaled sum of
+        exponentials (called <code>li</code>, in keeping with the convention for this
+        quantity in FlashAttention contexts), and the maximum value seen so far (called
+        <code>mi</code> in the code since it is the <strong>m</strong>aximum of the
+        <code>i</code>th row).
+      </li>
+      <li>
+        We take the dot product of each of these now-scaled rows with the corresponding
+        column of \(V\) - in practice, we do all of these dot products at once using a
+        matrix multiplication, to produce a \(Tr\) by \(D\) array in the same location as
+        \(O_{tile}\). We call this <code>sh_O_accum</code> - the
+        <strong>accum</strong>ulation of \(O\) in <strong>sh</strong>ared memory - in the
+        code.
+      </li>
+      <li>
+        As in the matrix multiplication algorithm, we <em>increment</em> these \(Tr\) by
+        \(D\) elements of \(O_{tile}\).
+      </li>
+      <p>
+        We move on to the next \(K\) and \(V\) tiles within the inner loop. After looping
+        through all tiles in \(K\) and \(V\), we fully accumulate the results for
+        \(O_{tile}\) in <code>sh_O_accum</code>. That leaves ones final step..
+      </p>
+      <li>
+        What we've actually computed in \(O_{tile}\) at this point is the
+        <em>numerator</em> of softmax-dot. Recall that taking the softmax of a vector and
+        then its dot product with another vector is:
+      </li>
+      \[ \frac{\operatorname{scaled\_exponentials}(Q*K^T) \cdot V}{
+      \operatorname{sum\_of\_scaled\_exponentials}(Q*K^T)} \]
+      <p>
+        So, as the final step of the inner loop, we need to divide the values in
+        \(O_{tile}\) by the denominator of softmax-dot. Luckily, we have this stored
+        already in each row!
+      </p>
+    </ol>
+  </li>
+  <li>
+    Finally, we move on to the next \(Q_{tile}\) in the outer loop, and repeat the steps
+    above until we have filled all of \(O_{tile}\)!
+  </li>
+</ol>
 
 <h2>Conclusion and Next Steps</h2>
 
