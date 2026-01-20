@@ -16,20 +16,27 @@
   the concepts from two prior blog posts:
   <a href="/blog/cuda_matmul.html"><strong>tiling</strong></a
   >, and <a href="/blog/streaming_softmax.html"><strong>streaming softmax</strong></a
-  >. We intentionally focus this post on a "whiteboard-level" description of the
-  algorithm; we'll link to an implementation at the end, but save the deep dive into the
-  code for a future blog post (though if we do our job here, it should be clear how to
-  code it up).
+  >. More specifically, this post will focus on a "whiteboard-level" understanding of the
+  algorithm, and, where helpful, will link out to a
+  <a
+    href="https://github.com/SethHWeidman/ai_computing/blob/master/04_flash_attention/pseudocode_implementation.py"
+    target="_blank"
+    rel="noopener noreferrer"
+    >Python implementation</a
+  >; we'll save a walkthrough of a full CUDA implementation for a future blog post
+  (though readers may find it a good exercise to implement FlashAttention in CUDA after
+  reading this blog post and using the Python implementation as a starting point).
 </p>
 
-<h2>What is FlashAttention?</h2>
+<h2>What is FlashAttention? Background and historical context</h2>
 
 <p>
-  FlashAttention is a drop-in replacement for <em>most</em> (see next paragraph) of the
-  Multi-Head Attention operation, the foundational building block for modeling sequences
-  introduced in <em>Attention is All You Need</em> and described in more detail (with a
-  couple reference implementations) <a href="/blog/multihead_attention.html">here</a>. It
-  was released in mid-2022 by a team led by
+  FlashAttention is a drop-in replacement for many of the steps of the Multi-Head
+  Attention operation, which itself is the foundational building block for modeling
+  sequences introduced in <em>Attention is All You Need</em> and described in more detail
+  (with a couple reference implementations) in a prior blog post
+  <a href="/blog/multihead_attention.html">here</a>. It was released in mid-2022 by a
+  team led by
   <a href="https://tridao.me" target="_blank" rel="noopener noreferrer">Tri Dao</a>, then
   at Stanford. This release, now known as "FlashAttention V1", already provided a<a
     href="https://www.youtube.com/watch?v=gMOAud7hZg4&t=31m55s"
@@ -41,16 +48,19 @@
   impressive speedups were achieved because FA V1 was first to apply the concepts
   mentioned above - tiling and streaming softmax - to an attention kernel. Subsequent
   versions have employed much more sophisticated software features of GPUs, some of which
-  only work on the latest and greatest "Blackwell" systems, and have had varying degrees
-  of involvement from Prof. Dao, but the basic ideas introduced in V1 continue to be core
-  and are what produced the original "great leap forward".
+  only work on the most recent NVIDIA GPU generations, and have had varying degrees of
+  involvement from Prof. Dao, but the basic ideas introduced in V1 continue to be core
+  and are what produced the original "great leap forward" in attention performance on
+  GPUs.
 </p>
 
+<h2>How FlashAttention fits into Multi-Head Attention</h2>
+
 <p>
-  Before we dive in: FlashAttention is sometimes described as "a drop-in replacement for
-  attention". That is not entirely accurate; it replaces <em>many</em> of the steps
-  involved in Multi-Head Attention, but not all. Below is a reminder of all the steps
-  involved in Multi-Head Attention:
+  FlashAttention is sometimes described as "a drop-in replacement for attention". That is
+  not entirely accurate; it replaces <em>many</em> of the steps involved in Multi-Head
+  Attention, but not all. Below is a reminder of all the steps involved in Multi-Head
+  Attention:
 </p>
 
 <figure>
@@ -190,13 +200,13 @@
 <figure>
   <img
     src="https://sethhweidman-personal-website.s3.us-east-1.amazonaws.com/2026-01-08_flash_attention/04_tiled_flash_attention.png"
-    alt="FlashAttention fuses operations many operations, avoiding ever materializing an attention matrix."
+    alt="FlashAttention operates on tiles of Q, K, and V to produce accumulations of O_tile"
   />
 </figure>
 
 <ol>
   <li>
-    We load in a tile of \(O\) - call this \(O_{tile}\), and suppose we load in \(Tr\)
+    We load in a tile of \(Q\) - call this \(Q_{tile}\), and suppose we load in \(Tr\)
     rows at a time.
   </li>
   <li>
@@ -208,11 +218,11 @@
         is for columns; you'll see why shortly).
       </li>
       <li>
-        For each \(K_{tile}\), we take the dot product of \(O_{tile}\) with \(K_{tile}\)
+        For each \(K_{tile}\), we take the dot product of \(Q_{tile}\) with \(K_{tile}\)
         transpose; this creates a "\(Tr\) rows by \(Tc\) columns" matrix of these sums,
         that, in the \(N\) by \(N\) attention matrix, sits in the same
         <em>set of rows</em>
-        as \(O_{tile}\) and the same
+        as \(Q_{tile}\) and the same
         <em>set of columns</em>
         as \(K_{tile}\) (note in the diagram how, for the \(K_{tile}\) roughly two thirds
         of the way down \(K\), the tile is roughly two thirds of the way to the right of
@@ -221,14 +231,10 @@
       <li>
         We then perform the "streaming softmax" update operations on each row;
         incrementing the "scaled sum of exponentials" of each row by keeping track of the
-        maximum and rescaling the previous sum if it changed. We call this
-        <code>sh_S</code> (the scaled <strong>sum</strong> of the row, stored in shared
-        memory). We call this <code>sh_S</code> (the scaled <strong>sum</strong> of the
-        row, stored in shared memory). We keep track of both the scaled sum of
-        exponentials (called <code>li</code>, in keeping with the convention for this
-        quantity in FlashAttention contexts), and the maximum value seen so far (called
-        <code>mi</code> in the code since it is the <strong>m</strong>aximum of the
-        <code>i</code>th row).
+        maximum and rescaling the previous sum if it changed. We store the sum of scaled
+        exponentials for that row in
+        <code>row_sumexp[row_in_q_tile]</code> in the code. In addition, we keep track of
+        the maximum value seen so far in that row in <code>row_max[row_in_q_tile]</code>.
       </li>
       <li>
         We take the dot product of each of these now-scaled rows with the corresponding
