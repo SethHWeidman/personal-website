@@ -253,7 +253,8 @@
         <p>
           We multiply these now-scaled rows by the corresponding \(V_{tile}\) to get a
           \(Tr \times D\) tile contribution in the same location as \(O_{tile}\). In code
-          we call this <code>sh_O_accum</code>.
+          we call this <code>sh_O_accum</code> - the <strong>accum</strong>ulation of
+          \(O\) in <strong>sh</strong>ared memory - in the code.
         </p>
       </li>
 
@@ -277,7 +278,8 @@
 
         <p>
           So the final step is to divide each row of the accumulated numerator by its
-          stored denominator (<code>row_sumexp[...]</code>).
+          stored denominator, which we've stored as
+          <code>row_sumexp[row_in_q_tile]</code>.
         </p>
       </li>
     </ol>
