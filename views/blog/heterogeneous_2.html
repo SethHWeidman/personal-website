@@ -676,17 +676,38 @@
 </p>
 
 <p>
-  There were several decisions we had to make: which features to use, which datasets to
-  use (including which labels), and whether to develop one score or multiple.
+  When modeling, before making technical decisions like which model structure to use
+  (logistic regression or gradient boosted tree) and how to select hyperparameters, there
+  are decisions which are closer to business decisions which end up having a much bigger
+  impact on the efficacy of the model you build. They are:
+</p>
+
+<ul>
+  <li>
+    Which features (or "signals" as we tended to refer to them) to use - what the
+    "columns" of the dataset behind the model that you build will be.
+  </li>
+  <li>
+    Which dataset or datasets you'll train on; this includes deciding both what the
+    "bads" and the "not bads" should be.
+  </li>
+</ul>
+
+<p>
+  <strong
+    >The analysis described above directly informed both of these questions!</strong
+  >
 </p>
 
 <p>
-  We ended up finding eight of signals that were individually predictive: prevalent among
-  many of the FPF label datasets we'd received, and not so prevalent overall - in other
-  words, high recall, and high relative likelihood. Each of these eight signals was a
+  We ended up finding eight signals that were conceptually distinct from one another and
+  individually "predictive". By this, we mean that they were prevalent among many of the
+  FPF label datasets we'd received, and not so prevalent overall - in other words, high
+  recall, and high relative likelihood, respectively. Each of these eight signals was a
   boolean true/false flag, accompanied by numeric “sub-signals” (e.g., the number of
   distinct SSNs someone had committed synthetic fraud with or the number of DDAs applied
-  for in different time windows). Moreover, they were distinct from each other.
+  for in different time windows). These signals ultimately became 40 features in our
+  model.
 </p>
 
 <p>Triangulating:</p>
