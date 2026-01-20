@@ -186,7 +186,7 @@
 <blockquote>
   Now that we'll be describing the algorithm in more detail, we'll start employing some
   shorthand, using:
-  <ol>
+  <ol class="fa-steps">
     <li>\(N\) to refer to the <code>sequence_length</code></li>
     <li>\(D\) to refer to the <code>head_dim</code></li>
   </ol>
@@ -204,72 +204,90 @@
   />
 </figure>
 
-<ol>
+<ol class="fa-steps">
   <li>
-    We load in a tile of \(Q\) - call this \(Q_{tile}\), and suppose we load in \(Tr\)
-    rows at a time.
+    <p>
+      <strong>Outer loop (over query tiles):</strong>
+      We load in a tile of \(Q\) — call this \(Q_{tile}\) — and suppose we load in \(Tr\)
+      rows at a time.
+    </p>
   </li>
+
   <li>
-    <ol>
+    <p>
+      <strong
+        >Inner loop (stream over key/value tiles while \(Q_{tile}\) stays
+        resident):</strong
+      >
+    </p>
+
+    <ol class="fa-substeps">
       <li>
-        While this is loaded in, we loop through \(K\) and \(V\), \(Tc\) rows at a time
-        (the
-        <code>c</code>
-        is for columns; you'll see why shortly).
+        <p>
+          While this is loaded in, we loop through \(K\) and \(V\), \(Tc\) rows at a time
+          (the <code>c</code> is for columns; you’ll see why shortly).
+        </p>
       </li>
+
       <li>
-        For each \(K_{tile}\), we take the dot product of \(Q_{tile}\) with \(K_{tile}\)
-        transpose; this creates a "\(Tr\) rows by \(Tc\) columns" matrix of these sums,
-        that, in the \(N\) by \(N\) attention matrix, sits in the same
-        <em>set of rows</em>
-        as \(Q_{tile}\) and the same
-        <em>set of columns</em>
-        as \(K_{tile}\) (note in the diagram how, for the \(K_{tile}\) roughly two thirds
-        of the way down \(K\), the tile is roughly two thirds of the way to the right of
-        the attention matrix).
+        <p>
+          For each \(K_{tile}\), we take the dot product of \(Q_{tile}\) with
+          \(K_{tile}^T\); this creates a "\(Tr\) rows by \(Tc\) columns" matrix of sums
+          that, in the \(N \times N\) attention matrix, sits in the same
+          <em>set of rows</em> as \(Q_{tile}\) and the same <em>set of columns</em> as
+          \(K_{tile}\).
+        </p>
       </li>
+
       <li>
-        We then perform the "streaming softmax" update operations on each row;
-        incrementing the "scaled sum of exponentials" of each row by keeping track of the
-        maximum and rescaling the previous sum if it changed. We store the sum of scaled
-        exponentials for that row in
-        <code>row_sumexp[row_in_q_tile]</code> in the code. In addition, we keep track of
-        the maximum value seen so far in that row in <code>row_max[row_in_q_tile]</code>.
+        <p>
+          We perform the streaming-softmax update on each row: update the running max and
+          the running “sum of scaled exponentials”, rescaling the previous sum if the max
+          changed. We store the running denominator in
+          <code>row_sumexp[row_in_q_tile]</code> and the running max in
+          <code>row_max[row_in_q_tile]</code>.
+        </p>
       </li>
+
       <li>
-        We take the dot product of each of these now-scaled rows with the corresponding
-        column of \(V\) - in practice, we do all of these dot products at once using a
-        matrix multiplication, to produce a \(Tr\) by \(D\) array in the same location as
-        \(O_{tile}\). We call this <code>sh_O_accum</code> - the
-        <strong>accum</strong>ulation of \(O\) in <strong>sh</strong>ared memory - in the
-        code.
+        <p>
+          We multiply these now-scaled rows by the corresponding \(V_{tile}\) to get a
+          \(Tr \times D\) tile contribution in the same location as \(O_{tile}\). In code
+          we call this <code>sh_O_accum</code>.
+        </p>
       </li>
+
       <li>
-        As in the matrix multiplication algorithm, we <em>increment</em> these \(Tr\) by
-        \(D\) elements of \(O_{tile}\).
+        <p>
+          As in tiled matrix multiplication, we <em>increment</em> these \(Tr \times D\)
+          elements of \(O_{tile}\), then move on to the next \(K/V\) tiles.
+        </p>
       </li>
-      <p>
-        We move on to the next \(K\) and \(V\) tiles within the inner loop. After looping
-        through all tiles in \(K\) and \(V\), we fully accumulate the results for
-        \(O_{tile}\) in <code>sh_O_accum</code>. That leaves ones final step..
-      </p>
+
       <li>
-        What we've actually computed in \(O_{tile}\) at this point is the
-        <em>numerator</em> of softmax-dot. Recall that taking the softmax of a vector and
-        then its dot product with another vector is:
+        <p>
+          After looping through all tiles in \(K\) and \(V\), we’ve accumulated the
+          <em>numerator</em> of softmax-dot for each row.
+        </p>
+
+        <div class="math-block">
+          \[ \frac{\operatorname{scaled\_exponentials}(QK^T)\cdot V}
+          {\operatorname{sum\_of\_scaled\_exponentials}(QK^T)} \]
+        </div>
+
+        <p>
+          So the final step is to divide each row of the accumulated numerator by its
+          stored denominator (<code>row_sumexp[...]</code>).
+        </p>
       </li>
-      \[ \frac{\operatorname{scaled\_exponentials}(Q*K^T) \cdot V}{
-      \operatorname{sum\_of\_scaled\_exponentials}(Q*K^T)} \]
-      <p>
-        So, as the final step of the inner loop, we need to divide the values in
-        \(O_{tile}\) by the denominator of softmax-dot. Luckily, we have this stored
-        already in each row!
-      </p>
     </ol>
   </li>
+
   <li>
-    Finally, we move on to the next \(Q_{tile}\) in the outer loop, and repeat the steps
-    above until we have filled all of \(O_{tile}\)!
+    <p>
+      <strong>Back to the outer loop:</strong>
+      Move on to the next \(Q_{tile}\) and repeat until all rows of \(O\) are filled.
+    </p>
   </li>
 </ol>
 
