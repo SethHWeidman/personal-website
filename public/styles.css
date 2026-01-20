@@ -95,6 +95,55 @@ figure img {
   margin-bottom: 20px;
 }
 
+/* Only affects lists that opt into these classes */
+ol.fa-steps,
+ol.fa-steps ol {
+  list-style: none;
+  padding-left: 0;
+  margin-left: 0;
+}
+
+ol.fa-steps {
+  counter-reset: step;
+}
+
+ol.fa-steps > li {
+  counter-increment: step;
+  position: relative;
+  padding-left: 2.4rem;
+  margin: 1rem 0;
+}
+
+ol.fa-steps > li::before {
+  content: counter(step) ".";
+  position: absolute;
+  left: 0;
+  font-weight: 700;
+}
+
+ol.fa-steps > li > ol {
+  counter-reset: substep;
+  margin-top: 0.6rem;
+}
+
+ol.fa-steps > li > ol > li {
+  counter-increment: substep;
+  position: relative;
+  padding-left: 3.2rem;
+  margin: 0.75rem 0;
+}
+
+ol.fa-steps > li > ol > li::before {
+  content: counter(step) "." counter(substep) ".";
+  position: absolute;
+  left: 0;
+  font-weight: 700;
+}
+
+.math-block {
+  margin: 0.75rem 0 0.75rem 0;
+}
+
 /* Responsive Design */
 @media (max-width: 600px) {
   input[type="text"] {

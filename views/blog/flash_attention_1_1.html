@@ -25,7 +25,7 @@
     >Python implementation</a
   >; we'll save a walkthrough of a full CUDA implementation for a future blog post
   (though readers may find it a good exercise to implement FlashAttention in CUDA after
-  reading this blog post and using the Python implementation as a starting point).
+  reading this blog post, using the Python implementation as a starting point).
 </p>
 
 <h2>What is FlashAttention? Background and historical context</h2>
@@ -49,9 +49,9 @@
   mentioned above - tiling and streaming softmax - to an attention kernel. Subsequent
   versions have employed much more sophisticated software features of GPUs, some of which
   only work on the most recent NVIDIA GPU generations, and have had varying degrees of
-  involvement from Prof. Dao, but the basic ideas introduced in V1 continue to be core
-  and are what produced the original "great leap forward" in attention performance on
-  GPUs.
+  involvement from Prof. Dao<sup id="fnref1"><a href="#fn1">1</a></sup
+  >, but the basic ideas introduced in V1 continue to be core and are what produced the
+  original "great leap forward" in attention performance on GPUs.
 </p>
 
 <h2>How FlashAttention fits into Multi-Head Attention</h2>
@@ -305,4 +305,39 @@
     >here</a
   >
   is a clean implementation you can look through.
+</p>
+
+<h3>Footnotes</h3>
+
+<p id="fn1" class="footnote">
+  <sup>
+    <a href="#fnref1">1</a>
+  </sup>
+  <a
+    href="https://pytorch.org/blog/flashattention-3/"
+    target="_blank"
+    rel="noopener noreferrer"
+    >FlashAttention v3</a
+  >
+  (published on June 2024) was led by a team at
+  <a href="https://research.colfax-intl.com" target="_blank" rel="noopener noreferrer"
+    >Colfax Research</a
+  >
+  and NVIDIA, whereas FlashAttention v4 (which has only been semi-published, with Tri Dao
+  giving a talk on an early version of it in August 2025) appears to be nearly 2,000
+  lines of
+  <a
+    href="https://github.com/Dao-AILab/flash-attention/blob/5c1627a7a1cda9c32cb9b937a053564e663f81bc/flash_attn/cute/flash_fwd_sm100.py"
+    target="_blank"
+    rel="noopener noreferrer"
+    >Python CuTe DSL code</a
+  >
+  written
+  <a
+    href="https://github.com/Dao-AILab/flash-attention/blame/5c1627a7a1cda9c32cb9b937a053564e663f81bc/flash_attn/cute/flash_fwd_sm100.py"
+    target="_blank"
+    rel="noopener noreferrer"
+    >by Prof. Dao himself</a
+  >.
+  <a href="#fnref1" class="footnote-backref">↩</a>
 </p>
