@@ -4,8 +4,8 @@
 
 <figure class="post-banner">
   <img
-    src="https://sethhweidman-personal-website.s3.us-east-1.amazonaws.com/2026-01-08_flash_attention/02_2_flashattention_from_attention.png"
-    alt="FlashAttention as a replacement for many of the multihead attention steps."
+    src="https://sethhweidman-personal-website.s3.us-east-1.amazonaws.com/2026-01-08_flash_attention/flash_attention_banner.png"
+    alt="FlashAttention computes O by tiling Q, K, and V."
     class="wide-image"
     loading="eager"
   />
@@ -45,13 +45,13 @@
     >13% speedup</a
   >
   over highly-optimized CUDA kernels written <em>by NVIDIA</em> for their own GPUs! These
-  impressive speedups were achieved because FA V1 was first to apply the concepts
-  mentioned above - tiling and streaming softmax - to an attention kernel. Subsequent
-  versions have employed much more sophisticated software features of GPUs, some of which
-  only work on the most recent NVIDIA GPU generations, and have had varying degrees of
-  involvement from Prof. Dao<sup id="fnref1"><a href="#fn1">1</a></sup
+  impressive speedups were achieved because FA V1 was first to apply the concepts covered
+  in this series of posts - tiling and streaming softmax - to the attention operation.
+  Subsequent versions have employed much more sophisticated software features of GPUs,
+  some of which only work on the most recent NVIDIA GPU generations, and have had varying
+  degrees of involvement from Prof. Dao<sup id="fnref1"><a href="#fn1">1</a></sup
   >, but the basic ideas introduced in V1 continue to be core and are what produced the
-  original "great leap forward" in attention performance on GPUs.
+  original "great leap forward" in Multi-Head Attention performance on GPUs.
 </p>
 
 <h2>How FlashAttention fits into Multi-Head Attention</h2>
@@ -71,7 +71,7 @@
 </figure>
 
 <p>
-  FlashAttention fuses a particular key sequence of these operations into a single
+  FlashAttention fuses a particular key sequence of these operations into a single CUDA
   kernel; in particular, standard Multi-Head Attention requires "materializing" -
   defining and holding as one object in memory - entire "<code>sequence_length</code>
   &times; <code>sequence_length</code>" attention matrices within each head, whereas
@@ -163,7 +163,8 @@
 
 <p>
   Now that we understand that we can operate on two dimensional slices of \(Q\), \(K\),
-  and, \(V\), we have to think about
+  and, \(V\), we have to get to the core of the problem: how are we going to "tile" these
+  to compute \(O\) without ever computing the full attention matrix.
 </p>
 
 <h3>
@@ -184,12 +185,32 @@
 <h2>FlashAttention: Attention on Tiles</h2>
 
 <blockquote>
-  Now that we'll be describing the algorithm in more detail, we'll start employing some
-  shorthand, using:
-  <ol class="fa-steps">
+  In the diagram and the text below, we'll use
+  <ul>
     <li>\(N\) to refer to the <code>sequence_length</code></li>
     <li>\(D\) to refer to the <code>head_dim</code></li>
-  </ol>
+  </ul>
+
+  <p>
+    Moreover, we refer to a
+    <a
+      href="https://github.com/SethHWeidman/ai_computing/blob/master/04_flash_attention/pseudocode_implementation.py"
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      Python re-write
+    </a>
+    of the
+    <a
+      href="https://github.com/SethHWeidman/ai_computing/blob/master/04_flash_attention/flash_attn_v1.cu"
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      CUDA kernel</a
+    >
+    that may be easier for readers to grok and/or hack on themselves than the CUDA C++
+    code.
+  </p>
 </blockquote>
 
 <p>
@@ -241,9 +262,21 @@
 
       <li>
         <p>
-          We perform the streaming-softmax update on each row: update the running max and
-          the running “sum of scaled exponentials”, rescaling the previous sum if the max
-          changed. We store the running denominator in
+          We perform a couple of "streaming-softmax dot"-related updates on each row.
+          Applying the ideas from the streaming softmax blog post, the attention
+          mechanism can be written as:
+        </p>
+
+        <div class="math-block">
+          \[ \frac{\operatorname{scaled\_exponentials}(QK^T)\cdot V}
+          {\operatorname{sum\_of\_scaled\_exponentials}(QK^T)} \]
+        </div>
+
+        <p>
+          We know how to compute this in a "streaming" fashion: we update the running
+          max, and use this updated max to update the running “sum of scaled
+          exponentials”, rescaling if necessary. For an individual
+          <code>row_in_q_tile</code> row, we store the running denominator in
           <code>row_sumexp[row_in_q_tile]</code> and the running max in
           <code>row_max[row_in_q_tile]</code>.
         </p>
@@ -261,7 +294,7 @@
       <li>
         <p>
           As in tiled matrix multiplication, we <em>increment</em> these \(Tr \times D\)
-          elements of \(O_{tile}\), then move on to the next \(K/V\) tiles.
+          elements of \(O_{tile}\), then move on to the next \(K\) and \(V\) tiles.
         </p>
       </li>
 
@@ -270,11 +303,6 @@
           After looping through all tiles in \(K\) and \(V\), we’ve accumulated the
           <em>numerator</em> of softmax-dot for each row.
         </p>
-
-        <div class="math-block">
-          \[ \frac{\operatorname{scaled\_exponentials}(QK^T)\cdot V}
-          {\operatorname{sum\_of\_scaled\_exponentials}(QK^T)} \]
-        </div>
 
         <p>
           So the final step is to divide each row of the accumulated numerator by its
