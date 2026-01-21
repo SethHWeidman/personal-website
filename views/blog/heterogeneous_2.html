@@ -695,14 +695,24 @@
 
 <p>
   <strong
-    >The analysis described above directly informed both of these questions!</strong
-  >
+    >The analysis described above directly informs both of these questions! Indeed,
+    without breaking down how key individual signals are or are not associated with
+    various potential targets, you are just taking shots in the dark when trying to make
+    these decisions. [footnote: an alternative approach is just to feed every conceivable
+    signal you can think of into the model. We learned some hard lessons about doing this
+    with our synthetic and ID theft models: while throwing many features at the problem,
+    rather than selecting only features that were both predictive and made sense
+    conceptually, did not degrade overall model performance, it led to much less
+    explainable SHAP values and occasional misses that sometimes raised embarassing
+    questions among our largest and most conservative customers]
+  </strong>
 </p>
 
 <p>
-  We ended up finding eight signals that were conceptually distinct from one another and
-  individually "predictive". By this, we mean that they were prevalent among many of the
-  FPF label datasets we'd received, and not so prevalent overall - in other words, high
+  Of the 10-20 potential signals we evaluated, we ended up finding eight that were
+  conceptually distinct from one another and individually "predictive" on many of the
+  datasets we'd received. By this, we mean that they were prevalent among many of the FPF
+  label datasets we'd received, and not so prevalent overall - in other words, high
   recall, and high relative likelihood, respectively. Each of these eight signals was a
   boolean true/false flag, accompanied by numeric “sub-signals” (e.g., the number of
   distinct SSNs someone had committed synthetic fraud with or the number of DDAs applied
@@ -710,32 +720,32 @@
   model.
 </p>
 
-<p>Triangulating:</p>
-
-<ul>
-  <li>Our primary research into the fraud M.O.s</li>
-  <li>The recalls and relative likelihoods of the individual fraud signals</li>
-  <li>
-    Using this analysis to engage partners in conversations about their fraud labels to
-    refine our labels
-  </li>
-</ul>
-
 <p>
-  Led us to launch with two FPF scores that targeted two distinct M.O.s: in each case we
-  saw several sets of signals that consistently had high recalls and relative likelihoods
-  at predicting these M.O.s. We did not use statistical techniques such as clustering on
-  the tables above to; we had on the order of 10-20 datasets and 10-20 signals - of which
-  we ended up including 8 in the initial models - so we simply manually reviewed the
-  performances of each boolean signal on each dataset to determine which ones we should
-  include.
+  To choose which datasets to use as our "goods" and "bads", we used the analysis above
+  as a starting point, and followed it up with primary research into the fraud M.O.s.
+  This led us to conclude that the "bad" labels we'd received could be broadly grouped
+  into two distinct FPF M.O.s, one related to check fraud and one related to ACH fraud;
+  we saw these bad labels consistently associated with distinctive (though overlapping)
+  sets of the eight signals we'd found. Note that we did not use statistical techniques
+  such as clustering on the tables above; we had on the order of 10-20 datasets and 10-20
+  signals - of which we ended up including 8 in the initial models - so we simply
+  manually reviewed the performances of each boolean signal on each dataset to determine
+  which ones we should include.
 </p>
 
 <p>
-  We ended up training our initial scores on one customer’s information each; these were
-  customers where we were able to deeply engage with them about the sub-categories of
-  labels they had sent, and thus end up with a concentrated set of 1,000-2,000 very high
-  quality labels for each model.
+  Once we had decided on these two distinct models and had a general sense of the labels
+  we wanted to include in each, we were able to go back to the customers from whom we'd
+  received these labels, share our analysis and research into the fraud M.O.s, and based
+  on this engagement, dive deeper into these labels and refine them down further with
+  input from those customers to ones that truly fit the distinctive fraud patterns we
+  were targeting. This ability to refine the labels with input from the customers we
+  received the labels from was so critical in increasing label quality that we ended up
+  training each of the initial scores on one customer’s information each; our deep
+  engagement with these customers about the sub-categories of labels they had sent, led
+  to us having a concentrated set of 1,000-2,000 very high quality labels as the "bads"
+  for each model; the "goods" were approved applications from the same time period of the
+  bads from those same customers.
 </p>
 
 <h2>The scores did well</h2>
