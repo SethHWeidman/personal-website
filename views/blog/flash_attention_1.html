@@ -417,20 +417,35 @@
   </li>
 </ol>
 
+<h2>Computational and memory complexity</h2>
+
+<p>
+  As should be clear from the diagrams and description of the algorithm above:
+  <strong
+    >FlashAttention actually consumes <em>constant</em> memory in the forward
+    pass</strong
+  >, whereas a naive Multi-Head Attention implementation would require \(O(N^2)\) memory!
+  Though we won't go into the backward pass in detail in this blog post, it turns out the
+  standard way of computing it, that offers a very good tradeoff between computation and
+  memory, involves saving the per-row maxima and sums of scaled exponentials; this takes
+  up \(O(N)\) memory. Still a huge improvement from \(O(N^2)\)!
+</p>
+
 <h2>Conclusion and Next Steps</h2>
 
 <p>
-  This should give you an idea of how tiling and streaming softmax can enable us to
-  compute large parts of the Multi-Head Attention operation without ever materializing
-  the entire attention matrix. We'll walk through the implementation in a future blog
-  post; for now,
+  This post covered how tiling and streaming softmax enable us to compute large parts of
+  the Multi-Head Attention operation without ever materializing the entire attention
+  matrix, along with pseudocode that should make the algorithm more concrete. In a future
+  blog post we'll walk through the CUDA side of the implementation in more detail; for
+  now,
   <a
     href="https://github.com/SethHWeidman/ai_computing/blob/master/04_flash_attention/flash_attn_v1.cu"
     target="_blank"
     rel="noopener noreferrer"
-    >here</a
+    >this</a
   >
-  is a clean implementation you can look through.
+  xhould provide a clean implementation you can look through.
 </p>
 
 <h3>Footnotes</h3>
