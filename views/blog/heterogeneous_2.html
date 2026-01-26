@@ -32,10 +32,11 @@
 
 <p>
   This presented three potential problems for building a score. The first was these
-  labels' obvious heterogeneity. The second was that some labels—especially those based
-  on observed behaviors—may not have occurred due to FPF (the behaviors may have occurred
-  due to identity theft, for example). The third was that in some cases—especially the
-  labels generated through manual review—no fraud may have occurred at all.
+  labels' obvious heterogeneity. The second broad reason was mislabeling: some labels,
+  especially those based mostly on our customers observing some bad outcome, may not have
+  occurred due to FPF (the behaviors may have occurred due to identity theft, for
+  example), and in other cases, such as when a broad swath of applications may have all
+  been labeled bad during a fraud attack, some may not have occurred at all.
 </p>
 
 <p>
@@ -53,11 +54,13 @@
 </p>
 
 <p>
-  These curated labels—each based on manual review of data we had on-prem relevant to the
-  application—were then used by the data science team to train our models. This set of
-  approaches drove the company from a few months after the founding (when the decision to
-  focus on "scores" was made) through the Series B fundraise from Craft Ventures in May
-  2021.
+  These curated labels, each based on manual review of data we had on prem relevant to
+  the application, were then used by the data science team to train our models. This set
+  of approaches drove the company from a few months after the founding (when the decision
+  to focus on "scores" was made) through
+  <a href="https://www.craftventures.com/articles/why-we-invested-in-sentilink"
+    >the Series B fundraise from Craft Ventures in May 2021</a
+  >.
 </p>
 
 <h2>Our FPF Problem and an Analogy to Understand It</h2>
@@ -159,7 +162,8 @@
     up repeatedly. For example, we could see in our identity database that a
     disproportionately high number of the supposed first party fraudsters had
     <em>previously</em> committed synthetic fraud, even if they were not committing
-    synthetic fraud on the applications where they were labeled as first party fraud.
+    synthetic fraud on the specific applications where they were labeled as first party
+    fraud.
   </li>
 </ul>
 
@@ -461,9 +465,9 @@
 
 <p>
   These tables show, for each individual chunk of fraud labels, the percent of those
-  labels "flagged" by each individual signal—that is, the "recall" of that signal on that
-  chunk. For comparison, we also show in the bottom row of each table the percent of the
-  overall dataset that was flagged by the signal.
+  labels "flagged" by each individual signal - that is, the "recall" of that signal on
+  that chunk. For comparison, we also show in the bottom row of each table the percent of
+  the overall dataset that was flagged by the signal.
 </p>
 
 <p>
@@ -472,7 +476,7 @@
 </p>
 
 <pre><code>relative_likelihood =
-  P(label = fraud | signal = 1) / P(label = fraud | signal = 0)</code></pre>
+  P(signal = 1 | label = fraud) / P(signal = 1)</code></pre>
 
 <p>
   This is a proxy for precision that we would both look at internally and present along
@@ -686,8 +690,8 @@
   <li>
     Sub-category 1 of fraud for the second large bank has a high rate of ID theft
     (measured by the percentage of these applications that score highly on our ID theft
-    score); this indicated to us that this label set was likely substantially
-    contaminated by identity theft rather than first party fraud.
+    score); this indicated to us that this label set was likely mostly identity theft
+    rather than first party fraud.
   </li>
   <li>
     Sub-category 2 from the credit union did not fire on any of our hypothesized FPF
@@ -764,8 +768,8 @@
   Once we had decided on these two distinct models and had a general sense of the labels
   we wanted to include in each, we were able to go back to the customers from whom we'd
   received these labels, share our analysis and research, and (through engagement) dive
-  deeper into these labels and refine them with customer input to better fit the fraud
-  patterns we were targeting.
+  deeper into these labels and refine them with customer input to further refine the
+  labels we had down to fit the fraud M.O.s that we were targeting.
 </p>
 
 <p>
@@ -778,9 +782,7 @@
 </p>
 
 <h2>The scores did well</h2>
-
 <p>Launched in early 2024, by the time I left SentiLink in late 2025:</p>
-
 <ul>
   <li>Many top FIs were using them as part of their fraud decisioning, including:</li>
   <li>Four top fifteen banks</li>
@@ -792,23 +794,24 @@
     process with these scores
   </li>
 </ul>
+<p>
+  These scores became SentiLink's fastest-growing product launched during my last two
+  years at the company, accounting for roughly 5% of ARR by the time I left—despite no
+  marketing push. We largely offered existing customers a way to test these products
+  alongside our synthetic fraud and identity theft scores, and more often than not, they
+  found that the scores caught fraud our other products missed. In my final quarter, four
+  of the top FIs mentioned above went live via API.
+</p>
 
 <p>
-  We eventually created a single score that combined these two scores via a simple linear
-  transformation. As I was transitioning out, the team was exploring training a unified
-  model across multiple partners; but even these initial scores generalized well enough
-  to become SentiLink’s largest and fastest-growing product launched during the last two
-  years I was at the company. In my final quarter, four of the top FIs mentioned above
-  went live via API.
+  We eventually created a single score that combined the two underlying models via a
+  simple linear transformation. As I was transitioning out, the team was exploring
+  training a unified model that included labels from multiple partners, still, the fact
+  that the simple approach we took got us as far as it did holds several lessons, which
+  we'll cover next.
 </p>
 
 <h2>Lessons</h2>
-
-<p>
-  Careful EDA—here, looking at the performance of each of your model's top ~10 individual
-  signals on heterogeneous sets of labels—can reveal patterns about label quality, label
-  contamination, and which underlying M.O.s your external labels actually represent.
-</p>
 
 <p>
   Evaluation is a first-class problem. We had to build an internal way of thinking about
@@ -819,41 +822,35 @@
   be used to evaluate other signals and even future scores in a systematic way.
 </p>
 
-<h2>Next steps</h2>
+<p>
+  The EDA that such an evaluation framework can encourage; looking at the performance of
+  each of the model's top ~10 individual signals on heterogeneous sets of labels—can
+  reveal patterns about label quality, label contamination, and which underlying M.O.s
+  your external labels actually represent. But such EDA may not even occur unless
+</p>
 
-<ul>
-  <li>
-    Launched in early 2024, these scores were our fastest-growing product by the time I
-    left in late 2025, accounting for roughly 5% of SentiLink's ARR, despite no marketing
-    push. We largely offered existing customers a way to test these products alongside
-    our synthetic fraud and identity theft scores—and more often than not, they found
-    that the scores caught fraud that was not caught by our other products.
-  </li>
-</ul>
+<h2>What came next</h2>
 
 <p>
   These scores allowed us to initiate collaborations with major U.S. FIs around first
   party fraud that continue to this day. SentiLink has used these relationships to
-  explore more “determinative” solutions for first party fraud. Moreover, a couple of the
-  eight signals we developed for first party fraud detection later became useful building
-  blocks for adjacent efforts.
+  explore more "determinative" solutions for first party fraud, and a couple of the eight
+  signals we developed later became useful building blocks for adjacent efforts.
 </p>
 
 <p>
-  In cases where label quality is important, but direct verification of label quality is
-  not possible, the techniques described in this essay allow for <em>indirect</em>
-  verification of label quality.
+  Most importantly, this work established at SentiLink a set of practices for evaluating
+  fraud signals on external datasets in a systematic way. As I was departing, the
+  business had launched an initiative to evaluate our identity theft score and some of
+  its key underlying signals on external datasets, using the same approach we'd developed
+  for FPF. Paving the way for SentiLink to use customer data in a more thoughtful and
+  systematic way—and enabling the company to begin tackling problems outside of its
+  initial core—remains what I'm proudest of.
 </p>
 
-<p>
-  Most importantly, however, this work established at SentiLink a set of practices for
-  evaluating fraud signals on external datasets in a systematic way. As I was departing,
-  the business had launched an initiative to evaluate our identity theft score and some
-  of the key underlying signals on a set of external datasets, in the same way we
-  evaluated our FPF signals. Paving the way for SentiLink to use customer data in a more
-  thoughtful and systematic way—and enabling the company to begin tackling problems
-  outside of its initial core—remains what I’m proudest of.
-</p>
+<h2>Evaluations beyond fraud models</h2>
+
+<p></p>
 
 <h2>About the author</h2>
 
