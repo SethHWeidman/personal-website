@@ -139,7 +139,7 @@ function renderHighlightJsHead(theme = "default") {
     <link
       rel="stylesheet"
       href="https://cdn.jsdelivr.net/npm/highlight.js@11/styles/${escapeHtmlAttr(
-        theme
+        theme,
       )}.min.css"
     />
     <script src="https://cdn.jsdelivr.net/npm/highlight.js@11/lib/highlight.min.js"></script>
@@ -170,21 +170,21 @@ function renderSocialCards({
     ${
       imageAlt
         ? `<meta property="og:image:alt" content="${escapeHtmlAttr(
-            imageAlt
+            imageAlt,
           )}" />`
         : ""
     }
     ${
       imageWidth
         ? `<meta property="og:image:width" content="${escapeHtmlAttr(
-            imageWidth
+            imageWidth,
           )}" />`
         : ""
     }
     ${
       imageHeight
         ? `<meta property="og:image:height" content="${escapeHtmlAttr(
-            imageHeight
+            imageHeight,
           )}" />`
         : ""
     }
@@ -197,7 +197,7 @@ function renderSocialCards({
     ${
       imageAlt
         ? `<meta name="twitter:image:alt" content="${escapeHtmlAttr(
-            imageAlt
+            imageAlt,
           )}" />`
         : ""
     }
@@ -211,8 +211,8 @@ app.get("/", (req, res) => {
       "Seth Weidman's Website",
       `
       ${loadView("home.html")}
-      `
-    )
+      `,
+    ),
   );
 });
 
@@ -223,8 +223,8 @@ app.get("/blog/affirmations", (req, res) => {
       "Character Strengths Affirmations Practice",
       `
       ${loadView("blog/affirmations.html")}
-      `
-    )
+      `,
+    ),
   );
 });
 
@@ -234,8 +234,8 @@ app.get("/blog/o1-tools", (req, res) => {
       "O1 Pro - An Initial Assessment",
       `
       ${loadView("blog/o1-tools.html")}
-      `
-    )
+      `,
+    ),
   );
 });
 
@@ -245,9 +245,13 @@ app.get("/blog/heterogeneous_2.html", (req, res) => {
       "Evaluating Heterogeneous Fraud Models",
       `
       ${loadView("blog/heterogeneous_2.html")}
-      `
-    )
+      `,
+    ),
   );
+});
+
+app.get("/blog/heterogeneous_2", (req, res) => {
+  res.redirect(301, "/blog/heterogeneous_2.html");
 });
 
 app.get("/blog/streaming_softmax.html", (req, res) => {
@@ -262,7 +266,7 @@ app.get("/blog/streaming_softmax.html", (req, res) => {
       image:
         "https://sethhweidman-personal-website.s3.us-east-1.amazonaws.com/2025-12-12_streaming-softmax/banner-image.png",
     }),
-    renderHighlightJsHead("default")
+    renderHighlightJsHead("default"),
   );
   res.send(
     renderHTML(
@@ -270,8 +274,8 @@ app.get("/blog/streaming_softmax.html", (req, res) => {
       `
       ${loadView("blog/streaming_softmax.html")}
       `,
-      streamingSoftmaxHead
-    )
+      streamingSoftmaxHead,
+    ),
   );
 });
 
@@ -286,7 +290,7 @@ app.get("/blog/cuda_matmul.html", (req, res) => {
       url: "https://www.sethweidman.com/blog/cuda_matmul.html",
       image:
         "https://sethhweidman-personal-website.s3.us-east-1.amazonaws.com/2025-11-29_cuda-matmul/banner-image.png",
-    })
+    }),
   );
   res.send(
     renderHTML(
@@ -294,8 +298,8 @@ app.get("/blog/cuda_matmul.html", (req, res) => {
       `
       ${loadView("blog/cuda_matmul.html")}
       `,
-      cudaMatmulHead
-    )
+      cudaMatmulHead,
+    ),
   );
 });
 
@@ -312,7 +316,7 @@ app.get("/blog/multihead_attention.html", (req, res) => {
         "https://sethhweidman-personal-website.s3.us-east-1.amazonaws.com/2025-12-29_attention/banner-image.png?v=1",
       imageAlt:
         "Hand-drawn overview diagram of self-attention and multi-head attention.",
-    })
+    }),
   );
   res.send(
     renderHTML(
@@ -320,8 +324,8 @@ app.get("/blog/multihead_attention.html", (req, res) => {
       `
       ${loadView("blog/multihead_attention.html")}
       `,
-      multiheadAttentionHead
-    )
+      multiheadAttentionHead,
+    ),
   );
 });
 
@@ -330,7 +334,7 @@ app.get("/blog/flash_attention_1.html", (req, res) => {
     "FlashAttention: Tiling + Streaming Softmax for Fast, Exact Attention";
   const flashAttentionHead = renderHeadParts(
     renderMathJaxHead(),
-    renderHighlightJsHead("default")
+    renderHighlightJsHead("default"),
   );
   res.send(
     renderHTML(
@@ -338,8 +342,8 @@ app.get("/blog/flash_attention_1.html", (req, res) => {
       `
       ${loadView("blog/flash_attention_1.html")}
       `,
-      flashAttentionHead
-    )
+      flashAttentionHead,
+    ),
   );
 });
 
@@ -348,7 +352,7 @@ app.get("/visitor-log", async (req, res) => {
   try {
     const client = await pool.connect();
     const result = await client.query(
-      "SELECT name, signed_at FROM visitor_log ORDER BY signed_at DESC"
+      "SELECT name, signed_at FROM visitor_log ORDER BY signed_at DESC",
     );
     const visitors = result.rows; // This contains the data from the visitor_log table
     client.release();
@@ -375,8 +379,8 @@ app.get("/visitor-log", async (req, res) => {
           <button onclick="window.location.href='/'">Back</button>
 
           <p>The visitor log is a feature designed mostly to test that the database behind this website is working.</p>
-  `
-      )
+  `,
+      ),
     );
   } catch (err) {
     console.error(err);
@@ -390,16 +394,16 @@ app.get("/odsc_east_2025_grpo_llama", (req, res) => {
       "",
       `
       ${loadView("odsc_east_2025_grpo_llama.html")}
-      `
-    )
+      `,
+    ),
   );
 });
 
 app.get("/odsc_east_2025_grpo_llama/experiment_results.csv", (_, res) =>
   res.redirect(
     302,
-    "https://data-science-talks.s3.us-east-1.amazonaws.com/output/experiment_results_2.csv"
-  )
+    "https://data-science-talks.s3.us-east-1.amazonaws.com/output/experiment_results_2.csv",
+  ),
 );
 
 // Function to generate the HTML table for visitors
@@ -423,7 +427,7 @@ function generateVisitorsTable(visitors) {
         year: "numeric",
         month: "long",
         day: "numeric",
-      }
+      },
     );
     table += `
       <tr>
@@ -448,7 +452,7 @@ app.post("/sign-log", async (req, res) => {
     // Check if someone has already signed today
     const result = await client.query(
       `SELECT COUNT(*) FROM visitor_log WHERE signed_at::date = $1`,
-      [today]
+      [today],
     );
     const alreadySigned = result.rows[0].count > 0;
 
@@ -461,15 +465,15 @@ app.post("/sign-log", async (req, res) => {
           `
             <h1>Sorry, someone else has already signed the log today</h1>
             <a href="/visitor-log">Go back to the log</a>
-  `
-        )
+  `,
+        ),
       );
     } else {
       // If no one has signed today, insert the new entry
       const timestamp = new Date().toISOString();
       await client.query(
         "INSERT INTO visitor_log (name, signed_at) VALUES ($1, $2)",
-        [name, timestamp]
+        [name, timestamp],
       );
       client.release();
 
