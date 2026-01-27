@@ -1,4 +1,4 @@
-<h1 class="post-title">FlashAttention - Pt. 1</h1>
+<h1 class="post-title">FlashAttention: Algorithm and Pseudocode</h1>
 <p class="post-subtitle">How Tiling and Streaming Softmax Enable this GPU Kernel</p>
 <p class="post-date">January 27, 2026</p>
 
@@ -24,7 +24,7 @@
     rel="noopener noreferrer"
     >Python implementation</a
   >
-  that mimicks how the algorithm would be coded in CUDA; we'll save a full CUDA
+  that mimics how the algorithm would be coded in CUDA; we'll save a full CUDA
   walkthrough for a future blog post (though readers may find it a good exercise to
   implement FlashAttention in CUDA after reading this blog post, using the Python
   implementation as a starting point).
@@ -47,8 +47,8 @@
     >13% speedup</a
   >
   over highly-optimized CUDA kernels written <em>by NVIDIA</em> for their own GPUs! These
-  impressive speedups were achieved because FA V1 was first to apply the concepts covered
-  in this series of posts - tiling and streaming softmax - to the core Multi-Head
+  impressive speedups were achieved because FA V1 was the first to apply the concepts
+  covered in this series of posts - tiling and streaming softmax - to the core Multi-Head
   Attention operation. Subsequent versions have employed much more sophisticated software
   features of GPUs, some of which only work on the most recent NVIDIA GPU generations,
   and have had varying degrees of involvement from Prof. Dao<sup id="fnref1"
@@ -85,7 +85,7 @@
 <figure>
   <img
     src="https://sethhweidman-personal-website.s3.us-east-1.amazonaws.com/2026-01-08_flash_attention/02_2_flashattention_from_attention.png"
-    alt="FlashAttention fuses operations many operations, avoiding ever materializing an attention matrix."
+    alt="FlashAttention fuses several operations, avoiding ever materializing an attention matrix."
   />
 </figure>
 
@@ -116,9 +116,9 @@
 
 <ol>
   <li>Dividing the input matrices into "tiles".</li>
-  <li>Successively feeding these fast "shared" memory on the GPU</li>
+  <li>Successively feeding these into fast "shared" memory on the GPU</li>
   <li>
-    For each set of tiles loaded in, do some computation add this to an "accumulation"
+    For each set of tiles loaded in, do some computation to add this to an "accumulation"
     storing the results of all the prior tile computations in output
   </li>
 </ol>
@@ -393,7 +393,7 @@
         <p>
           So the final step is to
           <a
-            href="https://github.com/SethHWeidman/ai_computing/blob/master/04_flash_attention/pseudocode_implementation.py#L126-L128"
+            href="https://github.com/SethHWeidman/ai_computing/blob/master/04_flash_attention/pseudocode_implementation.py#L134-L139"
             target="_blank"
             rel="noopener noreferrer"
             >divide each row of the accumulated numerator by its stored denominator</a
@@ -445,7 +445,7 @@
     rel="noopener noreferrer"
     >this</a
   >
-  xhould provide a clean implementation you can look through.
+  should provide a clean implementation you can look through.
 </p>
 
 <h3>Footnotes</h3>
