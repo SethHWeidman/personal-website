@@ -9,168 +9,162 @@
 <p class="post-date">January 22, 2026</p>
 
 <p>
-  This essay is about how we successfully built a 0-to-1 fraud risk score product at
-  SentiLink, based on a machine learning model, despite having to train the model on
-  heterogeneous sets of labels whose quality and relevance to the fraud problem at hand
-  we weren't able to directly verify. The problem was the broad category of "first party
-  fraud", a collection of fraud variants that our customers—FIs offering lending and
-  depository products—typically discovered only "after the fact": they would observe some
-  unusually bad behavior from one of <em>their</em> customers and, possibly after doing
-  additional manual review, conclude that first party fraud actually had taken place at
-  the time of the application.
+  This essay is about how we built a 0-to-1 first party fraud (FPF) risk score at
+  SentiLink using a machine learning model, despite having to train on heterogeneous
+  label sets whose quality and relevance to the fraud problem we could not directly
+  verify. The problem was the broad category of “first party fraud,” a collection of
+  fraud variants that our customers (financial institutions offering lending and
+  depository products) typically discovered only after the fact. They would observe
+  unusually bad behavior from one of <em>their</em> customers and, possibly after manual
+  review, conclude that first party fraud had taken place at the time of the application.
 </p>
 
 <p>
-  The result was that our labels were an amalgam of heterogeneous sets of cases: most
-  where our partners had observed behaviors highly suggestive of FPF, but some where our
-  partners had reached the FPF determination through manual review. For example: sets of
-  accounts where bad checks were passed, sets of accounts with large customer-initiated
-  ACH returns, and a set of cases where a partner had determined that a customer had
-  charged off and never had intent to pay (possibly because they planned to engage in
-  credit washing).
+  As a result, our labels were an amalgam of heterogeneous case sets: many where partners
+  observed behaviors highly suggestive of FPF, and some where partners reached an FPF
+  determination through manual review. Examples included accounts where bad checks were
+  passed, accounts with large customer-initiated ACH returns, and cases where a partner
+  determined that a customer had charged off and never had intent to pay (possibly
+  because they planned to engage in credit washing).
 </p>
 
 <p>
-  This presented three potential problems for building a score. The first was these
-  labels' obvious heterogeneity. The second broad reason was mislabeling: some labels,
-  especially those based mostly on our customers observing some bad outcome, may not have
-  occurred due to FPF (the behaviors may have occurred due to identity theft, for
-  example), and in other cases, such as when a broad swath of applications may have all
-  been labeled bad during a fraud attack, some may not have occurred at all.
+  This created three challenges for building a score. First, the labels were obviously
+  heterogeneous. Second, there was mislabeling risk: some labels, especially those based
+  primarily on observing a bad outcome, may not have been FPF at all (the behavior could
+  have been due to identity theft, for example). Third, during certain fraud attacks a
+  broad swath of applications might be labeled bad even though some of those applications
+  were not fraudulent.
 </p>
 
 <p>
-  These properties were new for SentiLink to deal with. At the time we started working on
-  these first party fraud scores in mid 2022, SentiLink had two successful products:
-  scores to help FIs stop synthetic fraud and identity theft. SentiLink's two founders
-  had built solutions to address these problems at Affirm, the online lender, and thus
-  had strong priors on the building blocks needed to enable machine learning models
-  tailored to solving them: we licensed data sources relevant to the patterns associated
-  with synthetic fraud and identity theft; used these data sources along with data
-  collected in the course of our customers using our APIs to build data structures
-  relevant to detecting these fraud M.O.s; built internal tooling to visualize these data
-  structures; and hired an internal team of fraud analysts (several of whom came from
-  Affirm) to use this tooling to label subsets of applications our partners sent us.
+  These properties were new for SentiLink to deal with. When we started working on first
+  party fraud scores in mid 2022, SentiLink had two successful products: scores to help
+  financial institutions stop synthetic fraud and identity theft. The company’s founders
+  had built solutions to address these problems at Affirm, the online lender, and had
+  strong priors on the building blocks needed to enable machine learning models tailored
+  to them. We licensed data sources relevant to the patterns associated with synthetic
+  fraud and identity theft; used these sources, along with first-party data collected via
+  our APIs, to build data structures relevant to detecting these fraud M.O.s; built
+  internal tooling to visualize these structures; and hired an internal team of fraud
+  analysts (several of whom came from Affirm) to use this tooling to label subsets of
+  applications our partners sent us.
 </p>
 
 <p>
-  These curated labels, each based on manual review of data we had on prem relevant to
-  the application, were then used by the data science team to train our models. This set
-  of approaches drove the company from a few months after the founding (when the decision
-  to focus on "scores" was made) through
+  These curated labels, each based on manual review of on-prem data relevant to the
+  application, were then used by the data science team to train our models. This approach
+  carried the company from shortly after founding (when the decision to focus on “scores”
+  was made) through
   <a href="https://www.craftventures.com/articles/why-we-invested-in-sentilink"
     >the Series B fundraise from Craft Ventures in May 2021</a
   >.
 </p>
 
-<h2>Our FPF Problem and an Analogy to Understand It</h2>
+<h2>Our FPF problem and an analogy to understand it</h2>
 
 <p>
-  With first party fraud, due to the nature of the fraud, we could not determine through
-  manual review that an individual application was FPF in the same way that we could for
-  synthetic fraud and ID theft. The main reason for this was that, as described above,
-  FPF is typically discovered through unusually bad behavior on the part of an FI's
-  customer.
+  With first party fraud, we could not determine through manual review that an individual
+  application was FPF in the same way we could for synthetic fraud and identity theft.
+  The main reason is that FPF is typically discovered through unusually bad behavior by a
+  customer of the financial institution.
 </p>
 
 <p>
   Two other reasons relate to the definitions of the fraud types themselves and the data
-  we had on-prem. First, synthetic fraud and identity theft can often be detected due to
-  "mismatches" in the PII on an application itself: a brand new social security number on
-  a person in their 40s is a sign of synthetic fraud (specifically
+  we had on prem. First, synthetic fraud and identity theft can often be detected via
+  “mismatches” in PII on the application: for example, a brand new social security number
+  for someone in their 40s can be a sign of synthetic fraud (specifically
   <em>first party</em> synthetic fraud), and an address, phone number, and social
-  security number all from different states is a sign of identity theft. Second, the data
-  we had licensed and the data structures we built were highly tailored toward detecting
+  security number from different states can be a sign of identity theft. Second, the data
+  we licensed and the data structures we built were highly tailored toward detecting
   synthetic fraud and identity theft. Two examples:
 </p>
 
 <ul>
   <li>
-    We had an "identity database", based mostly off of licensed data, that was structured
-    in such a way that it more or less "natively" showed if someone was committing first
-    party synthetic fraud (where one person uses multiple SSNs with their own name and
-    date of birth), an extremely common synthetic fraud variant.
+    We had an “identity database,” based mostly on licensed data, that was structured in
+    a way that more or less “natively” revealed first party synthetic fraud (where one
+    person uses multiple SSNs with their own name and date of birth), an extremely common
+    synthetic fraud variant.
   </li>
   <li>
-    We had an "application graph" based mostly off of first party data (e.g. our FI
-    customers calling our API) that let us see if one phone number was being used on
-    multiple applications with different pieces of core PII, a sign that it might be the
-    phone of a fraudster who had stolen multiple identities.
+    We had an “application graph,” based mostly on first-party data (for example, our
+    customers calling our API), that let us see whether one phone number was being used
+    on multiple applications with different pieces of core PII, a sign that it might be
+    the phone of a fraudster who had stolen multiple identities.
   </li>
 </ul>
 
 <p>
-  So we <em>had</em> to rely on labels from our partners, which had the issues of
-  heterogeneity and accuracy described above.
+  So we <em>had</em> to rely on labels from our partners, with the heterogeneity and
+  accuracy issues described above.
 </p>
 
 <p>
   An analogy: suppose your task is to train a classifier to detect whether a car is in an
-  image, given several "sets" of images handed to you by individuals of varying expertise
-  on cars. Maybe one person gave you two chunks—one of 1,000 images and another of 2,000
-  images—and a second person gave you a chunk of 3,000 images, and so on. However,
+  image, given several sets of images handed to you by individuals of varying expertise.
+  Maybe one person gives you two chunks (one of 1,000 images and another of 2,000
+  images), and a second person gives you a chunk of 3,000 images, and so on. However,
   <em
-    >looking at the images yourself wouldn't actually confirm whether there was a car in
-    the image</em
-  >! While most chunks presumably actually do have cars in them, some may instead have
-  motorcycles, some may have trucks, and some chunks may not even be images of vehicles
-  at all.
+    >looking at the images yourself would not actually confirm whether a car is in the
+    image</em
+  >. While most chunks presumably contain cars, some may instead contain motorcycles,
+  some may contain trucks, and some chunks may not even be images of vehicles at all.
 </p>
 
 <p>
-  How to proceed? Suppose you can manually define certain "<strong>patterns</strong>",
+  How do you proceed? Suppose you can manually define certain “<strong>patterns</strong>”
   and check whether each pattern is present in each image. For example, you can detect
   whether there is a sheet of metal (which could be part of a door), whether there is a
-  pane of glass (which would be a window or a windshield), whether there is a metal
-  circle inside a rubber circle (which could indicate a wheel), and so on. You can also
-  define patterns that might be present in an image containing a motorcycle or a truck
+  pane of glass (which could be a window or windshield), whether there is a metal circle
+  inside a rubber circle (which could indicate a wheel), and so on. You can also define
+  patterns that might be present in an image containing a motorcycle or a truck
   (handlebars, a large cab), but not in one containing a car.
 </p>
 
 <p>
-  This information, even taken all together, would not be sufficient to determine whether
-  a set of images actually contains cars; however, from the prevalence of these patterns
-  among the images, and from comparing this prevalence to the prevalence among a random
-  set of images pulled from the internet, you can infer which chunks of images are
-  <em>likely</em> to contain cars and thus are likely to be beneficial if included as
-  "targets" in the "car" model.
+  This information, even taken together, is not sufficient to determine whether a set of
+  images contains cars. But from the prevalence of these patterns among the images, and
+  by comparing that prevalence to the prevalence among a random set of internet images,
+  you can infer which chunks are <em>likely</em> to contain cars and therefore are likely
+  to be beneficial if included as “targets” for the “car” model.
 </p>
 
 <p>
-  For us, the analogues to these "patterns of material" were patterns we could observe in
-  the data tied to these applications—in the "identity database", the "graph", and other
-  on-prem data structures—that we hypothesized could be good signals for first party
-  fraud.
+  For us, the analogues to these “material patterns” were patterns we could observe in
+  the data tied to applications: in the identity database, the graph, and other on-prem
+  data structures. We hypothesized that these patterns could serve as signals for first
+  party fraud.
 </p>
 
 <p>
-  There was a virtually infinite universe of these potential signals we could engineer;
-  we refined our possible set of hypotheses through:
+  There was a virtually infinite universe of potential signals we could engineer. We
+  refined the hypothesis space through:
 </p>
 
 <ul>
   <li>
     <strong>Primary research into first party fraud M.O.s.</strong> A common type of FPF
     involving ACH transactions requires multiple checking accounts, so we hypothesized
-    that applying for multiple checking accounts in a short period of time might be
-    predictive. We were able to observe this behavior in the application graph, even
-    though it was built to identify identity theft.
+    that applying for multiple checking accounts in a short period might be predictive.
+    We could observe this behavior in the application graph, even though it was built to
+    identify identity theft.
   </li>
   <li>
-    <strong>Reviewing cases from the ambiguous labels we'd received.</strong> Even though
-    these labels were imperfect, we were able to find certain anomalous patterns coming
-    up repeatedly. For example, we could see in our identity database that a
-    disproportionately high number of the supposed first party fraudsters had
-    <em>previously</em> committed synthetic fraud, even if they were not committing
-    synthetic fraud on the specific applications where they were labeled as first party
-    fraud.
+    <strong>Reviewing cases from the ambiguous labels we received.</strong> Even though
+    the labels were imperfect, we repeatedly saw certain anomalous patterns. For example,
+    we could see in our identity database that a disproportionately high number of the
+    supposed first party fraudsters had <em>previously</em> committed synthetic fraud,
+    even if they were not committing synthetic fraud on the specific applications labeled
+    as first party fraud.
   </li>
 </ul>
 
 <p>
-  While each of these plausibly could be a signal for first party fraud, we then had to
-  validate them quantitatively, using the heterogeneous, unreliable labels we had
-  received from our customers. The next section describes how we did this.
+  Each of these could plausibly be a signal for first party fraud. We still had to
+  validate them quantitatively using the heterogeneous, unreliable labels from customers.
+  The next section describes how we did that.
 </p>
 
 <h2>Evaluating hypothesized signals on heterogeneous, unreliable labels</h2>
@@ -193,9 +187,8 @@
 </ul>
 
 <p>
-  For each dataset, we would produce a table showing how each potential signal behaved on
-  both the fraud labels and the relevant population of which the applications were a
-  subset:
+  For each dataset, we produced a table showing how each potential signal behaved on both
+  the fraud labels and the relevant population from which those applications were drawn:
 </p>
 
 <!-- Credit Union 1 table -->
@@ -464,25 +457,24 @@
 <h2>What these tables tell us</h2>
 
 <p>
-  These tables show, for each individual chunk of fraud labels, the percent of those
-  labels "flagged" by each individual signal - that is, the "recall" of that signal on
-  that chunk. For comparison, we also show in the bottom row of each table the percent of
-  the overall dataset that was flagged by the signal.
+  These tables show, for each chunk of fraud labels, the percent of labels flagged by
+  each signal (the signal’s “recall” on that chunk). For comparison, the bottom row of
+  each table shows the percent of the overall population flagged by the same signal.
 </p>
 
 <p>
-  The ratio of these numbers was an important quantity for us: we called it "relative
-  likelihood":
+  The ratio of these numbers was a key quantity for us. We called it “relative
+  likelihood”:
 </p>
 
 <pre><code>relative_likelihood =
   P(signal = 1 | label = fraud) / P(signal = 1)</code></pre>
 
 <p>
-  This is a proxy for precision that we would both look at internally and present along
-  with recall; we found that it was easier for potential customers to translate "This
-  feature flags 30% of your fraud while flagging 2% of your approved applications, a 15x
-  ratio" into business value than "This feature has a 30% recall and a 15% precision."
+  This is a proxy for precision that we would look at internally and present alongside
+  recall. We found it easier for potential customers to translate “This feature flags 30%
+  of your fraud while flagging 2% of your approvals, a 15x ratio” into business value
+  than “This feature has 30% recall and 15% precision.”
   <sup id="fnref3"><a href="#fn3">3</a></sup>
 </p>
 
@@ -666,119 +658,114 @@
 </div>
 
 <p>
-  You'll note that we also included in these tables the recalls and relative likelihoods
-  for scoring high on our synthetic fraud and identity theft models. Extending the cars,
-  trucks, and bicycles analogy above: in addition to telling you whether there were
-  certain material patterns present, imagine you also had models that you knew were
-  80%–90% accurate at telling you whether the image contained a truck or a bicycle.
+  You’ll notice that we also included recalls and relative likelihoods for scoring high
+  on our synthetic fraud and identity theft models. Extending the cars/trucks/motorcycles
+  analogy above: in addition to detecting material patterns, imagine you also had models
+  that were 80% to 90% accurate at detecting whether an image contained a truck or a
+  motorcycle.
 </p>
 
 <h3>Making sense of these tables</h3>
 
-<p>Looking just at these six tables, several things jump out:</p>
+<p>Even from these six tables, several things jump out:</p>
 
 <ul>
   <li>
-    Signals 1 and 2 tend to “pop” on sub-categories 1 and 3 from the credit union, and
-    sub-category 2 from the second large bank. These signals often “fire together,” and
+    Signals 1 and 2 tend to “pop” on sub-categories 1 and 3 from the credit union and
+    sub-category 2 from the second large bank. These signals often fire together, and
     they tend to fire on distinct sets of fraud-label datasets.
   </li>
   <li>
-    Signal 1 does not meaningfully “pop” on Large Bank 1 overall (relative likelihood
-    near 1), whereas Signals 2–4 do.
+    Signal 1 does not meaningfully pop on Large Bank 1 overall (relative likelihood near
+    1), whereas Signals 2 to 4 do.
   </li>
   <li>
-    Sub-category 1 of fraud for the second large bank has a high rate of ID theft
-    (measured by the percentage of these applications that score highly on our ID theft
-    score); this indicated to us that this label set was likely mostly identity theft
-    rather than first party fraud.
+    Sub-category 1 for the second large bank has a high rate of identity theft (measured
+    by the fraction of these applications that score highly on our identity theft score),
+    which suggested to us that this label set was likely mostly identity theft rather
+    than first party fraud.
   </li>
   <li>
-    Sub-category 2 from the credit union did not fire on any of our hypothesized FPF
-    signals, suggesting either a different underlying M.O. or substantial label noise.
+    Sub-category 2 from the credit union did not fire on any hypothesized FPF signals,
+    suggesting either a different underlying M.O. or substantial label noise.
   </li>
 </ul>
 
 <h2>From signals to scores</h2>
 
 <p>
-  This analysis certainly helped us understand our data deeply; but how did we go from
-  running these numbers to producing first party fraud scores?
+  This analysis helped us understand our data deeply. But how did we go from these
+  numbers to first party fraud scores?
 </p>
 
 <p>
-  When modeling, before making technical decisions like which model structure to use
-  (logistic regression or gradient-boosted trees) and how to select hyperparameters,
-  there are decisions closer to business decisions that end up having a much bigger
-  impact on the efficacy of the model you build:
+  Before making technical decisions like the model class (logistic regression vs.
+  gradient-boosted trees) or hyperparameter selection, there are decisions closer to
+  business decisions that often have a much larger impact on model efficacy:
 </p>
 
 <ul>
   <li>
-    Which features (or "signals" as we tended to refer to them) to use—i.e., what the
-    "columns" of the dataset behind the model will be.
+    Which features (or “signals,” as we tended to call them) to use, meaning what the
+    columns of the modeling dataset will be.
   </li>
   <li>
-    Which dataset or datasets you'll train on; this includes deciding both what the
-    "bads" and the "not bads" should be.
+    Which dataset or datasets to train on, including choices about both the “bads” and
+    the “not bads.”
   </li>
 </ul>
 
 <p>
   <strong>
-    The analysis described above directly informs both of these questions. Without
-    breaking down how key individual signals are (or are not) associated with various
-    potential targets, you are largely taking shots in the dark. (An alternative approach
-    is to feed every conceivable signal you can think of into the model. We learned some
-    hard lessons about doing this with our synthetic and ID theft models: while it did
-    not necessarily degrade aggregate model performance, it led to less explainable SHAP
-    values and occasional misses that sometimes raised uncomfortable questions among our
-    largest and most conservative customers.)
+    The analysis above directly informed both questions. Without breaking down how key
+    signals are (or are not) associated with candidate targets, you are largely taking
+    shots in the dark. An alternative is to feed every conceivable signal into the model.
+    We learned hard lessons doing this with our synthetic fraud and identity theft
+    models: while it did not necessarily degrade aggregate model performance, it produced
+    less explainable SHAP values and occasional misses that raised uncomfortable
+    questions among our largest and most conservative customers.
   </strong>
 </p>
 
 <p>
-  Of the 10–20 potential signals we evaluated, we ended up finding eight that were
-  conceptually distinct from one another and individually predictive on many of the
-  datasets we'd received. By this, we mean that they were prevalent among many of the FPF
-  label datasets we'd received and not so prevalent overall—in other words, high recall
-  and high relative likelihood, respectively. Each of these eight signals was a boolean
-  true/false flag, accompanied by numeric “sub-signals” (e.g., the number of distinct
-  SSNs someone had committed synthetic fraud with, or the number of DDAs applied for in
-  different time windows). These signals ultimately became ~40 features in our model.
+  Of the 10 to 20 potential signals we evaluated, we ultimately found eight that were
+  conceptually distinct and individually predictive on many of the datasets we received.
+  By this we mean they were prevalent among many FPF label datasets and not so prevalent
+  overall, which corresponds to high recall and high relative likelihood, respectively.
+  Each of these eight signals was a boolean flag, accompanied by numeric sub-signals (for
+  example, the number of distinct SSNs someone had previously used for synthetic fraud,
+  or the number of DDAs applied for across different time windows). These signals became
+  about 40 features in the model.
 </p>
 
 <p>
-  To choose which datasets to use as our "goods" and "bads", we used the analysis above
-  as a starting point and followed it up with primary research into the fraud M.O.s. This
-  led us to conclude that the "bad" labels we'd received could be broadly grouped into
-  two distinct FPF M.O.s, one related to check fraud and one related to ACH fraud; we saw
-  these bad labels consistently associated with distinctive (though overlapping) sets of
-  the eight signals we'd found.
+  To choose which datasets to use as “goods” and “bads,” we used the analysis above as a
+  starting point and followed it with primary research into fraud M.O.s. This led us to
+  conclude that the “bad” labels could be grouped into two distinct FPF M.O.s, one
+  related to check fraud and one related to ACH fraud. Those label sets were consistently
+  associated with distinctive (though overlapping) subsets of the eight signals.
 </p>
 
 <p>
-  Note that we did not use statistical techniques such as clustering on the tables above.
-  We had on the order of 10–20 datasets and 10–20 signals (of which we ended up including
-  eight in the initial models), so we simply manually reviewed the performances of each
-  boolean signal on each dataset to determine what to include.
+  We did not use statistical techniques like clustering on the tables above. We had on
+  the order of 10 to 20 datasets and 10 to 20 signals (we included eight in the initial
+  models), so we manually reviewed how each boolean signal performed on each dataset to
+  decide what to include.
 </p>
 
 <p>
-  Once we had decided on these two distinct models and had a general sense of the labels
-  we wanted to include in each, we were able to go back to the customers from whom we'd
-  received these labels, share our analysis and research, and (through engagement) dive
-  deeper into these labels and refine them with customer input to further refine the
-  labels we had down to fit the fraud M.O.s that we were targeting.
+  Once we had decided on the two models and had a rough sense of which labels to include,
+  we went back to the customers who provided the labels, shared our analysis and
+  research, and, through engagement, refined our understanding of the label
+  sub-categories. This helped us refine the labels further to align with the fraud M.O.s
+  we were targeting.
 </p>
 
 <p>
-  This ability to refine the labels with input from the customers we received them from
-  was so critical in increasing label quality that we ended up training each of the
-  initial scores on one customer’s data. Our deep engagement with these customers about
-  the sub-categories of labels they had sent led to concentrated sets of 1,000–2,000
-  high-quality labels as the "bads" for each model; the "goods" were approved
-  applications from the same time period, from those same customers.
+  That refinement loop was so important for label quality that we ended up training each
+  initial score on one customer’s data. Deep engagement on label sub-categories produced
+  concentrated sets of 1,000 to 2,000 high-quality “bad” labels for each model. The
+  “goods” were approved applications from the same customer over the same time period.
 </p>
 
 <h2>The scores did well</h2>
@@ -786,76 +773,85 @@
 <p>Launched in early 2024, by the time I left SentiLink in late 2025:</p>
 
 <ul>
-  <li>Many top FIs were using them as part of their fraud decisioning, including:</li>
+  <li>
+    Many top financial institutions were using them in fraud decisioning, including:
+  </li>
   <li>Four top fifteen banks</li>
   <li>Two top ten credit card issuers</li>
   <li>A top five credit union</li>
-  <li>One additional FI had signed to use them but had not yet integrated</li>
   <li>
-    Nearly all of the top FIs SentiLink worked with were engaged in the retrostudy
-    process with these scores
+    One additional financial institution had signed to use them but had not yet
+    integrated
+  </li>
+  <li>
+    Nearly all of the top financial institutions SentiLink worked with were engaged in
+    the retrostudy process with these scores
   </li>
 </ul>
+
 <p>
-  These scores became SentiLink's fastest-growing product launched during my last two
-  years at the company, accounting for roughly 5% of ARR by the time I left—despite no
-  marketing push. We largely offered existing customers a way to test these products
-  alongside our synthetic fraud and identity theft scores, and more often than not, they
-  found that the scores caught fraud our other products missed. In my final quarter, four
-  of the top FIs mentioned above went live via API.
+  These scores became SentiLink’s fastest-growing product launched during my last two
+  years at the company, accounting for roughly 5% of ARR by the time I left, despite no
+  marketing push. We typically offered existing customers a way to test these products
+  alongside our synthetic fraud and identity theft scores, and more often than not they
+  found the scores caught fraud our other products missed. In my final quarter, four of
+  the top financial institutions mentioned above went live via API.
 </p>
 
 <p>
-  We eventually created a single score that combined the two underlying models via a
-  simple linear transformation. As I was transitioning out, the team was exploring
-  training a unified model that included labels from multiple partners, still, the fact
-  that the simple approach we took got us as far as it did holds several lessons, which
-  we'll cover next.
+  We eventually created a single score combining the two models via a simple linear
+  transformation. As I was transitioning out, the team was exploring training a unified
+  model with labels from multiple partners. Still, the fact that the simple approach got
+  us as far as it did holds several lessons, which we’ll cover next.
 </p>
 
 <h2>Lessons</h2>
 
 <p>
-  Evaluation affects and can illuminate everything. Just as, at a macro level, how a SaaS
-  company defines and breaks down its ARR can affect and elucidate how it is operating,
-  deciding how to evaluate your models can affect everything. In particular, creating a
-  more granular evaluation framework, as we did here - breaking down performance into
-  10-15 individual datasets along a couple of key metrics - affected not just how we
-  understood how well we were solving the problem of first party fraud, but even how we
-  defined the problem itself. This framework was nothing fancy from a technical
-  perspective: we stored the datasets themselves in S3, with a couple of
-  version-controlled Python scripts that could produce tables like the ones above, add
-  new datasets as needed, and evaluate new features and scores on our existing datasets.
+  Evaluation affects and can illuminate everything. Just as how a SaaS company defines
+  and breaks down ARR can affect and clarify how it operates, how you evaluate models can
+  shape how you understand the problem and even how you define it. In our case, creating
+  a more granular evaluation framework, breaking performance down into 10 to 15 datasets
+  across a small number of key metrics, changed not just how we measured progress but how
+  we understood the space of first party fraud itself.
+</p>
+
+<p>
+  This framework was straightforward technically. We stored datasets in S3 and maintained
+  a couple of version-controlled Python scripts that produced tables like the ones above,
+  supported adding new datasets, and evaluated new features and scores against existing
+  datasets.
 </p>
 
 <h2>What came next</h2>
 
 <p>
-  These scores allowed us to initiate collaborations with major U.S. FIs around first
-  party fraud that continue to this day. SentiLink has used these relationships to
-  explore more "determinative" solutions for first party fraud, and a couple of the eight
-  signals we developed later became useful building blocks for adjacent fraud efforts
-  that were in progress when I left and that SentiLink may be announcing soon.
+  These scores helped initiate collaborations with major U.S. financial institutions
+  around first party fraud that continue to this day. SentiLink has used these
+  relationships to explore more determinative solutions for first party fraud, and a
+  couple of the eight signals we developed later became useful building blocks for
+  adjacent fraud efforts that were in progress when I left and that SentiLink may be
+  announcing soon.
 </p>
 
 <p>
-  Most importantly, this work established at SentiLink a set of practices for evaluating
-  fraud signals on external datasets in a systematic way. As I was departing, the
-  business had launched an initiative to evaluate our identity theft score and some of
-  its key underlying signals on external datasets, using the same approach we'd developed
-  for FPF. We built even built a similar evaluation framework for a new fraud area and it
-  helped us see that we likely couldn't produce compelling scores or flags there.
+  More broadly, this work established practices at SentiLink for evaluating fraud signals
+  on external datasets in a systematic way. As I was departing, the business launched an
+  initiative to evaluate our identity theft score, and some of its key underlying
+  signals, on external datasets using the same approach developed for FPF. We also built
+  a similar evaluation framework for another fraud area and it helped us see that we
+  likely could not produce compelling scores or flags there.
 </p>
 
 <h2>Evaluations beyond fraud models</h2>
 
-<p>Discuss forthcoming post on evaluating quantized models</p>
+<p>Discuss forthcoming post on evaluating quantized models.</p>
 
 <h2>About the author</h2>
 
 <p>
   Seth Weidman worked at SentiLink for about six years, from when the company was about
-  two-and-a-half years old (December 2019) to when it was eight-and-a-half years old
+  two and a half years old (December 2019) to when it was eight and a half years old
   (November 2025).
 </p>
 
@@ -863,28 +859,28 @@
 
 <p id="fn1" class="footnote">
   <sup><a href="#fnref1">1</a></sup>
-  I won't enumerate the specific fields here, but go look at the application for a credit
-  card or checking account with a major bank and you'll get the idea.
+  I won’t enumerate the specific fields here, but look at the application for a credit
+  card or checking account with a major bank and you’ll get the idea.
   <a href="#fnref1" class="footnote-backref">↩</a>
 </p>
 
 <p id="fn2" class="footnote">
   <sup><a href="#fnref2">2</a></sup>
-  I won't enumerate the specific fields here, but go look at the application for a credit
-  card or checking account with a major bank and you'll get the idea.
+  I won’t enumerate the specific fields here, but look at the application for a credit
+  card or checking account with a major bank and you’ll get the idea.
   <a href="#fnref2" class="footnote-backref">↩</a>
 </p>
 
 <p id="fn3" class="footnote">
   <sup><a href="#fnref3">3</a></sup>
-  Description of the "credit report" aspect of synthetic fraud and identity theft.
+  Description of the “credit report” aspect of synthetic fraud and identity theft.
   <a href="#fnref3" class="footnote-backref">↩</a>
 </p>
 
 <p id="fn4" class="footnote">
   <sup><a href="#fnref4">4</a></sup>
   Assuming the overall fraud rate is 1%, flagging 30% of all fraud while flagging 2% of
-  approvals implies roughly 15% precision—the precision value referenced in the main
+  approvals implies roughly 15% precision, the precision value referenced in the main
   text.
   <a href="#fnref4" class="footnote-backref">↩</a>
 </p>
