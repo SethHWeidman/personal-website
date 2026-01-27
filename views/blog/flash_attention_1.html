@@ -125,10 +125,10 @@
 
 <p>
   The structure of what we do in FlashAttention is very similar (which is why reading
-  through and making you understand that blog post is great scaffolding for understanding
-  FlashAttention), except now we have <em>three</em> input matrices - \(Q\), \(K\), and
-  \(V\) - and the operation we're trying to "emulate in a tiled fashion" is the attention
-  operation:
+  through and making sure you understand that blog post is great scaffolding for
+  understanding FlashAttention), except now we have <em>three</em> input matrices -
+  \(Q\), \(K\), and \(V\) - and the operation we're trying to "emulate in a tiled
+  fashion" is the attention operation:
 </p>
 
 \[ \operatorname{Attention}(Q, K, V) =
@@ -250,13 +250,14 @@
   <li>
     <p>
       <strong>Outer loop (over query tiles):</strong>
-      We load in a tile of \(Tr\) rows of \(Q\) — call it \(Q_{tile}\).
+      We
       <a
         href="https://github.com/SethHWeidman/ai_computing/blob/master/04_flash_attention/pseudocode_implementation.py#L47-L51"
         target="_blank"
         rel="noopener noreferrer"
-        >Link to code</a
+        >load in a tile of \(Tr\) rows of \(Q\)</a
       >
+      — call it \(Q_{tile}\).
     </p>
   </li>
 
@@ -428,10 +429,27 @@
   Though we won't go into the backward pass in detail in this blog post, it turns out the
   standard way of computing it, that offers a very good tradeoff between computation and
   memory, involves saving the per-row maxima and sums of scaled exponentials; this takes
-  up \(O(N)\) memory. Still a huge improvement from \(O(N^2)\)!
+  up \(O(N)\) memory. Still a huge improvement over \(O(N^2)\)!
 </p>
 
-<h2>Conclusion and Next Steps</h2>
+<p>
+  Moreover, since this is the section on compute complexity: astute readers will notice
+  that we're clearly "leaving some parallelism on the table": since each \(Q_{tile}\) is
+  independent, we could clearly parallelize so that we running through the algorithm
+  above on multiple \(Q_{tile}\)s at once! This is done in
+  <a href="https://arxiv.org/abs/2307.08691" target="_blank" rel="noopener noreferrer"
+    >FlashAttention V2</a
+  >; this quote from the abstract, listing the key improvements in FA V2:
+</p>
+
+<blockquote>
+  ...(2) parallelize the attention computation, even for a single head, across different
+  thread blocks to increase occupancy...
+</blockquote>
+
+<p>describes exactly this.</p>
+
+<h2>Conclusion</h2>
 
 <p>
   This post covered how tiling and streaming softmax enable us to compute large parts of
@@ -460,7 +478,7 @@
     rel="noopener noreferrer"
     >FlashAttention v3</a
   >
-  (published on June 2024) was led by a team at
+  (published on July 2024) was led by a team at
   <a href="https://research.colfax-intl.com" target="_blank" rel="noopener noreferrer"
     >Colfax Research</a
   >
