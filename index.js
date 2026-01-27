@@ -254,6 +254,30 @@ app.get("/blog/heterogeneous_2", (req, res) => {
   res.redirect(301, "/blog/heterogeneous_2.html");
 });
 
+app.get("/blog/cuda_matmul.html", (req, res) => {
+  const title = "Tiling Matrix Multiplication on the GPU";
+  const cudaMatmulHead = renderHeadParts(
+    renderMathJaxHead(),
+    renderSocialCards({
+      title,
+      description:
+        "An illustrated walkthrough of how CUDA shared-memory tiling speeds up matrix multiplication on the GPU.",
+      url: "https://www.sethweidman.com/blog/cuda_matmul.html",
+      image:
+        "https://sethhweidman-personal-website.s3.us-east-1.amazonaws.com/2025-11-29_cuda-matmul/banner-image.png",
+    }),
+  );
+  res.send(
+    renderHTML(
+      title,
+      `
+      ${loadView("blog/cuda_matmul.html")}
+      `,
+      cudaMatmulHead,
+    ),
+  );
+});
+
 app.get("/blog/streaming_softmax.html", (req, res) => {
   const title = "Streaming Softmax: A Trick Powering FlashAttention";
   const streamingSoftmaxHead = renderHeadParts(
@@ -275,30 +299,6 @@ app.get("/blog/streaming_softmax.html", (req, res) => {
       ${loadView("blog/streaming_softmax.html")}
       `,
       streamingSoftmaxHead,
-    ),
-  );
-});
-
-app.get("/blog/cuda_matmul.html", (req, res) => {
-  const title = "Tiling Matrix Multiplication on the GPU";
-  const cudaMatmulHead = renderHeadParts(
-    renderMathJaxHead(),
-    renderSocialCards({
-      title,
-      description:
-        "An illustrated walkthrough of how CUDA shared-memory tiling speeds up matrix multiplication on the GPU.",
-      url: "https://www.sethweidman.com/blog/cuda_matmul.html",
-      image:
-        "https://sethhweidman-personal-website.s3.us-east-1.amazonaws.com/2025-11-29_cuda-matmul/banner-image.png",
-    }),
-  );
-  res.send(
-    renderHTML(
-      title,
-      `
-      ${loadView("blog/cuda_matmul.html")}
-      `,
-      cudaMatmulHead,
     ),
   );
 });
@@ -330,8 +330,7 @@ app.get("/blog/multihead_attention.html", (req, res) => {
 });
 
 app.get("/blog/flash_attention_1.html", (req, res) => {
-  const title =
-    "FlashAttention: Tiling + Streaming Softmax for Fast, Exact Attention";
+  const title = "FlashAttention: Algorithm and Pseudocode";
   const flashAttentionHead = renderHeadParts(
     renderMathJaxHead(),
     renderHighlightJsHead("default"),
