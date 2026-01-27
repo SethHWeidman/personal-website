@@ -782,7 +782,9 @@
 </p>
 
 <h2>The scores did well</h2>
+
 <p>Launched in early 2024, by the time I left SentiLink in late 2025:</p>
+
 <ul>
   <li>Many top FIs were using them as part of their fraud decisioning, including:</li>
   <li>Four top fifteen banks</li>
@@ -814,19 +816,16 @@
 <h2>Lessons</h2>
 
 <p>
-  Evaluation is a first-class problem. We had to build an internal way of thinking about
-  evaluation, version-controlled scripts that everyone ran the same way, and a team
-  culture that treated these evaluations as important. The rows of the tables above—each
-  representing a set of labels we could evaluate against—ended up being more important
-  than the columns (the initial set of first party fraud signals), because the rows could
-  be used to evaluate other signals and even future scores in a systematic way.
-</p>
-
-<p>
-  The EDA that such an evaluation framework can encourage; looking at the performance of
-  each of the model's top ~10 individual signals on heterogeneous sets of labels—can
-  reveal patterns about label quality, label contamination, and which underlying M.O.s
-  your external labels actually represent. But such EDA may not even occur unless
+  Evaluation affects and can illuminate everything. Just as, at a macro level, how a SaaS
+  company defines and breaks down its ARR can affect and elucidate how it is operating,
+  deciding how to evaluate your models can affect everything. In particular, creating a
+  more granular evaluation framework, as we did here - breaking down performance into
+  10-15 individual datasets along a couple of key metrics - affected not just how we
+  understood how well we were solving the problem of first party fraud, but even how we
+  defined the problem itself. This framework was nothing fancy from a technical
+  perspective: we stored the datasets themselves in S3, with a couple of
+  version-controlled Python scripts that could produce tables like the ones above, add
+  new datasets as needed, and evaluate new features and scores on our existing datasets.
 </p>
 
 <h2>What came next</h2>
@@ -835,7 +834,8 @@
   These scores allowed us to initiate collaborations with major U.S. FIs around first
   party fraud that continue to this day. SentiLink has used these relationships to
   explore more "determinative" solutions for first party fraud, and a couple of the eight
-  signals we developed later became useful building blocks for adjacent efforts.
+  signals we developed later became useful building blocks for adjacent fraud efforts
+  that were in progress when I left and that SentiLink may be announcing soon.
 </p>
 
 <p>
@@ -843,14 +843,13 @@
   fraud signals on external datasets in a systematic way. As I was departing, the
   business had launched an initiative to evaluate our identity theft score and some of
   its key underlying signals on external datasets, using the same approach we'd developed
-  for FPF. Paving the way for SentiLink to use customer data in a more thoughtful and
-  systematic way—and enabling the company to begin tackling problems outside of its
-  initial core—remains what I'm proudest of.
+  for FPF. We built even built a similar evaluation framework for a new fraud area and it
+  helped us see that we likely couldn't produce compelling scores or flags there.
 </p>
 
 <h2>Evaluations beyond fraud models</h2>
 
-<p></p>
+<p>Discuss forthcoming post on evaluating quantized models</p>
 
 <h2>About the author</h2>
 
