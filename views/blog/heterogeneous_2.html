@@ -6,7 +6,7 @@
 <p class="post-subtitle">
   How We Built a Model-Backed First Party Fraud Product at SentiLink
 </p>
-<p class="post-date">January 22, 2026</p>
+<p class="post-date">January 29, 2026</p>
 
 <p>
   This essay describes how we successfully built a 0-to-1 fraud risk score product at
@@ -14,28 +14,34 @@
   heterogeneous sets of labels where we couldn't directly verify quality or relevance.
   The problem was the broad category of "first party fraud" (FPF), a collection of fraud
   variants that our customers (FIs offering lending and depository products) typically
-  discovered only "after the fact." They would observe unusually bad behavior from one of
+  discovered only "after the fact": they would observe unusually bad behavior from one of
   <em>their</em> customers and, possibly after doing additional manual review, conclude
   that first party fraud had occurred at the time of the application.
 </p>
 
 <p>
-  The result was that our labels were an amalgam of heterogeneous cases. Most were
-  instances where our partners had observed behaviors highly suggestive of FPF, but some
-  were cases where our partners had reached the FPF determination through manual review.
-  Examples included sets of accounts where bad checks were passed, sets of accounts with
-  large customer-initiated ACH returns, and cases where a partner determined that a
+  The result was that our labels were a collection of customer-defined "cohorts"; in each
+  one, a different "FPF-adjacent" behavior had been observed. Most were instances where
+  our FI customers had observed behaviors highly suggestive of FPF, but some were cases
+  where those customers had reached the FPF determination through manual review. Examples
+  included sets of accounts where bad checks were passed, sets of accounts with large
+  customer-initiated ACH returns, and cases where a customer determined that their
   customer had charged off and never had intent to pay (possibly because they planned to
-  engage in credit washing).
+  engage in
+  <a href="https://www.transunion.com/faq/what-is-credit-washing">credit washing</a>
+  later on).
 </p>
 
 <p>
-  This presented three potential problems for building a score. The first was the obvious
-  heterogeneity of these labels. The second was mislabeling: some labels, especially
-  those based mostly on our customers observing a bad outcome, may not have been due to
-  FPF at all (the behaviors may have occurred due to identity theft, for example).
-  Finally, in cases where a broad swath of applications was labeled "bad" during a fraud
-  attack, some legitimate applications may have been swept up in the labeling.
+  This presented three potential problems for building a score. The first was the
+  heterogeneity of these labels: while we could have just thrown all these labels into a
+  model, we ultimately had to sell these scores to conservative banks and credit unions
+  that would want a coherent story for what our model was targeting, which this approach
+  would be unlikely to provide. The second was mislabeling: some labels, especially those
+  based mostly on our customers observing a bad outcome, may not have been due to FPF at
+  all (the behaviors may have occurred due to identity theft, for example). Finally, in
+  cases where a broad swath of applications was labeled "bad" during a fraud attack, some
+  legitimate applications may have been swept up in the labeling.
 </p>
 
 <p>
