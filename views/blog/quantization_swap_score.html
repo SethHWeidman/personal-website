@@ -1,0 +1,250 @@
+<h1 class="post-title">
+  Quantization benchmarks should report swap-ins and swap-outs in addition to accuracy
+</h1>
+<p class="post-date">January 30, 2026</p>
+
+<figure class="post-banner">
+  <img
+    src="quantization_swap_banner_placeholder.png"
+    alt="Diagram showing model disagreement sets between V1 and V2."
+    class="wide-image"
+    loading="eager"
+  />
+</figure>
+
+<p>
+  Single numbers (or even small sets of numbers) about a dataset or a model’s performance
+  rarely tell the whole story. Anscombe’s quartet is a classic example of this:
+  <a
+    href="https://en.wikipedia.org/wiki/Anscombe%27s_quartet"
+    target="_blank"
+    rel="noopener noreferrer"
+    >https://en.wikipedia.org/wiki/Anscombe%27s_quartet</a
+  >. At times, the AI industry seems not to have internalized this, relying too heavily
+  on aggregate scores to characterize a single system’s performance (or to compare two
+  systems).
+</p>
+
+<p>
+  This post covers one scenario where an additional metric can provide more clarity: when
+  we quantize models, we expect overall accuracy to drop slightly, but we also hope the
+  model’s behavior deviates from the baseline as little as possible. I propose a
+  metric—the <strong>Weidman Swap Score</strong>—to quantify this deviation by measuring
+  how often a quantized model “swaps” answers relative to the baseline.
+</p>
+
+<h2>Introduction</h2>
+
+<p>
+  The most successful company in the entire space is undoubtedly NVIDIA, and I pick on
+  one of their blog posts here only because I read them voraciously and consider them an
+  excellent source of information on where the industry is going.
+</p>
+
+<p>
+  A chart in a recent post inspired the chain of thought that led to this post. They
+  illustrate the performance of their NVFP4 number format by showing that quantizing to
+  it decreases accuracy on MMLU-Pro—for example, from 85% to 84%.
+  <a
+    href="https://github.com/TIGER-AI-Lab/MMLU-Pro"
+    target="_blank"
+    rel="noopener noreferrer"
+    >https://github.com/TIGER-AI-Lab/MMLU-Pro</a
+  >. That single aggregate number can hide two very different under-the-hood realities,
+  which can have significant implications for stability and reliability in production.
+</p>
+
+<p>
+  (To be clear: this is not to claim NVFP4 is “worse” in this regard. It’s entirely
+  possible NVFP4 induces <em>fewer</em> swaps than other 4-bit formats. The point is that
+  we typically don’t see this reported, so we can’t tell.)
+</p>
+
+<h2>The Problem</h2>
+
+<p>
+  Consider a model whose accuracy drops from 85% (V1) to 84% (V2) on a 100-question
+  dataset. This could arise from either of the following extreme scenarios:
+</p>
+
+<ul>
+  <li>
+    <strong>Minimal swapping:</strong> All 15 questions V1 got wrong, V2 also got wrong.
+    V2 simply gets <em>one additional</em> question wrong.
+    <ul>
+      <li>
+        V1 and V2 disagree on precisely <strong>1</strong> question out of 100. Given the
+        decrease in overall accuracy from 85% to 84%, this is the minimum possible number
+        of disagreements.
+      </li>
+    </ul>
+  </li>
+
+  <li>
+    <strong>Maximal swapping:</strong> The 15 questions that V1 got wrong, V2 gets
+    <em>right</em>. However, V2 gets 16 <em>new</em> questions wrong that V1 got right.
+    <ul>
+      <li>V1 and V2 disagree on 15 + 16 = <strong>31</strong> questions out of 100.</li>
+    </ul>
+  </li>
+</ul>
+
+<p>
+  Despite one scenario involving disagreement on <em>1%</em> of the dataset and the other
+  involving disagreement on <em>31%</em> of the dataset, in both cases we observe the
+  same headline accuracy change: 85% to 84%. This is an Anscombe’s quartet-style
+  situation: the same top-level numbers can correspond to a very different story about
+  what changed.
+</p>
+
+<p>
+  In the next section, I formalize “disagreement,” derive its bounds for a pair of
+  accuracies, and then define a normalized score that can be reported alongside accuracy.
+</p>
+
+<h2>Formalizing Disagreement</h2>
+
+<p>Let the dataset contain <strong>N</strong> questions. For two model versions:</p>
+
+<ul>
+  <li>\(M_1\) = number of questions V1 got right</li>
+  <li>\(M_2\) = number of questions V2 got right</li>
+  <li>\(N\) = total number of questions</li>
+</ul>
+
+<p>
+  Define <strong>actual disagreement</strong> as the number of questions on which exactly
+  one model is correct (i.e., the symmetric difference of the “correct” sets).
+  Equivalently, it is:
+</p>
+
+<ul>
+  <li><strong>swap-outs:</strong> questions V1 got right but V2 got wrong</li>
+  <li><strong>swap-ins:</strong> questions V1 got wrong but V2 got right</li>
+</ul>
+
+<p>So, \(\text{Actual Disagreement} = \text{swap-outs} + \text{swap-ins}\).</p>
+
+<p>Given only \(M_1\), \(M_2\), and \(N\), the disagreement is bounded:</p>
+
+<p>\[ \text{Min Disagreement} = |M_2 - M_1| \]</p>
+
+<p>\[ \text{Max Disagreement} = \min\!\bigl(M_1 + M_2,\; 2N - (M_1 + M_2)\bigr) \]</p>
+
+<blockquote>
+  Intuition:
+  <ul>
+    <li>
+      The minimum disagreement occurs when the smaller “correct set” is a subset of the
+      larger, so the only differences are forced by the accuracy gap.
+    </li>
+    <li>
+      The maximum disagreement occurs when overlap between the two “correct sets” is as
+      small as possible. Note that complete disagreement (\(N\) disagreements) is only
+      possible when \(M_1 + M_2 = N\); otherwise, there must exist questions both models
+      get wrong (and those questions do <em>not</em> count as disagreements).
+    </li>
+  </ul>
+</blockquote>
+
+<h2>The Weidman Swap Score (WSS)</h2>
+
+<p>
+  We can normalize the observed disagreement between these bounds to create a single
+  metric: the <strong>Weidman Swap Score</strong> (WSS). WSS is a percentage from 0 to
+  100 indicating where the actual disagreement falls between the minimum and maximum
+  possible disagreement for the observed accuracies.
+</p>
+
+<p>
+  \[ WSS = 100 \cdot \frac{\text{Actual Disagreement} - \text{Min Disagreement}}
+  {\text{Max Disagreement} - \text{Min Disagreement}} \]
+</p>
+
+<h2>Caveats</h2>
+
+<p>
+  WSS is most relevant when <strong>stability relative to a baseline</strong> matters. If
+  a model improves from 75% to 80% on some benchmark, you may care less about how
+  “stable” it is with respect to the prior version—though WSS can still be informative. A
+  high WSS in that setting might indicate the newer model has learned different aspects
+  of the benchmark than the older model.
+</p>
+
+<p>
+  I expect WSS to be most useful as a sanity check during quantization. If accuracy drops
+  from 85% to 84%, there may be nothing to worry about; but if WSS is close to 100, that
+  implies the quantized model disagrees with the baseline nearly as much as it possibly
+  can (given those accuracies). In that case, you might try a less volatile quantization
+  method before shipping.
+</p>
+
+<h3>Example 1: The 85% to 84% Drop</h3>
+
+<p>Suppose we measure swap behavior and find:</p>
+
+<ul>
+  <li>V2 got <strong>4</strong> questions wrong that V1 got right (swap-outs).</li>
+  <li>V2 got <strong>3</strong> questions right that V1 got wrong (swap-ins).</li>
+</ul>
+
+<p>
+  Then the versions disagree on \(4 + 3 = 7\) questions. For \(M_1 = 85\), \(M_2 = 84\),
+  \(N = 100\):
+</p>
+
+<ul>
+  <li>\(\text{Min Disagreement} = |84 - 85| = 1\)</li>
+  <li>
+    \(\text{Max Disagreement} = \min(85 + 84,\; 200 - 169) = \min(169,\; 31) = 31\)
+  </li>
+</ul>
+
+<p>\[ WSS = 100 \cdot \frac{7 - 1}{31 - 1} = 20 \]</p>
+
+<h3>Example 2: Lower-Accuracy Models (36% and 32%)</h3>
+
+<p>
+  Now consider a lower-accuracy scenario: V1 gets 36% right and V2 gets 32% right on a
+  100-question benchmark.
+</p>
+
+<p>
+  Suppose V2 gets 19 of the 36 questions that V1 got right, but misses the other 17.
+  Additionally, V2 gets 13 questions right that V1 missed. Then:
+</p>
+
+<ul>
+  <li>swap-outs \(= 17\)</li>
+  <li>swap-ins \(= 13\)</li>
+  <li>\(\text{Actual Disagreement} = 30\)</li>
+</ul>
+
+<p>For \(M_1 = 36\), \(M_2 = 32\), \(N = 100\):</p>
+
+<ul>
+  <li>\(\text{Min Disagreement} = |32 - 36| = 4\)</li>
+  <li>\(\text{Max Disagreement} = \min(36 + 32,\; 200 - 68) = \min(68,\; 132) = 68\)</li>
+</ul>
+
+<p>\[ WSS = 100 \cdot \frac{30 - 4}{68 - 4} \approx 40.6 \]</p>
+
+<h2>Conclusion</h2>
+
+<p>
+  For a fixed accuracy decrease due to quantization, a
+  <strong>lower WSS is preferable</strong>. It indicates the quantized model is
+  preserving the baseline model’s specific knowledge, rather than “forgetting” old
+  answers and “learning” new ones in a way that looks like volatility or noise.
+</p>
+
+<p>
+  There may even be scenarios where a slightly larger drop in accuracy that corresponds
+  to a much lower WSS is a better tradeoff; that judgment depends on the application.
+  More broadly, researchers (and the labs and companies that employ them) should report
+  swap-ins and swap-outs—or at least WSS—alongside accuracy when publishing quantization
+  benchmarks.
+</p>
+
+<br />
+<button onclick="window.location.href = '/'">Back to Home</button>
