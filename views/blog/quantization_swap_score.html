@@ -27,15 +27,16 @@
   >
   is a classic example of this: these four datasets visualize the relationship between
   two variables. In each of the four cases, the variables have the same means and
-  variances, and even the same correlation coefficients with each other, while producing
-  vastly different visuals. At times the AI industry seems not to to have internalized
-  this, relying too heavily on single numbers to characterize a single system's
-  performance or a comparison between two systems. One scenario where this is apparent is
-  model quantization; here, we care not only about the absolute performance of the model
-  with quantized weights, but also its stability relative to the baseline model. For this
-  situation, we propose a metric, the Weidman Swap Score, to quantify this behavior
-  deviation; this Swap Score can be computed easily and is relevant in any situation
-  where stability of a modified model relative to a baseline is important.
+  variances, and even the same correlation coefficients with each other, while visually
+  you can see four vastly different relationships. At times the AI industry seems not to
+  to have internalized this, relying too heavily on single numbers to characterize a
+  single system's performance or a comparison between two systems. One scenario where
+  this is apparent is model quantization; here, we care not only about the absolute
+  performance of the model with quantized weights, but also its stability relative to the
+  baseline model. For this and similar situations, we propose a metric, the Weidman Swap
+  Score, to quantify this behavior deviation; this Swap Score can be computed easily and
+  is relevant in any situation where stability of a modified model relative to a baseline
+  is important.
 </p>
 
 <h2>Motivation</h2>
@@ -69,8 +70,8 @@
 
 <ul>
   <li>
-    All 15 questions V1 got wrong, V2 also got wrong. V2 simply gets
-    <em>one additional</em> question wrong.
+    All 15 questions V1 got wrong, V2 also got wrong. V2 simply gets one additional
+    question wrong.
   </li>
   <li>Thus, V1 and V2 disagree on precisely <strong>1</strong> question out of 100.</li>
 </ul>
@@ -79,8 +80,8 @@
 
 <ul>
   <li>
-    The 15 questions that V1 got wrong, V2 gets
-    <em>right</em>. However, V2 gets 16 <em>new</em> questions wrong that V1 got right.
+    The 15 questions that V1 got wrong, V2 gets right. However, V2 gets 16
+    <em>new</em> questions wrong that V1 got right.
   </li>
   <li>V1 and V2 disagree on 15 + 16 = <strong>31</strong> questions out of 100.</li>
 </ul>
@@ -95,13 +96,11 @@
 </figure>
 
 <p>
-  Despite one scenario involving disagreement on <em>1%</em> of the dataset and the other
-  involving disagreement on <em>31%</em> of the dataset, in both cases we observe the
-  same headline accuracy change: 85% to 84%.
-  <strong
-    >This is an Anscombe’s Quartet-style situation: same top-level numbers, very
-    different underlying realities!</strong
-  >
+  Despite one scenario involving disagreement on <strong>1%</strong> of the dataset and
+  the other involving disagreement on <strong>31%</strong> of the dataset,
+  <em>in both cases we observe the same headline accuracy change: 85% to 84%</em>. 1 does
+  not equal 31! This is an Anscombe’s Quartet-style situation: same top-level numbers,
+  very different underlying realities.
 </p>
 
 <p>
@@ -109,7 +108,7 @@
   kind of swap score: it’s possible that, compared to other ways of quantizing models
   from 8 to 4 bits, NVFP4 induces
   <em>fewer</em> swaps! In their blog post they are simply following the industry
-  standard by only reporting top-level accuracy numbers. In the next section, I provide
+  standard by only reporting top-level accuracy changes. In the next section, I provide
   them (and others) a single score that can help measure <em>stability</em> in addition
   to the overall performance change.
 </p>
@@ -140,7 +139,8 @@
     The
     <strong>minimum</strong>
     number of questions the two models can disagree on is \(|M_2 - M_1|\) (the questions
-    V2 gets wrong are a strict subset of the ones V1 gets right).
+    V2 gets wrong are a strict subset of the ones V1 gets right; V2 gets no new questions
+    right).
   </li>
   <li>
     The
@@ -226,10 +226,9 @@
   only 33 right. Suppose V2 correctly answers 18 of the 36 questions that V1 got right,
   but misses the other 18. Additionally, V2 gets 15 questions right that V1 missed. This
   implies that the two versions disagree on <strong>33</strong> questions out of 100.
-  Intuitively, this is a quite high level of disagreement.
 </p>
 
-<p>For the values of 36% and 33%:</p>
+<p>For the values of 36 and 33:</p>
 
 <ul>
   <li>The minimum disagreement, \(min\_dis\), is \(3\).</li>
@@ -242,8 +241,6 @@
 <p>The Weidman Swap Score is:</p>
 
 <p>\[ WSS = \frac{33 - 3}{69 - 3} = \frac{30}{66} = 0.455 \]</p>
-
-<p>a high score.</p>
 
 <figure class="figure-small">
   <img
@@ -274,10 +271,10 @@
 <p>
   For a given accuracy decrease of a model relative to a baseline-due to quantization or
   distillation, for example-a lower WSS is preferable, suggesting that users of the model
-  will experience more stability and need to do less work to modify their workflows that
-  depend on the model's behavior. As people use LLMs for more and more aspects of their
-  personal and professional lives, and as more and more agentic applications are built
-  which have one or multiple LLMs at their core, I expect stability between model
+  will experience more stability and need to do less work to modify any workflows that
+  depend on the model behaving as they expect. As people use LLMs for more and more
+  aspects of their personal and professional lives, and as more and more agentic
+  applications are built which have LLMs at their core, I expect stability between model
   versions to become increasingly important<sup id="fnref1"><a href="#fn1">1</a></sup>
   (though I expect absolute performance to remain paramount); thus, researchers and
   companies that employ them should get in the habit of using this score to check model
@@ -294,7 +291,7 @@
   model versions going forward.
 </p>
 
-<h2>Appendix: Code</h2>
+<h3>Appendix: Code</h3>
 
 <p>
   Below is Python code that takes in two ordered arrays which are either boolean or 1s
@@ -343,14 +340,16 @@
   <sup>
     <a href="#fnref1">1</a>
   </sup>
-  The thinking for this post comes from my time at SentiLink, where we built fraud models
-  used by banks and lenders. We cared a lot about stability from model version to model
-  version because our customers did. Stability is very important in regulated industries
-  like financial services; you wouldn't want to wake up one day and see that your FICO
-  score had changed by a lot because FICO moved to a slightly-more-accurate model that
-  nevertheless resulted in a lot of swaps. I came up with the idea for this specific
-  score after leaving SentiLink and never saw this specific metric computed while I was
-  there; while we cared about model stability, we did not quantize or distill models as
-  is commonly done in more "pure AI" settings.
+  The thinking for this post comes from my time at
+  <a href="https://www.sentilink.com" target="_blank" rel="noopener noreferrer"
+    >SentiLink</a
+  >, where we built fraud models used by banks and lenders. We cared a lot about
+  stability from model version to model version because our customers did. Stability is
+  very important in regulated industries like financial services; you wouldn't want to
+  wake up one day and see that your FICO score had changed by a lot because FICO moved to
+  a slightly-more-accurate model that nevertheless resulted in a lot of swaps. I came up
+  with the idea for this specific score after leaving SentiLink and never saw this
+  specific metric computed while I was there; while we cared about model stability, we
+  did not quantize or distill models as is commonly done in more "pure AI" settings.
   <a href="#fnref1" class="footnote-backref">↩</a>
 </p>
