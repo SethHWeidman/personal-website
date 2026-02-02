@@ -140,33 +140,31 @@
 <h2>The Weidman Swap Score (WSS)</h2>
 
 <p>
-  We can normalize the observed disagreement between these bounds to create a single
-  metric: the <strong>Weidman Swap Score</strong> (WSS). WSS is a percentage from 0 to
-  100 indicating where the actual disagreement falls between the minimum and maximum
-  possible disagreement for the observed accuracies.
+  We can normalize the actual observed disagreement between these bounds to create a
+  metric: the <strong>Weidman Swap Score</strong>. This is a value from 0 to 1 that
+  indicates where the actual disagreement falls relative to the minimum and maximum
+  possible disagreement.
 </p>
 
 <p>
-  \[ WSS = 100 \cdot \frac{\text{Actual Disagreement} - \text{Min Disagreement}}
-  {\text{Max Disagreement} - \text{Min Disagreement}} \]
+  \[ WSS = \frac{\text{Actual_Disagreement} -
+  \text{Min_Disagreement}}{\text{Max_Disagreement} - \text{Min_Disagreement}} \]
 </p>
 
-<h2>Caveats</h2>
+<h2>WSS Relevance</h2>
 
 <p>
   WSS is most relevant when <strong>stability relative to a baseline</strong> matters. If
-  a model improves from 75% to 80% on some benchmark, you may care less about how
-  “stable” it is with respect to the prior version—though WSS can still be informative. A
-  high WSS in that setting might indicate the newer model has learned different aspects
-  of the benchmark than the older model.
-</p>
-
-<p>
-  I expect WSS to be most useful as a sanity check during quantization. If accuracy drops
-  from 85% to 84%, there may be nothing to worry about; but if WSS is close to 100, that
-  implies the quantized model disagrees with the baseline nearly as much as it possibly
-  can (given those accuracies). In that case, you might try a less volatile quantization
-  method before shipping.
+  a new architecture results in a model having 80% accuracy, over the prior version's 75%
+  accuracy, you may care less about its stability relative to that prior version. WSS
+  could still be informative-a high WSS might indicate the newer model has mastered
+  different aspects of whatever subject the benchmark was measuring than the older
+  model-but this may matter less. By contrast, in comparisons where stability
+  <em>is</em> important, I expect WSS to be an important sanity check: if accuracy drops
+  from 85% to 84%, there may be nothing to worry about; but if WSS is close to 1, that
+  could imply that the modified model is unstable to an extent greater than the small
+  accuracy drop suggests; the engineer may choose to experiment with different
+  quantization or distillation methods before shipping.
 </p>
 
 <h3>Example 1: The 85% to 84% Drop</h3>
