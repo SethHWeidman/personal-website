@@ -167,6 +167,32 @@
   quantization or distillation methods before shipping.
 </p>
 
+<h2>Conclusion</h2>
+
+<p>
+  For a given accuracy decrease of a model relative to a baseline-due to quantization or
+  distillation, for example-a lower WSS is preferable, suggesting that users of the model
+  will experience more stability and need to do less work to modify their workflows that
+  depend on the model's behavior. As people use LLMs for more and more aspects of their
+  personal and professional lives, and as more and more agentic applications are built
+  which have one or multiple LLMs at their core, I expect model stability between model
+  versions (though I expect absolute performance to remain paramount); thus, researchers
+  and companies that employ them should get in the habit of using this score to check
+  model stability and/or developing their own scores for doing this. We may even see
+  scenarios where companies decide users would prefer a model with a slightly larger drop
+  in accuracy with a much lower WSS; I leave that judgment call to the researchers,
+  product managers, and executives in charge of those models' performance.
+</p>
+
+<p>
+  I look forward to seeing what reporting of WSS uncovers about how stable or unstable
+  existing quantization and distillation methods are, and I hope it enables the industry
+  to make more informed tradeoffs between absolute performance and consistency over time
+  going forward.
+</p>
+
+<h2>Appendix 1: Numeric Examples</h2>
+
 <h3>Example 1: The 85% to 84% Drop</h3>
 
 <p>Suppose we measure swap behavior and find:</p>
@@ -216,23 +242,6 @@
 </ul>
 
 <p>\[ WSS = 100 \cdot \frac{30 - 4}{68 - 4} \approx 40.6 \]</p>
-
-<h2>Conclusion</h2>
-
-<p>
-  For a fixed accuracy decrease due to quantization, a
-  <strong>lower WSS is preferable</strong>. It indicates the quantized model is
-  preserving the baseline model’s specific knowledge, rather than “forgetting” old
-  answers and “learning” new ones in a way that looks like volatility or noise.
-</p>
-
-<p>
-  There may even be scenarios where a slightly larger drop in accuracy that corresponds
-  to a much lower WSS is a better tradeoff; that judgment depends on the application.
-  More broadly, researchers (and the labs and companies that employ them) should report
-  swap-ins and swap-outs—or at least WSS—alongside accuracy when publishing quantization
-  benchmarks.
-</p>
 
 <br />
 <button onclick="window.location.href = '/'">Back to Home</button>
