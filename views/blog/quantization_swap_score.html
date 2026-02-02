@@ -52,15 +52,16 @@
     rel="noopener noreferrer"
     >MMLU-Pro</a
   >
-  from 85% to 84%. That single accuracy drop could occur due to two very different
-  under-the-hood scenarios, which could have significantly different implications for
+  from 85% to 84%. That single accuracy drop could occur under two very different
+  scenarios "under-the-hood", which could have significantly different implications for
   stability and reliability in production.
 </p>
 
 <h3>The two scenarios</h3>
+
 <p>
   To keep the numbers simple: suppose this 85% to 84% drop was on a 100-question dataset.
-  Either of the following two underlying realities could lead to this (for concision,
+  Either of the following two underlying scenarios could lead to this (for concision,
   we'll call the baseline model V1 and the quantized model V2):
 </p>
 
@@ -96,8 +97,11 @@
 <p>
   Despite one scenario involving disagreement on <em>1%</em> of the dataset and the other
   involving disagreement on <em>31%</em> of the dataset, in both cases we observe the
-  same headline accuracy change: 85% to 84%. This is an Anscombe’s Quartet-style
-  situation: same top-level numbers, very different underlying realities.
+  same headline accuracy change: 85% to 84%.
+  <strong
+    >This is an Anscombe’s Quartet-style situation: same top-level numbers, very
+    different underlying realities!</strong
+  >
 </p>
 
 <p>
@@ -113,11 +117,11 @@
 <h2>A Swap-Based Stability Metric</h2>
 
 <p>
-  In this section I propose a metric of how stable one model is relative to a baseline;
-  in the AI context, I envision this being applied to quantized or distilled models, but
-  there may be other contexts where this metric is relevant. For simplicity, refer to the
-  baseline model as "V1" and the quantized model as "V2". Let the dataset contain \(N\)
-  questions. For two model versions:
+  In this section I propose a metric of how stable one model is relative to a baseline
+  (in the AI context, I envision this being applied to quantized or distilled models, but
+  there may be other contexts where this metric is relevant); for simplicity, refer to
+  the baseline model as "V1" and the quantized model as "V2". Let the dataset contain
+  \(N\) questions. For two model versions:
 </p>
 
 <ul>
@@ -135,7 +139,8 @@
   <li>
     The
     <strong>minimum</strong>
-    number of questions the two models can disagree on is \(|M_2 - M_1|\).
+    number of questions the two models can disagree on is \(|M_2 - M_1|\) (the questions
+    V2 gets wrong are a strict subset of the ones V1 gets right).
   </li>
   <li>
     The
@@ -155,7 +160,7 @@
   concrete numbers:
 </p>
 
-<figure class="figure-small">
+<figure>
   <img
     src="https://sethhweidman-personal-website.s3.us-east-1.amazonaws.com/2026-02-02_quantization_swap_score/03_maximal_disagreement_venn.png"
     alt="Confusion matrices for two scenarios with an identical accuracy decrease"
@@ -207,7 +212,7 @@
 
 <p>\[ WSS = \frac{7 - 1}{31 - 1} = \frac{6}{30} = 0.2 \]</p>
 
-<figure>
+<figure class="figure-small">
   <img
     src="https://sethhweidman-personal-website.s3.us-east-1.amazonaws.com/2026-02-02_quantization_swap_score/04_example_1_confusion_matrix.png"
     alt="Confusion matrix for Example 1"
@@ -240,30 +245,31 @@
 
 <p>a high score.</p>
 
-<figure>
+<figure class="figure-small">
   <img
     src="https://sethhweidman-personal-website.s3.us-east-1.amazonaws.com/2026-02-02_quantization_swap_score/05_example_2_confusion_matrix.png"
     alt="Confusion matrix for Example 2"
   />
 </figure>
 
-<h2>WSS Relevance</h2>
+<h2>WSS' Relevance</h2>
 
 <p>
   WSS is most relevant when <strong>stability relative to a baseline</strong> matters. In
   the majority of cases when comparing two models or systems, this is not of primary or
-  even secondard importance: if a new architecture results in a model having 80%
-  accuracy, over the prior version's 75% accuracy, you may not care. WSS could still be
+  even secondary importance: if a new architecture results in a model having 80%
+  accuracy, over the prior version's 75% accuracy, you may not care (WSS could still be
   informative-a high WSS might indicate the newer model has mastered different aspects of
-  whatever subject the benchmark was measuring than the older model. By contrast, in
-  comparisons where stability <em>does</em> matter, I expect WSS to be an important
-  sanity check: if accuracy drops from 85% to 84%, there likely is nothing to worry
-  about, but if WSS is also close to 1, that could indicate that the modified model is
-  unstable to a large enough extent that the engineer may choose to experiment with
-  different quantization or distillation methods before shipping.
+  whatever subject the benchmark was measuring than the older model-but it is less likely
+  to "de-risk" the new model in the same way). By contrast, in comparisons where
+  stability <em>does</em> matter, I expect WSS to be an important sanity check: if
+  accuracy drops from 85% to 84%, there likely is nothing to worry about, but if WSS is
+  also close to 1, that could indicate that the quantization or distillation has
+  introduced enough instability that the engineer may choose to experiment with other
+  methods before shipping, even if the 1% accuracy drop is considered small on its own.
 </p>
 
-<h2>Conclusion</h2>
+<h2>Commentary and Conclusion</h2>
 
 <p>
   For a given accuracy decrease of a model relative to a baseline-due to quantization or
@@ -339,12 +345,12 @@
   </sup>
   The thinking for this post comes from my time at SentiLink, where we built fraud models
   used by banks and lenders. We cared a lot about stability from model version to model
-  version because our customers did. Stability tends to be more important in regulated
-  industries like financial services; you wouldn't want to wake up one day and see that
-  your FICO score had changed by a lot because FICO moved to a slightly-more-accurate
-  model that nevertheless resulted in a lot of swaps. I came up with the idea for this
-  specific score after leaving SentiLink and never saw this specific metric computed
-  while I was there; while we cared about model stability, we did not quantize or distill
-  models as is commonly done in more "pure AI" settings.
+  version because our customers did. Stability is very important in regulated industries
+  like financial services; you wouldn't want to wake up one day and see that your FICO
+  score had changed by a lot because FICO moved to a slightly-more-accurate model that
+  nevertheless resulted in a lot of swaps. I came up with the idea for this specific
+  score after leaving SentiLink and never saw this specific metric computed while I was
+  there; while we cared about model stability, we did not quantize or distill models as
+  is commonly done in more "pure AI" settings.
   <a href="#fnref1" class="footnote-backref">↩</a>
 </p>
