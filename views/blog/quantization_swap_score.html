@@ -193,55 +193,83 @@
 
 <h2>Appendix 1: Numeric Examples</h2>
 
-<h3>Example 1: The 85% to 84% Drop</h3>
+<h3>Example 1</h3>
 
-<p>Suppose we measure swap behavior and find:</p>
+<p>Let’s return to the example. Suppose that upon inspection, we find:</p>
 
 <ul>
-  <li>V2 got <strong>4</strong> questions wrong that V1 got right (swap-outs).</li>
-  <li>V2 got <strong>3</strong> questions right that V1 got wrong (swap-ins).</li>
+  <li>V2 got 3 questions wrong that V1 got right.</li>
+  <li>V2 also got one additional question wrong (the net accuracy loss).</li>
+  <li>However, V1 got 3 questions wrong that V2 got right (swaps).</li>
 </ul>
 
 <p>
-  Then the versions disagree on \(4 + 3 = 7\) questions. For \(M_1 = 85\), \(M_2 = 84\),
-  \(N = 100\):
+  This implies the two versions disagree on a total of 7 questions. Using our variables
+  for 85% and 84%:
 </p>
 
 <ul>
-  <li>\(\text{Min Disagreement} = |84 - 85| = 1\)</li>
-  <li>
-    \(\text{Max Disagreement} = \min(85 + 84,\; 200 - 169) = \min(169,\; 31) = 31\)
-  </li>
+  <li>The minimum disagreement, \(min\_dis\), is 1.</li>
+  <li>The maximum disagreement, \(max\_dis\), is 31.</li>
 </ul>
 
-<p>\[ WSS = 100 \cdot \frac{7 - 1}{31 - 1} = 20 \]</p>
+<p>The Weidman Swap Score (WSS) is:</p>
 
-<h3>Example 2: Lower-Accuracy Models (36% and 32%)</h3>
+<p>\[ WSS = \frac{7 - 1}{31 - 1} = 0.2 \]</p>
+
+<h3>Example 2</h3>
 
 <p>
-  Now consider a lower-accuracy scenario: V1 gets 36% right and V2 gets 32% right on a
-  100-question benchmark.
+  Let's look at a lower accuracy scenario. V1 gets 36 out of 100 right, whereas V2 gets
+  only 32 right. Suppose V2 gets 18 of the 36 questions that V1 got right, but misses the
+  other 18. Additionally, V2 gets 12 questions right that V1 missed. This implies that
+  the two versions disagree on <strong>30</strong> questions out of 100.
 </p>
 
-<p>
-  Suppose V2 gets 19 of the 36 questions that V1 got right, but misses the other 17.
-  Additionally, V2 gets 13 questions right that V1 missed. Then:
-</p>
+<p>For the values of 36% and 32%:</p>
 
 <ul>
-  <li>swap-outs \(= 17\)</li>
-  <li>swap-ins \(= 13\)</li>
-  <li>\(\text{Actual Disagreement} = 30\)</li>
+  <li>The minimum disagreement, \(min\_dis\), is 4.</li>
+  <li>The maximum disagreement, \(max\_dis\), is 100.</li>
 </ul>
 
-<p>For \(M_1 = 36\), \(M_2 = 32\), \(N = 100\):</p>
+<p>The Weidman Swap Score is:</p>
 
-<ul>
-  <li>\(\text{Min Disagreement} = |32 - 36| = 4\)</li>
-  <li>\(\text{Max Disagreement} = \min(36 + 32,\; 200 - 68) = \min(68,\; 132) = 68\)</li>
-</ul>
+<p>\[ WSS = \frac{30 - 4}{100 - 4} = 0.271 \]</p>
 
-<p>\[ WSS = 100 \cdot \frac{30 - 4}{68 - 4} \approx 40.6 \]</p>
+<h2>Appendix 2: Pseudocode</h2>
+
+<pre><code class="language-python">def swap_metrics(correct_v1, correct_v2):
+    assert len(correct_v1) == len(correct_v2)
+    N = len(correct_v1)
+
+    N1 = sum(correct_v1)
+    N2 = sum(correct_v2)
+
+    swap_outs = sum(c1 and (not c2) for c1, c2 in zip(correct_v1, correct_v2))
+    swap_ins  = sum((not c1) and c2 for c1, c2 in zip(correct_v1, correct_v2))
+    dis = swap_outs + swap_ins
+
+    min_dis = abs(N2 - N1)
+    max_dis = min(N1 + N2, (N - N1) + (N - N2))
+
+    # Handle the (rare) degenerate case where min_dis == max_dis.
+    if max_dis == min_dis:
+        wss = 0.0
+    else:
+        wss = 100.0 * (dis - min_dis) / (max_dis - min_dis)
+
+    return {
+        "N": N,
+        "N1": N1,
+        "N2": N2,
+        "swap_outs": swap_outs,
+        "swap_ins": swap_ins,
+        "disagreement": dis,
+        "min_dis": min_dis,
+        "max_dis": max_dis,
+        "wss": wss,
+    }</code></pre>
 
 <br />
 <button onclick="window.location.href = '/'">Back to Home</button>
