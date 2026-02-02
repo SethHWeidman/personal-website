@@ -254,6 +254,25 @@ app.get("/blog/heterogeneous_2", (req, res) => {
   res.redirect(301, "/blog/heterogeneous_2.html");
 });
 
+app.get("/blog/quantization_swap_score.html", (req, res) => {
+  const title =
+    'A "Swap Score" For Evaluating Models When Stability Relative to a Baseline is Important';
+  const quantizationSwapScoreHead = renderHeadParts(renderMathJaxHead());
+  res.send(
+    renderHTML(
+      title,
+      `
+      ${loadView("blog/quantization_swap_score.html")}
+      `,
+      quantizationSwapScoreHead,
+    ),
+  );
+});
+
+app.get("/blog/quantization_swap_score", (req, res) => {
+  res.redirect(301, "/blog/quantization_swap_score.html");
+});
+
 app.get("/blog/cuda_matmul.html", (req, res) => {
   const title = "Tiling Matrix Multiplication on the GPU";
   const cudaMatmulHead = renderHeadParts(
