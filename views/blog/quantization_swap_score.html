@@ -2,15 +2,15 @@
   A "Swap Score" For Evaluating Models When Stability Relative to a Baseline is Important
 </h1>
 <p class="post-subtitle">
-  Why quantization benchmarks should report this swap score in addition to accuracy
-  change
+  Why quantization and distillation benchmarks should report this swap score in addition
+  to accuracy change
 </p>
-<p class="post-date">February 1, 2026</p>
+<p class="post-date">February 2, 2026</p>
 
 <figure class="post-banner">
   <img
-    src="quantization_swap_banner_placeholder.png"
-    alt="Diagram showing model disagreement sets between V1 and V2."
+    src="https://sethhweidman-personal-website.s3.us-east-1.amazonaws.com/2026-02-02_quantization_swap_score/swap_ins_outs_banner_image.png"
+    alt="Diagram showing model disagreement sets between two versions of a model."
     class="wide-image"
     loading="eager"
   />
@@ -31,56 +31,58 @@
   this is apparent is model quantization; here, we care not only about the absolute
   performance of the model with quantized weights, but also its stability relative to the
   baseline model. For this situation, we propose a metric, the Weidman Swap Score, to
-  quantify this behavior deviation; this Swap Score is relevant in any situation where
-  stability of a modified model relative to a baseline is important.
+  quantify this behavior deviation; this Swap Score can be computed easily and is
+  relevant in any situation where stability of a modified model relative to a baseline is
+  important.
 </p>
 
 <h2>Motivation</h2>
 
 <p>
-  A concrete example to motivate this: a chart in a recent NVIDIA blog post-I pick on
-  them only because I read them voraciously and consider them the single best source of
-  information on where the industry is going-inspired the chain of thought that led to
-  this post. They illustrate the performance of their NVFP4 number format by showing that
-  (along with other benchmarks) quantizing to it decreases accuracy on
+  A recent NVIDIA blog post inspired the "chain-of-thought" that led to this post (I pick
+  on NVIDIA only because I read all their posts voraciously and consider them the single
+  best source of information on where the industry is going). They illustrate the
+  performance of their NVFP4 number format by showing that (along with other benchmarks)
+  quantizing to it decreases accuracy on
   <a
     href="https://github.com/TIGER-AI-Lab/MMLU-Pro"
     target="_blank"
     rel="noopener noreferrer"
     >MMLU-Pro</a
   >
-  from 85% to 84%. That single aggregate number can hide two very different
-  under-the-hood realities, which could have significant implications for stability and
-  reliability in production. Suppose this 85% to 84% drop was on a 100-question dataset,
-  to keep the numbers simple. Either of the following two underlying realities could lead
-  to this (for concision, we'll call the baseline model V1 and the quantized model V2):
+  from 85% to 84%. That single accuracy drop could occur due to two very different
+  under-the-hood scenarios, which could have significantly different implications for
+  stability and reliability in production.
 </p>
 
-<h3>Reality #1: "minimal swapping"</h3>
+<h3>The two scenarios</h3>
+<p>
+  Suppose this 85% to 84% drop was on a 100-question dataset, to keep the numbers simple.
+  Either of the following two underlying realities could lead to this (for concision,
+  we'll call the baseline model V1 and the quantized model V2):
+</p>
+
+<h4>Scenario #1: "minimal swapping"</h4>
 
 <ul>
   <li>
     All 15 questions V1 got wrong, V2 also got wrong. V2 simply gets
     <em>one additional</em> question wrong.
-    <ul>
-      <li>
-        V1 and V2 disagree on precisely <strong>1</strong> question out of 100. Given the
-        decrease in overall accuracy from 85% to 84%, this is the minimum possible number
-        of disagreements.
-      </li>
-    </ul>
   </li>
+  <li>Thus, V1 and V2 disagree on precisely <strong>1</strong> question out of 100.</li>
+</ul>
 
-  <h3>Reality #2: "maximal swapping"</h3>
+<h4>Scenario #2: "maximal swapping"</h4>
 
+<ul>
   <li>
     The 15 questions that V1 got wrong, V2 gets
     <em>right</em>. However, V2 gets 16 <em>new</em> questions wrong that V1 got right.
-    <ul>
-      <li>V1 and V2 disagree on 15 + 16 = <strong>31</strong> questions out of 100.</li>
-    </ul>
   </li>
+  <li>V1 and V2 disagree on 15 + 16 = <strong>31</strong> questions out of 100.</li>
 </ul>
+
+<p>It can be easier to follow these scenarios by seeing the confusion matrices:</p>
 
 <figure>
   <img
@@ -92,18 +94,18 @@
 <p>
   Despite one scenario involving disagreement on <em>1%</em> of the dataset and the other
   involving disagreement on <em>31%</em> of the dataset, in both cases we observe the
-  same headline accuracy change: 85% to 84%. This is an Anscombe’s quartet-style
-  situation: same top-level numbers, very different underlying reality.
+  same headline accuracy change: 85% to 84%. This is an Anscombe’s Quartet-style
+  situation: same top-level numbers, very different underlying realities.
 </p>
 
 <p>
   To be clear, I'm not claiming that NVIDIA is covering anything up by not reporting some
-  kind of swap score: it’s possible that, compared to other formats that quantize models
+  kind of swap score: it’s possible that, compared to other ways of quantizing models
   from 8 to 4 bits, NVFP4 induces
-  <em>fewer</em> swaps. They are simply following the industry standard by only reporting
-  top-level accuracy numbers. In the next section, I formalize “disagreement,” derive its
-  bounds for a pair of accuracies, and then define a normalized score that can be
-  reported alongside accuracy.
+  <em>fewer</em> swaps! In their blog post they are simply following the industry
+  standard by only reporting top-level accuracy numbers. In the next section, I provide
+  them (and others) a single score that can help measure <em>stability</em> in addition
+  to the overall performance change.
 </p>
 
 <h2>A Swap-Based Stability Metric</h2>
@@ -122,20 +124,42 @@
   <li>\(N\) = total number of questions</li>
 </ul>
 
-<p>We can calculate the range of possible disagreements as follows:</p>
+<p>Observe that:</p>
 
-<p>\[ \text{Minimum_Disagreement} = |M_2 - M_1| \]</p>
+<ul>
+  <li>
+    The
+    <strong>minimum</strong>
+    number of questions the two models can disagree on is \(|M_2 - M_1|\).
+  </li>
+  <li>
+    The
+    <strong>maximum</strong>
+    number of questions the two models can disagree on is \(\min((N - M_2) + (N - M_1),
+    M_1 + M_2)\)
+  </li>
+</ul>
 
-<p>\[ \text{Maximum_Disagreement} = \min((N - M_2) + (N - M_1), N) \]</p>
+<p>
+  The intuition for the “minimum with \(M_1 + M_2\)" in the maximum disagreement formula
+  is: if V1 and V2 together get less than 100% of the questions right, it is possible for
+  the two versions to get a completely disjoint set of questions correct, in which case
+  they will <em>agree</em> only on the \(N - M_1 + M_2\) questions they both got wrong;
+  saying the same thing differently, they will <em>disagree</em> on the \(M_1 + M_2\)
+  questions they collectively got right. The diagram below makes this clearer with some
+  concrete numbers:
+</p>
 
-<blockquote>
-  The intuition for the “minimum with \(N\)" in the maximum disagreement formula is: if
-  \(M_1\) and \(M_2\) are both less than 50%, it is possible for the two versions to
-  disagree on <em>every</em> question. For example, if V1 gets 36% of the questions
-  right, and V2 gets 32% right, it is possible that V2 gets every question wrong that V1
-  gets right: the 32% that V2 got right would simply have to be a strict subset of the
-  64% of questions V1 got right, which is certainly possible.
-</blockquote>
+<figure>
+  <img
+    src="https://sethhweidman-personal-website.s3.us-east-1.amazonaws.com/2026-02-02_quantization_swap_score/03_maximal_disagreement_venn.png"
+    alt="Confusion matrices for two scenarios with an identical accuracy decrease"
+  />
+</figure>
+
+<p>
+  This pair of insights naturally leads to a score that quantifies model disagreement.
+</p>
 
 <h2>The Weidman Swap Score (WSS)</h2>
 
@@ -148,8 +172,61 @@
 
 <p>
   \[ WSS = \frac{\text{Actual_Disagreement} -
-  \text{Min_Disagreement}}{\text{Max_Disagreement} - \text{Min_Disagreement}} \]
+  \text{Minimum_Disagreement}}{\text{Maximum_Disagreement} - \text{Minimum_Disagreement}}
+  \]
 </p>
+
+<p>Let's walk through a couple of simple numeric examples:</p>
+
+<h3>Example 1</h3>
+
+<p>
+  Let’s return to the 85% and 84% example above. Suppose that upon inspection, we find:
+</p>
+
+<ul>
+  <li>V2 got 3 questions wrong that V1 got right.</li>
+  <li>V2 also got one additional question wrong.</li>
+  <li>However, V1 got 3 questions wrong that V2 got right.</li>
+</ul>
+
+<p>
+  This implies the two versions disagree on a total of 7 questions. Using our variables
+  for 85% and 84%:
+</p>
+
+<ul>
+  <li>The minimum disagreement is \(|84 - 85| = 1\).</li>
+  <li>The maximum disagreement is \(\min((100 - 85) + (100 - 84), 84 + 85) = 31\).</li>
+</ul>
+
+<p>The Weidman Swap Score (WSS) is:</p>
+
+<p>\[ WSS = \frac{7 - 1}{31 - 1} = \frac{6}{30} = 0.2 \]</p>
+
+<h3>Example 2</h3>
+
+<p>
+  Let's look at a lower accuracy scenario. V1 gets 36 out of 100 right, whereas V2 gets
+  only 33 right. Suppose V2 gets 18 of the 36 questions that V1 got right, but misses the
+  other 18. Additionally, V2 gets 15 questions right that V1 missed. This implies that
+  the two versions disagree on <strong>33</strong> questions out of 100. Intuitively,
+  this is a quite high level of disagreement.
+</p>
+
+<p>For the values of 36% and 33%:</p>
+
+<ul>
+  <li>The minimum disagreement, \(min\_dis\), is 3.</li>
+  <li>
+    The maximum disagreement, \(max\_dis\), is \min((100 - 33) + (100 - 36), 33 + 36) =
+    69.
+  </li>
+</ul>
+
+<p>The Weidman Swap Score is:</p>
+
+<p>\[ WSS = \frac{33 - 3}{69 - 3} = \frac{30}{66} = 0.455 \]</p>
 
 <h2>WSS Relevance</h2>
 
@@ -187,82 +264,38 @@
 <p>
   I look forward to seeing what reporting of WSS uncovers about how stable or unstable
   existing quantization and distillation methods are, and I hope it enables the industry
-  to make more informed tradeoffs between absolute performance and consistency over time
-  going forward.
+  to make more informed tradeoffs between absolute performance and consistency between
+  versions going forward.
 </p>
 
-<h2>Appendix 1: Numeric Examples</h2>
+<h2>Appendix: Code</h2>
 
-<h3>Example 1</h3>
-
-<p>Let’s return to the example. Suppose that upon inspection, we find:</p>
-
-<ul>
-  <li>V2 got 3 questions wrong that V1 got right.</li>
-  <li>V2 also got one additional question wrong (the net accuracy loss).</li>
-  <li>However, V1 got 3 questions wrong that V2 got right (swaps).</li>
-</ul>
-
-<p>
-  This implies the two versions disagree on a total of 7 questions. Using our variables
-  for 85% and 84%:
-</p>
-
-<ul>
-  <li>The minimum disagreement, \(min\_dis\), is 1.</li>
-  <li>The maximum disagreement, \(max\_dis\), is 31.</li>
-</ul>
-
-<p>The Weidman Swap Score (WSS) is:</p>
-
-<p>\[ WSS = \frac{7 - 1}{31 - 1} = 0.2 \]</p>
-
-<h3>Example 2</h3>
-
-<p>
-  Let's look at a lower accuracy scenario. V1 gets 36 out of 100 right, whereas V2 gets
-  only 32 right. Suppose V2 gets 18 of the 36 questions that V1 got right, but misses the
-  other 18. Additionally, V2 gets 12 questions right that V1 missed. This implies that
-  the two versions disagree on <strong>30</strong> questions out of 100.
-</p>
-
-<p>For the values of 36% and 32%:</p>
-
-<ul>
-  <li>The minimum disagreement, \(min\_dis\), is 4.</li>
-  <li>The maximum disagreement, \(max\_dis\), is 100.</li>
-</ul>
-
-<p>The Weidman Swap Score is:</p>
-
-<p>\[ WSS = \frac{30 - 4}{100 - 4} = 0.271 \]</p>
-
-<h2>Appendix 2: Pseudocode</h2>
+<p>Below is Python code that takes in</p>
 
 <pre><code class="language-python">def swap_metrics(correct_v1, correct_v2):
     assert len(correct_v1) == len(correct_v2)
     N = len(correct_v1)
 
-    N1 = sum(correct_v1)
-    N2 = sum(correct_v2)
+    M1 = sum(correct_v1)
+    M2 = sum(correct_v2)
 
     swap_outs = sum(c1 and (not c2) for c1, c2 in zip(correct_v1, correct_v2))
-    swap_ins  = sum((not c1) and c2 for c1, c2 in zip(correct_v1, correct_v2))
+    swap_ins = sum((not c1) and c2 for c1, c2 in zip(correct_v1, correct_v2))
     dis = swap_outs + swap_ins
 
-    min_dis = abs(N2 - N1)
-    max_dis = min(N1 + N2, (N - N1) + (N - N2))
+    min_dis = abs(M2 - M1)
+    max_dis = min(M1 + M2, (N - M1) + (N - M2))
 
     # Handle the (rare) degenerate case where min_dis == max_dis.
     if max_dis == min_dis:
         wss = 0.0
     else:
-        wss = 100.0 * (dis - min_dis) / (max_dis - min_dis)
+        wss = (dis - min_dis) / (max_dis - min_dis)
 
     return {
         "N": N,
-        "N1": N1,
-        "N2": N2,
+        "M1": M1,
+        "M2": M2,
         "swap_outs": swap_outs,
         "swap_ins": swap_ins,
         "disagreement": dis,
@@ -273,3 +306,18 @@
 
 <br />
 <button onclick="window.location.href = '/'">Back to Home</button>
+
+<h3>Footnotes</h3>
+
+<p id="fn1" class="footnote">
+  <sup>
+    <a href="#fnref1">1</a>
+  </sup>
+  The thinking for this post comes from my time at SentiLink, who built fraud models used
+  by banks and lenders. We cared a lot about stability from model version to model
+  version because our customers did. Stability tends to be more important in regulated
+  industries like financial services; you wouldn't want to wake up one day and see that
+  your FICO score had changed by a lot because FICO moved to a slightly-more-accurate
+  model that resulted in a lot of swaps.
+  <a href="#fnref1" class="footnote-backref">↩</a>
+</p>
