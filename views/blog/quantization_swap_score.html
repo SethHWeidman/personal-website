@@ -59,11 +59,24 @@
 <h2>Motivation</h2>
 
 <p>
-  A recent NVIDIA blog post inspired the "chain-of-thought" that led to this post (I pick
-  on NVIDIA only because I read their posts voraciously and consider them the single best
-  source of information on where the industry is going). In it, they illustrate the
-  performance of their NVFP4 number format by showing that (along with other benchmarks)
-  quantizing to it only decreases accuracy on
+  A
+  <a
+    href="https://developer.nvidia.com/blog/introducing-nvfp4-for-efficient-and-accurate-low-precision-inference/#model_performance"
+    target="_blank"
+    rel="noopener noreferrer"
+    >recent NVIDIA blog post</a
+  >
+  inspired the "chain-of-thought" that led to this post (I pick on NVIDIA only because I
+  read their posts voraciously and consider them the single best source of information on
+  where the industry is going). In it, they illustrate the performance of their NVFP4
+  number format by showing that (along with other benchmarks) quantizing
+  <a
+    href="https://api-docs.deepseek.com/news/news250528"
+    target="_blank"
+    rel="noopener noreferrer"
+    >the "0528" checkpoint of DeepSeek R1</a
+  >
+  to it, from FP8, only decreases accuracy on
   <a
     href="https://github.com/TIGER-AI-Lab/MMLU-Pro"
     target="_blank"
