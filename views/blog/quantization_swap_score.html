@@ -34,36 +34,37 @@
   this is apparent is model quantization; here, we care not only about the absolute
   performance of the model with quantized weights, but also its stability relative to the
   baseline model. For this and similar situations, we propose a metric, the Weidman Swap
-  Score, to quantify this behavior deviation; this Swap Score can be computed easily and
-  is relevant in any situation where stability of a modified model relative to a baseline
-  is important.
+  Score, to quantify this behavior deviation; this score can be computed easily and is
+  relevant in any situation where stability of a modified model relative to a baseline is
+  important.
 </p>
 
 <h2>Motivation</h2>
 
 <p>
   A recent NVIDIA blog post inspired the "chain-of-thought" that led to this post (I pick
-  on NVIDIA only because I read all their posts voraciously and consider them the single
-  best source of information on where the industry is going). They illustrate the
+  on NVIDIA only because I read their posts voraciously and consider them the single best
+  source of information on where the industry is going). In it, they illustrate the
   performance of their NVFP4 number format by showing that (along with other benchmarks)
-  quantizing to it decreases accuracy on
+  quantizing to it only decreases accuracy on
   <a
     href="https://github.com/TIGER-AI-Lab/MMLU-Pro"
     target="_blank"
     rel="noopener noreferrer"
     >MMLU-Pro</a
   >
-  from 85% to 84%. That single accuracy drop could occur under two very different
-  scenarios "under-the-hood", which could have significantly different implications for
-  stability and reliability in production.
+  by 1%, from 85% to 84%. What they don't say is that that accuracy drop could occur
+  under two very different scenarios "under-the-hood", scenarios with significantly
+  different implications for the stability and reliability of the quantized model in
+  production.
 </p>
 
 <h3>The two scenarios</h3>
 
 <p>
-  To keep the numbers simple: suppose this 85% to 84% drop was on a 100-question dataset.
-  Either of the following two underlying scenarios could lead to this (for concision,
-  we'll call the baseline model V1 and the quantized model V2):
+  Suppose this 85% to 84% drop was on a 100-question dataset. Either of the following two
+  underlying scenarios could lead to a 1% accuracy drop (for concision, we'll call the
+  baseline model V1 and the quantized model V2):
 </p>
 
 <h4>Scenario #1: "minimal swapping"</h4>
@@ -73,7 +74,7 @@
     All 15 questions V1 got wrong, V2 also got wrong. V2 simply gets one additional
     question wrong.
   </li>
-  <li>Thus, V1 and V2 disagree on precisely <strong>1</strong> question out of 100.</li>
+  <li>Thus, V1 and V2 disagree on <strong>1</strong> question out of 100.</li>
 </ul>
 
 <h4>Scenario #2: "maximal swapping"</h4>
@@ -86,7 +87,10 @@
   <li>V1 and V2 disagree on 15 + 16 = <strong>31</strong> questions out of 100.</li>
 </ul>
 
-<p>It can be easier to follow these scenarios by seeing the confusion matrices:</p>
+<p>
+  It can be easier to follow these scenarios by seeing the
+  <a href="https://en.wikipedia.org/wiki/Confusion_matrix">confusion matrices</a>:
+</p>
 
 <figure class="figure-small">
   <img
@@ -98,9 +102,9 @@
 <p>
   Despite one scenario involving disagreement on <strong>1%</strong> of the dataset and
   the other involving disagreement on <strong>31%</strong> of the dataset,
-  <em>in both cases we observe the same headline accuracy change: 85% to 84%</em>. 1 does
-  not equal 31! This is an Anscombe’s Quartet-style situation: same top-level numbers,
-  very different underlying realities.
+  <em>in both cases we observe the same headline accuracy change: 85% to 84%</em>. This
+  is an Anscombe’s Quartet-style situation: same top-level numbers, very different
+  underlying realities.
 </p>
 
 <p>
@@ -117,10 +121,10 @@
 
 <p>
   In this section I propose a metric of how stable one model is relative to a baseline
-  (in the AI context, I envision this being applied to quantized or distilled models, but
-  there may be other contexts where this metric is relevant); for simplicity, refer to
-  the baseline model as "V1" and the quantized model as "V2". Let the dataset contain
-  \(N\) questions. For two model versions:
+  ;in the AI context, I envision this being applied to measure how stable quantized or
+  distilled models are relative to a baseline. For simplicity, refer to the baseline
+  model as "V1" and the quantized model as "V2". Let the dataset contain \(N\) questions.
+  For two model versions:
 </p>
 
 <ul>
@@ -138,27 +142,37 @@
   <li>
     The
     <strong>minimum</strong>
-    number of questions the two models can disagree on is \(|M_2 - M_1|\) (the questions
+    number of questions the two models can disagree on is \(|M_1 - M_2|\) (the questions
     V2 gets wrong are a strict subset of the ones V1 gets right; V2 gets no new questions
     right).
   </li>
   <li>
     The
     <strong>maximum</strong>
-    number of questions the two models can disagree on is \(\min((N - M_2) + (N - M_1),
+    number of questions the two models can disagree on is \(\min((N - M_1) + (N - M_2),
     M_1 + M_2)\)
   </li>
 </ul>
 
-<p>
-  The intuition for the “minimum with \(M_1 + M_2\)" in the maximum disagreement formula
-  is: if V1 and V2 together get less than 100% of the questions right, it is possible for
-  the two versions to get completely disjoint sets of questions correct, in which case
-  they will <em>agree</em> only on the \(N - M_1 + M_2\) questions they both got wrong;
-  saying the same thing differently, they will <em>disagree</em> on the \(M_1 + M_2\)
-  questions they indivdually got right. The diagram below makes this clearer with some
-  concrete numbers:
-</p>
+<p>Diving into the \(\text{Maximum_Disagreement}\) formula:</p>
+
+<ul>
+  <li>
+    The \((N - M_1) + (N - M_2)\) branch of the formula applies when the models get
+    completely different questions wrong, as is the \((N = 100)\), \((M_1 = 85)\), \((M_2
+    = 84)\) scenario above, where it is clear that the models' maximum disagreement is
+    \((100 - 85) + (100 - 84) = 15 + 16 = 31\).
+  </li>
+  <li>
+    The intuition for the “minimum with \(M_1 + M_2\)" in the maximum disagreement
+    formula is: if V1 and V2 together get less than 100% of the questions right, it is
+    possible for the two versions to get completely disjoint sets of questions correct,
+    in which case they will <em>agree</em> only on the \(N - M_1 + M_2\) questions they
+    both got wrong; saying the same thing differently, they will <em>disagree</em> on the
+    \(M_1 + M_2\) questions they indivdually got right. The diagram below makes this
+    clearer with some concrete numbers:
+  </li>
+</ul>
 
 <figure>
   <img
@@ -167,17 +181,16 @@
   />
 </figure>
 
-<p>
-  This pair of insights naturally leads to a score that quantifies model disagreement.
-</p>
+<p></p>
 
 <h2>The Weidman Swap Score (WSS)</h2>
 
 <p>
-  We can normalize the actual observed disagreement between these bounds to create a
-  metric: the <strong>Weidman Swap Score</strong>. This is a value from 0 to 1 that
-  indicates where the actual disagreement falls relative to the minimum and maximum
-  possible disagreement. <strong>Higher is worse (less stable)</strong>:
+  This pair of insights naturally leads to a normalized score that quantifies model
+  disagreement within these two bounds: the <strong>Weidman Swap Score</strong>. This is
+  a value from 0 to 1 that indicates where the actual disagreement falls relative to the
+  minimum and maximum possible disagreement.
+  <strong>Higher is worse (less stable)</strong>:
 </p>
 
 <p>
@@ -231,11 +244,8 @@
 <p>For the values of 36 and 33:</p>
 
 <ul>
-  <li>The minimum disagreement, \(min\_dis\), is \(3\).</li>
-  <li>
-    The maximum disagreement, \(max\_dis\), is \(\min((100 - 33) + (100 - 36), 33 + 36) =
-    69\).
-  </li>
+  <li>The minimum disagreement is \(3\).</li>
+  <li>The maximum disagreement is \(\min((100 - 33) + (100 - 36), 33 + 36) = 69\).</li>
 </ul>
 
 <p>The Weidman Swap Score is:</p>
@@ -252,18 +262,20 @@
 <h2>WSS' Relevance</h2>
 
 <p>
-  WSS is most relevant when <strong>stability relative to a baseline</strong> matters. In
-  the majority of cases when comparing two models or systems, this is not of primary or
-  even secondary importance: if a new architecture results in a model having 80%
-  accuracy, over the prior version's 75% accuracy, you may not care (WSS could still be
-  informative-a high WSS might indicate the newer model has mastered different aspects of
-  whatever subject the benchmark was measuring than the older model-but it is less likely
-  to "de-risk" the new model in the same way). By contrast, in comparisons where
-  stability <em>does</em> matter, I expect WSS to be an important sanity check: if
-  accuracy drops from 85% to 84%, there likely is nothing to worry about, but if WSS is
-  also close to 1, that could indicate that the quantization or distillation has
-  introduced enough instability that the engineer may choose to experiment with other
-  methods before shipping, even if the 1% accuracy drop is considered small on its own.
+  WSS is most relevant when
+  <strong>stability of a new model version relative to a baseline model</strong> matters.
+  In the majority of cases when comparing two models or systems, this is not of primary,
+  and possibly not even of secondary, importance: if a new architecture results in a
+  model having 80% accuracy, over the prior version's 75% accuracy, you may not care (WSS
+  could still be informative-a high WSS might indicate the newer model has mastered
+  different aspects of whatever subject the benchmark was measuring than the older
+  model-but it is less likely to "de-risk" the new model in the same way). By contrast,
+  in comparisons where stability <em>does</em> matter, I expect WSS to be an important
+  sanity check: if accuracy drops from 85% to 84%, while there may be nothing to worry
+  about, if WSS is also close to 1, that could indicate that the quantization or
+  distillation has introduced enough instability that the engineer may choose to
+  experiment with other methods before shipping, even if the 1% accuracy drop is
+  considered small on its own.
 </p>
 
 <h2>Commentary and Conclusion</h2>
@@ -273,22 +285,24 @@
   distillation, for example-a lower WSS is preferable, suggesting that users of the model
   will experience more stability and need to do less work to modify any workflows that
   depend on the model behaving as they expect. As people use LLMs for more and more
-  aspects of their personal and professional lives, and as more and more agentic
-  applications are built which have LLMs at their core, I expect stability between model
-  versions to become increasingly important<sup id="fnref1"><a href="#fn1">1</a></sup>
+  aspects of their personal and professional lives, and as more and more agentic and even
+  non-agentic software systems which have LLMs as an important component, I expect
+  stability between model versions to become increasingly important<sup id="fnref1"
+    ><a href="#fn1">1</a></sup
+  >
   (though I expect absolute performance to remain paramount); thus, researchers and
   companies that employ them should get in the habit of using this score to check model
   stability and/or developing their own methods for checking this. We may even see
   scenarios where organizations decide users would prefer a model with a slightly larger
   drop in accuracy with a much lower WSS; I leave those judgment calls to the
-  researchers, product managers, and executives who have to make them.
+  researchers, product managers, engineers, and executives who have to make them.
 </p>
 
 <p>
-  I look forward to seeing what reporting of WSS uncovers about how stable or unstable
-  existing quantization and distillation methods are, and I hope it enables the industry
-  to make more informed tradeoffs between absolute performance and consistency between
-  model versions going forward.
+  In the short-to-medium term, I look forward to seeing what reporting of WSS uncovers
+  about how stable or unstable existing quantization and distillation methods are, and I
+  hope it enables the industry to make more informed tradeoffs between absolute
+  performance and consistency between model versions going forward.
 </p>
 
 <h3>Appendix: Code</h3>
@@ -311,7 +325,7 @@
     dis = swap_outs + swap_ins
 
     min_dis = abs(M2 - M1)
-    max_dis = min(M1 + M2, (N - M1) + (N - M2))
+    max_dis = min(M1 + M2, 2 * N - M1 - M2)  # 2N - M1 - M2 = (N - M1) + (N - M2)
 
     # Handle the (rare) degenerate case where min_dis == max_dis.
     if max_dis == min_dis:
@@ -340,16 +354,17 @@
   <sup>
     <a href="#fnref1">1</a>
   </sup>
-  The thinking for this post comes from my time at
+  This conclusion is influenced by my time at
   <a href="https://www.sentilink.com" target="_blank" rel="noopener noreferrer"
     >SentiLink</a
-  >, where we built fraud models used by banks and lenders. We cared a lot about
+  >, where we built fraud models used by banks and lenders. We cared a <em>lot</em> about
   stability from model version to model version because our customers did. Stability is
-  very important in regulated industries like financial services; you wouldn't want to
-  wake up one day and see that your FICO score had changed by a lot because FICO moved to
-  a slightly-more-accurate model that nevertheless resulted in a lot of swaps. I came up
-  with the idea for this specific score after leaving SentiLink and never saw this
-  specific metric computed while I was there; while we cared about model stability, we
-  did not quantize or distill models as is commonly done in more "pure AI" settings.
+  very important in regulated and/or "infrastructural" industries, of which financial
+  services is both; you wouldn't want to wake up one day and see that your FICO score had
+  changed by a lot because FICO moved to a slightly-more-accurate model that nevertheless
+  resulted in a lot of swaps. I came up with the idea for this specific score after
+  leaving SentiLink and never saw this specific metric computed while I was there (while
+  we cared about model stability, we did not quantize or distill models as is commonly
+  done in more "pure AI" settings).
   <a href="#fnref1" class="footnote-backref">↩</a>
 </p>

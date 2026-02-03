@@ -77,6 +77,10 @@ figure img {
   margin: 0 auto;
 }
 
+.figure-small img {
+  max-width: 480px;
+}
+
 /* Character strengths box styling */
 .character-strengths {
   background-color: #e6f3ff;
