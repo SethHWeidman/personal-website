@@ -9,7 +9,7 @@
 
 <figure class="post-banner">
   <img
-    src="https://sethhweidman-personal-website.s3.us-east-1.amazonaws.com/2026-02-02_quantization_swap_score/swap_ins_outs_banner_image.png"
+    src="https://sethhweidman-personal-website.s3.us-east-1.amazonaws.com/2026-02-02_quantization_swap_score/00_swap_ins_outs_banner_image.png"
     alt="Diagram showing model disagreement sets between two versions of a model."
     class="wide-image"
     loading="eager"
@@ -28,15 +28,32 @@
   is a classic example of this: these four datasets visualize the relationship between
   two variables. In each of the four cases, the variables have the same means and
   variances, and even the same correlation coefficients with each other, while visually
-  you can see four vastly different relationships. At times the AI industry seems not to
-  to have internalized this, relying too heavily on single numbers to characterize a
-  single system's performance or a comparison between two systems. One scenario where
-  this is apparent is model quantization; here, we care not only about the absolute
-  performance of the model with quantized weights, but also its stability relative to the
-  baseline model. For this and similar situations, we propose a metric, the Weidman Swap
-  Score, to quantify this behavior deviation; this score can be computed easily and is
-  relevant in any situation where stability of a modified model relative to a baseline is
-  important.
+  you can see four vastly different relationships.
+
+  <figure class="figure-small">
+    <img
+      src="https://sethhweidman-personal-website.s3.us-east-1.amazonaws.com/2026-02-02_quantization_swap_score/01_anscombes_quartet.png"
+      alt="Confusion matrices for two scenarios with an identical accuracy decrease"
+    />
+    <figcaption class="hero-caption">
+      Source:
+      <a
+        href="https://en.wikipedia.org/wiki/Anscombe%27s_quartet"
+        target="_blank"
+        rel="noopener noreferrer"
+        >Wikipedia</a
+      >
+    </figcaption>
+  </figure>
+
+  At times the AI industry seems not to to have internalized this, relying too heavily on
+  single numbers to characterize a single system's performance or a comparison between
+  two systems. One scenario where this is apparent is model quantization; here, we care
+  not only about the absolute performance of the model with quantized weights, but also
+  its stability relative to the baseline model. For this and similar situations, we
+  propose a metric, the Weidman Swap Score, to quantify this behavior deviation; this
+  score can be computed easily and is relevant in any situation where stability of a
+  modified model relative to a baseline is important.
 </p>
 
 <h2>Motivation</h2>
@@ -92,9 +109,9 @@
   <a href="https://en.wikipedia.org/wiki/Confusion_matrix">confusion matrices</a>:
 </p>
 
-<figure class="figure-small">
+<figure>
   <img
-    src="https://sethhweidman-personal-website.s3.us-east-1.amazonaws.com/2026-02-02_quantization_swap_score/01_swap_scenarios.png"
+    src="https://sethhweidman-personal-website.s3.us-east-1.amazonaws.com/2026-02-02_quantization_swap_score/02_swap_scenarios.png"
     alt="Confusion matrices for two scenarios with an identical accuracy decrease"
   />
 </figure>
@@ -345,9 +362,6 @@
         "wss": wss,
     }</code></pre>
 
-<br />
-<button onclick="window.location.href = '/'">Back to Home</button>
-
 <h3>Footnotes</h3>
 
 <p id="fn1" class="footnote">
@@ -368,3 +382,6 @@
   done in more "pure AI" settings).
   <a href="#fnref1" class="footnote-backref">↩</a>
 </p>
+
+<br />
+<button onclick="window.location.href = '/'">Back to Home</button>
