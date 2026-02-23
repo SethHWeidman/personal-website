@@ -1,0 +1,389 @@
+<h1 class="post-title">Inference Engines Pt. 1</h1>
+<p class="post-subtitle">The True Workhorses of AI</p>
+<p class="post-date">February 22, 2026</p>
+
+<p>
+  Model and model training get all the hype in AI; it is truly amazing that humanity can
+  now produce models with trillions of parameters that encode so much of human knowledge.
+  However, there is an unsung hero in moving the world forward:
+  <strong>inference engines</strong>. When you interact with ChatGPT, Claude, Gemini, or
+  Grok, you are interacting with an interconnected set of chips in a data center that
+  store many copies of these trained models and process not only your response but also
+  the responses of hundreds of thousands or millions of other users who may be
+  interacting with that model at the same time.
+</p>
+
+<p>
+  What needs to happen when you make a request? At the most basic level, your input needs
+  to be tokenized, and those tokens need to be fed through the many layers of the trained
+  model and have its tokens generated auto-regressively (one token at a time) until the
+  model decides that it's done.
+</p>
+
+<p>
+  The largest models will just barely fit on a single rack. As an example, NVIDIA's
+  latest racks, the
+  <a
+    href="https://www.nvidia.com/en-us/data-center/gb300-nvl72/"
+    target="_blank"
+    rel="noopener noreferrer"
+    >GB300 NVL72</a
+  >
+  racks, pack 36
+  <a
+    href="https://developer.nvidia.com/blog/inside-nvidia-blackwell-ultra-the-chip-powering-the-ai-factory-era/"
+    target="_blank"
+    rel="noopener noreferrer"
+    >Grace Blackwell Ultra Superchips</a
+  >, each containing two Blackwell Ultra GPUs with 288 GB of HBM3e apiece&mdash;72 GPUs
+  total, for nearly 21 TB of GPU memory; moreover, they are connected by a proprietary
+  NVIDIA technology,
+  <a
+    href="https://www.nvidia.com/en-us/data-center/nvlink/"
+    target="_blank"
+    rel="noopener
+    noreferrer"
+    >NVLink</a
+  >
+  that allows these GPUs to effectively act as one single large GPU. Taking Grok 5 as an
+  example of a model at the absolute frontier: Elon has
+  <a
+    href="https://x.com/MichaelDell/status/1990191942542745842"
+    target="_blank"
+    rel="noopener
+    noreferrer"
+    >said</a
+  >
+  it will be a 6T parameter model, which if stored in FP16 is 12 TB of memory, so that it
+  could fit on one of these "single GPU-like racks".
+</p>
+
+<h2>The KV cache</h2>
+
+<p>
+  Typically, when interacting with ChatGPT for example, you ask a question, and under the
+  hood, OpenAI will process not just your question but also the system prompt for
+  ChatGPT. So two things are processed: 1) the system prompt and 2) your question. After
+  ChatGPT produces its response, if you ask another question, it will feed back 1) the
+  system prompt, 2) your question, 3) its response, and 4) your new question. You can see
+  already that 1) and 2) are being "processed twice"; this naturally leads to the
+  question of whether we can reduce this redundancy.
+</p>
+
+<p>
+  It turns out that in the transformer layers there are three intermediate quantities
+  produced: keys, queries, and values. Each of these is produced through matrix
+  multiplications. The bulk of "attention" involves the queries for each token looking at
+  the keys and values of all past tokens. Thus, for the 1), 2), 3), and 4) example above,
+  we can cache the keys and values for 1) and 2), so that when a user types a new
+  message, those are simply read from memory on the GPU instead of being recomputed. This
+  cache becomes the
+  <strong>KV cache</strong>.
+</p>
+
+<p>
+  Much of doing inference well involves managing this KV cache: if some portion of the
+  GPU's memory is used for the model weights, some other portion must be used for storing
+  the KV cache and using it for computation.
+</p>
+
+<h2>KV cache memory management</h2>
+
+<p>
+  Which KV cache you keep on the GPUs vs. offloading to the CPU becomes important.
+  First-order algorithms such as keeping the most recently used "KV cache blocks" (more
+  on this shortly) on the GPU are a good starting point.
+</p>
+
+<p>
+  Naively, when a GPU is computing KV cache for a sequence, it might pre-allocate the
+  amount of GPU memory it thinks it will need to keep the entire KV cache for the
+  sequence contiguous in a single block. This can lead to under-allocation, which can
+  result in the expensive "allocate an even larger chunk of GPU memory, copy the data
+  over, and free the old memory" operations, which can kill latency, or over-allocation,
+  which can kill throughput.
+</p>
+
+<p>
+  Borrowing an idea from operating systems, storing the KV cache for individual sequences
+  in small blocks which can then be moved into and out of GPU memory individually avoids
+  these memory allocation issues and results in higher GPU memory utilization and thus
+  higher throughput. This is a technique known as "PagedAttention", introduced by the
+  team behind
+  <a
+    href="https://github.com/vllm-project/vllm"
+    target="_blank"
+    rel="noopener noreferrer"
+    >vLLM</a
+  >. The
+  <a href="https://arxiv.org/abs/2309.06180" target="_blank" rel="noopener noreferrer"
+    >original PagedAttention paper</a
+  >
+  showed that if KV cache is stored the naive way, GPU memory utilization can be as low
+  as 20% of what it could be! This not only improves throughput; it also reduces the
+  amount of "Time to First Token".
+</p>
+
+<p>
+  Breaking up the KV cache into blocks, and further storing it in clever data structures,
+  can result in further optimizations. Suppose another user interacts with ChatGPT; if
+  the <strong>inference engine</strong> as a whole stores a mapping between KV cache
+  <em>sequences</em> that have already been computed, then another user can take
+  advantage of the already-computed KV cache of that other sequence to move faster in
+  producing the answer to its own query. This technique is called
+  <a href="https://arxiv.org/abs/2312.07104" target="_blank" rel="noopener noreferrer"
+    >RadixAttention</a
+  >, introduced in
+  <a
+    href="https://github.com/sgl-project/sglang"
+    target="_blank"
+    rel="noopener noreferrer"
+    >SGLang</a
+  >, which maintains an LRU cache of the KV cache for all requests in a radix tree. When
+  a new request comes in, we can quickly look up in this tree to see if the sequence of
+  tokens in the new request corresponds to a chunk of KV cache that has already been
+  computed.
+</p>
+
+<h2>Batching and the throughput-interactivity tradeoff</h2>
+
+<p>
+  Speaking of multiple users: you are likely aware that neural networks are trained in
+  batches; given that the bulk of neural network computation is matrix multiplication,
+  and GPUs love matrix multiplications, batches are a great way to get more throughput in
+  your system since computation time per sequence processed decreases with the number of
+  sequences. We can apply a similar concept to inference: when getting a new request in,
+  instead of processing it immediately, we can wait a (hopefully) small amount of time to
+  batch it with other sequences so that our GPU can process those sequences in one batch.
+</p>
+
+<p>
+  This brings up a natural tradeoff: using small batch sizes means that for individual
+  requests that come in, we can generate tokens very quickly. However, while an
+  individual GPU is processing this request for a single user or small number of users,
+  it is foregoing an opportunity to serve a larger number of users by waiting for that
+  larger batch.
+</p>
+
+<p>
+  We say there is a fundamental tradeoff between operating inference engines with high
+  <em>interactivity</em> - primarily "tokens per second per user", though there's a
+  critical secondary component to interactivity discussed below - by using small batch
+  sizes, versus high <em>throughput</em> - high tokens per second per GPU.
+</p>
+
+<h2>The economics</h2>
+
+<p>
+  When GPU buyers, whether the major clouds like AWS, Azure, GCP, and OCI, or large
+  companies like Meta or xAI, evaluate different chips for inference (NVIDIA GPUs, AMD
+  GPUs, or custom silicon), the decision over a 3-to-5-year lifecycle ultimately boils
+  down to a single, uncompromising metric:
+  <strong>Cost per unit of "goodput"</strong>. Everything else flows from this.
+</p>
+
+<p>
+  Goodput is: tokens produced while meeting target levels of <em>both</em> components of
+  interactivity: 1) tokens per second, which is what users feel most acutely and is a
+  function of decode, and 2) time to first token, which is the time that the prefill
+  stage takes. You can think of Goodput as "throughput given that you are meeting your
+  interactivity targets". Buyers want to know this Goodput divided by
+  <strong>Total Cost of Ownership (TCO)</strong>, which incorporates both the initial
+  CapEx of the chips and networking fabric and the OpEx of power draw, cooling, and
+  maintenance. This metric can "cut either way": an extremely powerful rack of chips that
+  consumes a ton of power, fails often and requires highly-trained specialists to bring
+  it back online when it does fail may have sufficiently high TCO to not make it worth
+  it; on the other hand a cheap set of chips that simply can't churn out as many tokens
+  per GPU because its chips aren't linked together with advanced networking such as
+  NVLink/InfiniBand and thus can't power an <strong>inference engine</strong> to
+  efficiently do the disaggregated prefill/decode routing we'll discuss shortly may not
+  work either.
+</p>
+
+<h2>Prefill and decode</h2>
+
+<p>
+  Now that we've covered the economics, let's go back to covering the software that makes
+  inference engines work. As you may be able to extract from above, there are two
+  "phases" of doing inference on a given request, and these phases are known as
+  <strong>prefill</strong> and <strong>decode</strong>.
+</p>
+
+<p>
+  <strong>Prefill</strong> involves computing the KV cache for a request, given its
+  tokens. <strong>Decode</strong> involves repeatedly reading the KV cache from HBM on
+  the GPU into the Streaming Multiprocessors where the computation happens.
+</p>
+
+<p>These have very different characteristics:</p>
+
+<ul>
+  <li>
+    <strong>Prefill</strong> can be greatly parallelized since, given the way attention
+    works, the KV caches for all tokens can be computed at once. Prefill is most
+    sensitive to the length of the <em>input</em> passed in. A request to summarize a
+    100-page PDF in one page would have an extremely long prefill stage.
+  </li>
+  <li>
+    <strong>Decode</strong> can be parallelized much less: it involves doing a sequence
+    of repeatedly reading KV cache from memory, doing a small amount of computation, and
+    re-storage in memory&mdash;the KV cache for the new token you're computing must be
+    computed and appended to the rest of the KV cache in the sequence. Unlike prefill,
+    this <em>must</em> be done in sequence. Decode is most sensitive to the length of the
+    <em>output</em> sequence.
+  </li>
+</ul>
+
+<h2>Disaggregated serving</h2>
+
+<p>
+  The fact that prefill and decode have such different characteristics leads to the idea
+  of using <strong>separate GPU pools</strong>. If the inference engine starts getting
+  more requests requiring extensive prefill, so that time to first token increases, the
+  engine can shift resources from the decode pool to the prefill pool. If it starts
+  getting requests requiring extensive decode, so that "time per output token" or "inter
+  token latency" increases, it can similarly shift resources from prefill to decode.
+</p>
+
+<p>
+  Compared to doing both the prefill and decode stages on one GPU or rack of GPUs, having
+  separate prefill and decode pools (which is known as "disaggregated serving") does
+  introduce one additional step: the need to transfer the KV cache from the prefill stage
+  to the decode stage once it has been computed.
+</p>
+
+<p>
+  NVIDIA's
+  <a
+    href="https://www.nvidia.com/en-us/ai/dynamo/"
+    target="_blank"
+    rel="noopener noreferrer"
+    >Dynamo</a
+  >
+  inference framework includes
+  <a href="https://github.com/ai-dynamo/nixl" target="_blank" rel="noopener noreferrer"
+    >NIXL</a
+  >, a library purpose-built for fast KV cache transfer between disaggregated prefill and
+  decode pools. NIXL leverages GPUDirect RDMA over high-speed datacenter fabrics (like
+  <a
+    href="https://www.nvidia.com/en-us/networking/quantum2/"
+    target="_blank"
+    rel="noopener noreferrer"
+    >InfiniBand</a
+  >), allowing decode-pool GPUs to read KV cache directly from prefill-pool GPU memory
+  with minimal latency, significantly mitigating the overhead of this extra transfer
+  step. These technologies widen the gap between inference engines that use disaggregated
+  serving and those that don't.
+</p>
+
+<h2>Parallelism strategies</h2>
+
+<p>
+  The different compute requirements for the prefill and decode stages lead to another
+  way we can "configure" the prefill and decode pools differently for optimal
+  performance: we can use several kinds of parallelism for prefill, and, with very recent
+  innovations in NVIDIA's racks, we can even apply some parallelism to decode to get more
+  speedups there.
+</p>
+
+<p>
+  Because all tokens are computed in parallel during prefill, we can use multiple kinds
+  of parallelism:
+</p>
+
+<ul>
+  <li>
+    <strong>Tensor Parallelism</strong>: splitting large weight matrices across different
+    GPUs or GPU racks.
+  </li>
+  <li>
+    <strong>Pipeline Parallelism</strong>: needed in setups where the model's weights do
+    not fit in a single GPU or GPU rack. Different layers are put on different GPUs so
+    that the entire model is served in a sort of "pipeline".
+  </li>
+  <li>
+    <strong>Expert Parallelism</strong>: many leading-edge models are now "Mixture of
+    Experts" (MoE) models. This is an architecture where some layers in the model may
+    have 10 or 20 different "experts"&mdash;sequences of computation, typically two
+    linear layers in a row&mdash;with only 1&ndash;2 of those "experts" chosen by the
+    model at each step. This leads to scenarios where a small fraction of the model's
+    parameters are "activated" during generation of each token. For example,
+    <a
+      href="https://docs.z.ai/guides/llm/glm-4.5"
+      target="_blank"
+      rel="noopener noreferrer"
+      >GLM 4.7</a
+    >, one of the most recent "buzzy" AI models, has 355B parameters with just 32B active
+    at any time.
+  </li>
+</ul>
+
+<p>
+  <strong
+    >Prefill is "compute-bound" and generally likes GPUs configured for
+    parallelism</strong
+  >
+  because we can overlap computation with communication. This means that, if we use
+  Tensor Parallelism for example, while we are sending activations from GPU to GPU for
+  computation (the "communication" step) we can be doing other computations relevant for
+  the prefill stage. In practice, optimal prefill configurations use multiple parallelism
+  strategies simultaneously: for a
+  <a
+    href="https://developer.nvidia.com/blog/demystifying-ai-inference-deployments-for-trillion-parameter-large-language-models/"
+    target="_blank"
+    rel="noopener noreferrer"
+    >GPT 1.8T MoE model on 64 GPUs</a
+  >, NVIDIA found the best throughput at human reading speed using "TP2EP16PP2", meaning:
+</p>
+
+<ul>
+  <li>The model was split into two pipeline parallel groups.</li>
+  <li>
+    <em>Within those pipeline parallel groups</em>, the expert weights were distributed
+    across 16 different expert parallel groups, with each token routed to whichever group
+    has the weights for the experts to which that token was routed.
+  </li>
+  <li>
+    <em>Within each of these expert groups</em>, each of the sets of expert weights is
+    sharded across two GPUs; as it turns out, when expert parallelism is combined with
+    tensor parallelism in this way, each expert parallel group keeps a copy of
+    <em>all</em> the attention weights on its GPUs and shards them within these GPUs.
+  </li>
+</ul>
+
+<p>
+  <strong
+    >By contrast, decode is "memory-bound" and generally doesn't like parallelism</strong
+  >: since it is a long series of small computations, we cannot overlap computation with
+  communication in the same way. However, recent advances in GPU-to-GPU communication
+  especially the NVLink fabric connecting the 72 GPUs of a Blackwell rack have made it so
+  using "wide expert parallelism" during decode, though it may make decode for individual
+  sequences slightly slower (lower interactivity), by putting fewer experts on each GPU,
+  it allows for much greater throughput during decode. Specifically, with
+  <a
+    href="https://huggingface.co/deepseek-ai/DeepSeek-R1"
+    target="_blank"
+    rel="noopener noreferrer"
+    >DeepSeek R1</a
+  >, NVIDIA
+  <a
+    href="https://developer.nvidia.com/blog/scaling-large-moe-models-with-wide-expert-parallelism-on-nvl72-rack-scale-systems/"
+    target="_blank"
+    rel="noopener noreferrer"
+    >found</a
+  >
+  that moving from "EP8" to "EP32" resulted in a 1.8x increase in throughput at the same
+  level of interactivity.
+</p>
+
+<h2>What's next</h2>
+
+<p>
+  That's it for this blog post. In my next post, I'll cover two techniques that are
+  critical to <strong>inference engines</strong> that work
+  <em>even without</em> disaggregated serving: <strong>quantization</strong> and
+  <strong>speculative decoding</strong>.
+</p>
+
+<br />
+<button onclick="window.location.href = '/'">Back to Home</button>

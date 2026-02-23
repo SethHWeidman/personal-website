@@ -365,6 +365,21 @@ app.get("/blog/flash_attention_1.html", (req, res) => {
   );
 });
 
+app.get("/blog/inference_engines.html", (req, res) => {
+  res.send(
+    renderHTML(
+      "Inference Engines Pt. 1",
+      `
+      ${loadView("blog/inference_engines.html")}
+      `,
+    ),
+  );
+});
+
+app.get("/blog/inference_engines", (req, res) => {
+  res.redirect(301, "/blog/inference_engines.html");
+});
+
 // Fetch the visitor log and render the page
 app.get("/visitor-log", async (req, res) => {
   try {
