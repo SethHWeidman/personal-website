@@ -244,12 +244,12 @@
     100-page PDF in one page would have an extremely long prefill stage.
   </li>
   <li>
-    <strong>Decode</strong> can be parallelized much less: it involves doing a sequence
-    of repeatedly reading KV cache from memory, doing a small amount of computation, and
-    re-storage in memory&mdash;the KV cache for the new token you're computing must be
-    computed and appended to the rest of the KV cache in the sequence. Unlike prefill,
-    this <em>must</em> be done in sequence. Decode is most sensitive to the length of the
-    <em>output</em> sequence.
+    <strong>Decode</strong> can be parallelized much less. It is an autoregressive loop:
+    for each new token, the GPU reads the existing KV cache (the stored keys/values for
+    prior tokens), computes the next-token step (including attention using the new
+    token’s query), and then appends the new token’s keys/values to the KV cache for the
+    sequence. Unlike prefill, this <em>must</em> be done in sequence. Decode is most
+    sensitive to the length of the <em>output</em> sequence.
   </li>
 </ul>
 
