@@ -55,8 +55,27 @@
     >said</a
   >
   it will be a 6T parameter model, which if stored in FP16 is 12 TB of memory, so that it
-  could fit on one of these "single GPU-like racks".
+  could fit on one of these "single GPU-like racks". With the 300K+ GPUs they claim to
+  have in their data center, assuming they use 80% of that for inference, that means
+  they'll have roughly 6,000 copies of Grok 5 running in parallel across the cluster,
+  serving requests!
 </p>
+
+<figure>
+  <img
+    src="https://sethhweidman-personal-website.s3.us-east-1.amazonaws.com/2026-02-23_inference_engines/01_xai_cluster.png"
+    alt="xAI Computing Cluster"
+  />
+  <figcaption class="hero-caption">
+    Source:
+    <a
+      href="https://x.com/xai/status/2021667200885829667"
+      target="_blank"
+      rel="noopener noreferrer"
+      >xAI All Hands</a
+    >, February 11, 2026
+  </figcaption>
+</figure>
 
 <h2>The KV cache</h2>
 
