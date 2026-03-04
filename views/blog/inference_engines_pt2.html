@@ -1,0 +1,179 @@
+<h1 class="post-title">Inference Engines Pt. 2</h1>
+<p class="post-subtitle">Quantization and Speculative Decoding</p>
+<p class="post-date">March 4, 2026</p>
+
+<p>
+  In <a href="/blog/inference_engines.html">Part 1</a>, we defined what inference engines
+  were and showed some techniques fundamental to making them work:
+</p>
+
+<ul>
+  <li>KV Caching</li>
+  <li>
+    PagedAttention (for making the "ITL" part of decode faster and enabling higher
+    throughput)
+  </li>
+  <li>
+    RadixAttention (for making both the prefill and the "TTFT" part of decode faster by
+    letting the inference engine check if the KV cache for a sequence has already been
+    computed)
+  </li>
+</ul>
+
+<p>We also covered the interrelated ideas of:</p>
+
+<ul>
+  <li>The various types of parallelism</li>
+  <li>
+    How using different types of parallelism during prefill and decode leads to the idea
+    of "disaggregated serving": using different GPU pools for the "prefill" and "decode"
+    stages of inference
+  </li>
+</ul>
+
+<p>
+  Finally, we teased that in this blog post we would cover two concepts: quantization and
+  speculative decoding, and how they can further enhance inference.
+</p>
+
+<h2>Quantization</h2>
+
+<p>
+  Quantization involves storing numeric components of the inference engine, most
+  importantly:
+</p>
+
+<ul>
+  <li>The model weights</li>
+  <li>The KV cache</li>
+</ul>
+
+<p>in a lower precision number format that takes up less memory. The result is that:</p>
+
+<ul>
+  <li>
+    Model weights take up less memory on GPUs, allowing for parallelism configurations
+    that would not otherwise be possible and greater throughput by being able to process
+    more sequences' KV cache at once.
+  </li>
+  <li>
+    KV cache can be read into memory more quickly during the part of decode where tokens
+    are being produced.
+  </li>
+</ul>
+
+<p>
+  That's the basic idea: we can achieve much stronger throughput / interactivity while
+  only sacrificing a small amount of accuracy.
+</p>
+
+<p>
+  When quantizing a high range number format like FP16 down to a lower range number
+  format like FP8, INT4, or NVFP4 we need to do a few things at once:
+</p>
+
+<ul>
+  <li>
+    The actual "scaling down"; this involves choosing a "zero point" and a "scaling
+    factor" for each group of numbers we want to quantize. These scaling factors are then
+    stored along with the quantized numbers so that we can "upscale" them later.
+  </li>
+  <li>
+    We also need to handle outliers: if a range of numbers in a high range format has an
+    outlier, and we quantize naively, we risk compressing down the list of numbers so
+    much that we lose information contained in the variance of the non-outlier numbers.
+  </li>
+</ul>
+
+<p>
+  Thus, different quantization techniques provide tradeoffs between additional memory
+  usage (by saving more scaling factors) primarily as well as code complexity secondarily
+  on the one hand, and information preservation on the other hand. This is precisely
+  analogous to how quantization itself presents a tradeoff between accuracy and memory
+  savings at a higher level.
+</p>
+
+<h2>Speculative decoding</h2>
+
+<p>
+  Decode is autoregressive: we have to generate tokens one at a time. What if we could
+  work around this bottleneck, producing multiple tokens at once? Multiple variants of
+  "speculative decoding" aim to do this.
+</p>
+
+<p>
+  The standard speculative decoding variant runs another model in parallel with the main
+  model. This smaller model may have ~1/10 the parameters of the main model and thus will
+  take ~1/10 of the time to produce a single token. This model can be trained to predict
+  <em>multiple future tokens at once</em>: suppose it has been trained to predict the
+  next five tokens, for example. Each time we need one single new token, this smaller
+  model predicts the next five; the larger model can then "<em>verify</em>"
+  <em>all five of these tokens in a single forward pass</em>, taking only slightly more
+  time to do this verification than it would take to produce one single new token and
+  taking <em>much</em> less time than it would take to produce even two tokens.
+</p>
+
+<p>
+  The larger model checks&mdash;in parallel&mdash;if it agrees with each of the five
+  tokens the smaller model has produced. It tries to "accept" as many tokens as it can,
+  beginning with the first one. "Accepting" here basically means that it agrees that that
+  token is the most likely token (there are other techniques that allow the model to
+  accept tokens with some probability even if they are not the most likely one). If the
+  larger model accepts the first three tokens the smaller model has proposed, for
+  example, it then only needs to produce the last two. This can mean that, taken
+  together, in expectation, tokens take less time to be produced, speeding up the "ITL"
+  portion of decode.
+</p>
+
+<p>
+  This is "classical" speculative decoding. There are other more recent variants that
+  greatly optimize this:
+</p>
+
+<ol>
+  <li>
+    <strong>Medusa</strong>: rather than using a separate model, "Medusa" is a technique
+    that takes a base model and adds heads to the second to last layer that predict
+    multiple future tokens. These "Medusa heads" can then be used <em>in place of</em>
+    the separate speculative decoding model. Given a base model, adding Medusa heads and
+    training them to act as a supplementary speculative decoding model is do-able with at
+    most days of training on a modern multi-GPU system. Nevertheless, this has tradeoffs
+    relative to regular speculative decoding: it takes longer to do the "speculative"
+    predictions, since we're dealing with a larger "base model", but it takes less memory
+    to serve Medusa heads. See the
+    <a
+      href="https://github.com/FasterDecoding/Medusa"
+      target="_blank"
+      rel="noopener noreferrer"
+      >GitHub project</a
+    >
+    for more.
+  </li>
+  <li>
+    <strong>MTP (Multi-Token Prediction)</strong>: yet another innovation with roots in
+    the Chinese open source community, MTP goes even more "upstream" into modifying the
+    base model and involves
+    <em>training the base model to predict multiple tokens at a time</em>. This allows
+    the model, during actual inference, to itself predict several tokens ahead
+    <em>without needing to be fine tuned or needing separate heads</em>.
+  </li>
+</ol>
+
+<hr />
+
+<p>Here are blog posts where you can read more:</p>
+
+<ul>
+  <li>
+    <a
+      href="https://developer.nvidia.com/blog/model-quantization-concepts-methods-and-why-it-matters/"
+      target="_blank"
+      rel="noopener noreferrer"
+      >Model Quantization: Concepts, Methods, and Why It Matters</a
+    >
+    (NVIDIA Developer Blog)
+  </li>
+</ul>
+
+<br />
+<button onclick="window.location.href = '/'">Back to Home</button>

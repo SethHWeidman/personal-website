@@ -380,6 +380,21 @@ app.get("/blog/inference_engines", (req, res) => {
   res.redirect(301, "/blog/inference_engines.html");
 });
 
+app.get("/blog/inference_engines_pt2.html", (req, res) => {
+  res.send(
+    renderHTML(
+      "Inference Engines Pt. 2",
+      `
+      ${loadView("blog/inference_engines_pt2.html")}
+      `,
+    ),
+  );
+});
+
+app.get("/blog/inference_engines_pt2", (req, res) => {
+  res.redirect(301, "/blog/inference_engines_pt2.html");
+});
+
 // Fetch the visitor log and render the page
 app.get("/visitor-log", async (req, res) => {
   try {
