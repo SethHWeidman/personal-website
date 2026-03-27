@@ -323,15 +323,15 @@
   <li>
     <strong>Expert Parallelism</strong>: many leading-edge models are now "Mixture of
     Experts" (MoE) models. This is an architecture where some layers in the model may
-    have 10 or 20 different "experts"&mdash;sequences of computation, typically two
-    linear layers in a row&mdash;with only 1&ndash;2 of those "experts" chosen by the
-    model at each step. This leads to scenarios where a small fraction of the model's
-    parameters are "activated" during generation of each token. For example,
+    have dozens or even hundreds of different "experts"&mdash;sequences of computation,
+    typically two linear layers in a row&mdash;with only a small subset chosen by the
+    model at each step. This leads to scenarios where only a small fraction of the
+    model's parameters are "activated" during generation of each token. For example,
     <a
       href="https://docs.z.ai/guides/llm/glm-4.5"
       target="_blank"
       rel="noopener noreferrer"
-      >GLM 4.7</a
+      >GLM 4.5</a
     >, one of the most recent "buzzy" AI models, has 355B parameters with just 32B active
     at any time.
   </li>
@@ -374,11 +374,25 @@
   <strong
     >By contrast, decode is "memory-bound" and generally doesn't like parallelism</strong
   >: since it is a long series of small computations, we cannot overlap computation with
-  communication in the same way. However, recent advances in GPU-to-GPU communication
-  especially the NVLink fabric connecting the 72 GPUs of a Blackwell rack have made it so
-  using "wide expert parallelism" during decode, though it may make decode for individual
-  sequences slightly slower (lower interactivity), by putting fewer experts on each GPU,
-  it allows for much greater throughput during decode. Specifically, with
+  communication in the same way. However, recent advances in GPU-to-GPU communication,
+  especially the NVLink fabric connecting the 72 GPUs of a Blackwell rack, have made
+  "wide expert parallelism" during decode viable and highly beneficial.
+</p>
+
+<p>
+  Why does this help? With narrow EP (say EP8 for GLM 4.5's 128 experts), each GPU owns
+  16 experts. On each decode step, the GPU must cycle through whichever of those expert
+  weight sets received routed tokens, loading each set of weights and doing a small
+  amount of computation before switching to the next. With wide EP (say EP32), each GPU
+  owns only 4 experts, so it spends far less time switching among distinct expert weight
+  sets and more time doing useful computation. The effect compounds as concurrency
+  increases: under narrow EP, adding more sequences tends to activate more of the GPU's
+  many local experts, increasing the costly weight-switching overhead; under wide EP, the
+  GPU's few local experts are already active, so extra sequences mostly add more tokens
+  to those same experts, and the GPU handles that kind of work efficiently. This is why
+  wide EP produces a better throughput-to-interactivity tradeoff, though it does require
+  a strong enough interconnect to absorb the extra all-to-all communication cost of
+  routing tokens across more GPUs. Specifically, with
   <a
     href="https://huggingface.co/deepseek-ai/DeepSeek-R1"
     target="_blank"
@@ -400,7 +414,7 @@
     >recent SemiAnalysis X post</a
   >
   reinforces that many leading chip makers and model makers are realizing the benefits of
-  wide-EP.
+  wide EP.
 </p>
 
 <h2>What's next</h2>
