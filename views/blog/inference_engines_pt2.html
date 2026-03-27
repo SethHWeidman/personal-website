@@ -150,9 +150,15 @@
     for more.
   </li>
   <li>
-    <strong>MTP (Multi-Token Prediction)</strong>: yet another innovation with roots in
-    the Chinese open source community, MTP goes even more "upstream" into modifying the
-    base model and involves
+    <strong>MTP (Multi-Token Prediction)</strong>: first
+    <a
+      href="https://arxiv.org/abs/2404.19737"
+      target="_blank"
+      rel="noopener noreferrer"
+      >proposed by Meta in 2024</a
+    >
+    and subsequently adopted by DeepSeek in their V3 and R1 models, MTP goes even more
+    "upstream" into modifying the base model and involves
     <em>training the base model to predict multiple tokens at a time</em>. This allows
     the model, during actual inference, to itself predict several tokens ahead
     <em>without needing to be fine tuned or needing separate heads</em>.
