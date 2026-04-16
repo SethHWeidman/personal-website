@@ -258,8 +258,7 @@
 <p>
   This memory bottleneck is exactly what <strong>FlashAttention</strong> targets. Working
   within the memory hierarchy of GPUs, using a very similar tiling strategy to the one
-  described <a href="https://www.sethweidman.com/blog/cuda_matmul.html">here</a>, as well
-  as the elegant "<a href="https://www.sethweidman.com/blog/streaming_softmax.html"
+  described <a href="/blog/cuda_matmul.html">here</a>, as well as the elegant "<a href="/blog/streaming_softmax.html"
     >streaming softmax</a
   >" trick, it brings the attention computation down from \(O(L^2)\) memory to \(O(L)\)
   memory. Without tricks like FlashAttention, we might not be able to have LLMs with

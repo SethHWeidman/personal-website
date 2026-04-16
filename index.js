@@ -77,8 +77,10 @@ app.use(express.urlencoded({ extended: true }));
 // Redirect all HTTP traffic to HTTPS in production only
 if (isProduction) {
   app.use((req, res, next) => {
-    if (req.header("x-forwarded-proto") !== "https") {
-      return res.redirect(`https://${req.header("host")}${req.url}`);
+    if (getForwardedHeaderValue(req, "x-forwarded-proto") !== "https") {
+      const host =
+        getForwardedHeaderValue(req, "x-forwarded-host") || req.header("host");
+      return res.redirect(`https://${host}${req.url}`);
     }
     next();
   });
@@ -114,6 +116,22 @@ function escapeHtmlAttr(value) {
 
 function renderHeadParts(...parts) {
   return parts.filter(Boolean).join("\n");
+}
+
+function getForwardedHeaderValue(req, headerName) {
+  return (req.header(headerName) || "").split(",")[0].trim();
+}
+
+function getRequestOrigin(req) {
+  const proto =
+    getForwardedHeaderValue(req, "x-forwarded-proto") ||
+    req.protocol ||
+    "https";
+  const host =
+    getForwardedHeaderValue(req, "x-forwarded-host") ||
+    req.header("host") ||
+    "";
+  return `${proto}://${host}`;
 }
 
 function renderMathJaxHead() {
@@ -208,7 +226,7 @@ function renderSocialCards({
 app.get("/", (req, res) => {
   res.send(
     renderHTML(
-      "Seth Weidman's Website",
+      "Seth's Website",
       `
       ${loadView("home.html")}
       `,
@@ -281,7 +299,7 @@ app.get("/blog/cuda_matmul.html", (req, res) => {
       title,
       description:
         "An illustrated walkthrough of how CUDA shared-memory tiling speeds up matrix multiplication on the GPU.",
-      url: "https://www.sethweidman.com/blog/cuda_matmul.html",
+      url: `${getRequestOrigin(req)}/blog/cuda_matmul.html`,
       image:
         "https://sethhweidman-personal-website.s3.us-east-1.amazonaws.com/2025-11-29_cuda-matmul/banner-image.png",
     }),
@@ -305,7 +323,7 @@ app.get("/blog/streaming_softmax.html", (req, res) => {
       title,
       description:
         "A beautiful trick that lets us compute softmax-related vector functions in a 'streaming' fashion.",
-      url: "https://www.sethweidman.com/blog/streaming_softmax.html",
+      url: `${getRequestOrigin(req)}/blog/streaming_softmax.html`,
       image:
         "https://sethhweidman-personal-website.s3.us-east-1.amazonaws.com/2025-12-12_streaming-softmax/banner-image.png",
     }),
@@ -330,7 +348,7 @@ app.get("/blog/multihead_attention.html", (req, res) => {
       title,
       description:
         "An illustrated walkthrough of self-attention and multi-head attention, motivating where FlashAttention fits in.",
-      url: "https://www.sethweidman.com/blog/multihead_attention.html",
+      url: `${getRequestOrigin(req)}/blog/multihead_attention.html`,
       image:
         "https://sethhweidman-personal-website.s3.us-east-1.amazonaws.com/2025-12-29_attention/banner-image.png?v=1",
       imageAlt:

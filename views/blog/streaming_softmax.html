@@ -32,7 +32,7 @@
   out, streaming the second of these, "softmax dot", is an essential component of the
   whole family of FlashAttention algorithms (a family of GPU kernels that compute
   attention using a "tiling" approach similar to the one described
-  <a href="https://www.sethweidman.com/blog/cuda_matmul.html">here</a>). Instead of
+  <a href="/blog/cuda_matmul.html">here</a>). Instead of
   diving into "softmax dot", we'll start by showing how the core trick works in the even
   simpler setting of "the sum of scaled exponentials".
 </p>
@@ -312,7 +312,7 @@
 
 <p>
   The block-by-block computation of the softmax-dot operation, along with the
-  <a href="https://www.sethweidman.com/blog/cuda_matmul.html">tiling approach</a>
+  <a href="/blog/cuda_matmul.html">tiling approach</a>
   discussed in my previous post is the secret sauce behind the massive speedups seen in
   FlashAttention. In a future post and/or implementation, we'll put these ideas together
   to show how a fuller version of FlashAttenion works.
